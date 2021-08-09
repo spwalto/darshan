@@ -4,11 +4,17 @@
 
 ACLOCAL_AMFLAGS = -I ../maint/config
 
-AM_CPPFLAGS = -I${top_srcdir}/../include
+LDMS_LIBS = -lldmsd_stream -lldms -lovis_json -lcoll -lldms_sps
+#ldms_dir = /opt/ovis
+ldms_dir = /projects/ovis/darshanConnector/ovis-sps/LDMS_install
+#LDFLAGS += -L${ldms_dir}/lib64 -Wl,-rpath=${ldms_dir}/lib64
+LDMS_LD_FLAGS = -L${ldms_dir}/lib -Wl,-rpath=${ldms_dir}/lib
+
+AM_CPPFLAGS = -I${top_srcdir}/../include -I${ldms_dir}/include
 
 SUBDIRS = darshan-job-summary
 
-lib_LTLIBRARIES = libdarshan-util.la
+lib_LTLIBRARIES = libdarshan-util.la $(LDMS_LIBS) $(LDMS_LD_FLAGS)
 
 libdarshan_util_la_SOURCES = darshan-null-logutils.c \
                              darshan-logutils.c \
