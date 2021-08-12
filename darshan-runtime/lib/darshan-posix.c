@@ -239,6 +239,7 @@ static int darshan_mem_alignment = 1;
     _POSIX_RECORD_OPEN(__ret, __rec_ref, __mode, __tm1, __tm2, 1, -1); \
     darshan_instrument_fs_data(__rec_ref->fs_type, __newpath, __ret); \
     if(__newpath != __path) free(__newpath); \
+    dxt_darshan_ldms_set_filename((char *)__path);\
 } while(0)
 
 #define POSIX_RECORD_REFOPEN(__ret, __rec_ref, __tm1, __tm2, __ref_counter) do { \
@@ -1908,6 +1909,12 @@ static void posix_runtime_initialize()
 
     /* allow DXT module to initialize if needed */
     dxt_posix_runtime_initialize();
+
+#ifdef HAVE_DXT_LDMS
+    /* check if DXT LDMS is enabled and intialize LDMSD if it is*/
+    if(strcmp(getenv("DXT_ENABLE_LDMS"),"1")==0)
+        dxt_darshan_ldms_connector_initialize();
+#endif
 
     return;
 }

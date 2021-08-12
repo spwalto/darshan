@@ -84,6 +84,8 @@ if test "x$enable_darshan_runtime" = xyes ; then
 
    dnl runtime libraries require zlib
    CHECK_ZLIB
+   
+   CHECK_LDMS
 
    AC_ARG_ENABLE([ld-preload],
       [AS_HELP_STRING([--disable-ld-preload],
@@ -96,12 +98,12 @@ if test "x$enable_darshan_runtime" = xyes ; then
 
    AC_ARG_ENABLE([cuserid],
       [AS_HELP_STRING([--disable-cuserid],
-                      [Disables attempted use of cuserid() at run time])],
+		      [Disables attempted use of cuserid() at run time])],
       [], [enable_cuserid=yes]
    )
    if test "x$enable_cuserid" = "xno" ; then
       AC_DEFINE([__DARSHAN_DISABLE_CUSERID], 1,
-                [Define if cuserid() should be disabled])
+		[Define if cuserid() should be disabled])
    fi
 
    AC_ARG_ENABLE([group-readable-logs],

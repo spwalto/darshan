@@ -35,6 +35,15 @@
 #include "darshan-dynamic.h"
 #include "darshan-dxt.h"
 
+/* Check for LDMS libraries if Darshan is built --with-dxt-ldms */
+//#include <ldms/ldms_sps.h>
+#ifdef HAVE_DXT_LDMS
+#include <ldms/ldms.h>
+#include <ldms/ldmsd_stream.h>
+#include <ovis_util/util.h>
+#include "ovis_json/ovis_json.h"
+#endif
+
 #ifndef HAVE_OFF64_T
 typedef int64_t off64_t;
 #endif
@@ -139,6 +148,20 @@ struct dxt_trigger_info
     } u;
 };
 
+#ifdef HAVE_DXT_LDMS
+/* Part of the DarshanConnector (i.e. LDMS and Darshan Integration). This function sends DXT module data from json buffer to ldmsd_streams daemon. */
+static void dxt_darshan_ldms_connector_send(uint64_t rec_id, int64_t record_count, char *rw, int64_t rank, char *hostname, int64_t offset, int64_t length, double start_time, double end_time, char *mod_name);
+
+/* Initialize ldms streams daemon */
+//struct ldms_sps *ln = NULL;
+static ldms_t ldms_g = NULL;
+#endif
+
+/* Initialize and set filename to add to json message if LDMS is enabled. */
+const char *filename;
+void dxt_darshan_ldms_set_filename(const char *tmp_filename){
+    filename = tmp_filename;
+}
 /* internal helper routines */
 static int dxt_should_trace_rank(
     int rank);
@@ -402,6 +425,180 @@ void dxt_mpiio_runtime_initialize()
     return;
 }
 
+#ifdef HAVE_DXT_LDMS
+static sem_t conn_sem;
+static int conn_status;
+static sem_t recv_sem;
+struct timespec ts;
+int to;
+int server_rc;
+static void event_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
+{
+        switch (e->type) {
+        case LDMS_XPRT_EVENT_CONNECTED:
+                sem_post(&conn_sem);
+                conn_status = 0;
+                break;
+        case LDMS_XPRT_EVENT_REJECTED:
+                ldms_xprt_put(x);
+                conn_status = ECONNREFUSED;
+                break;
+        case LDMS_XPRT_EVENT_DISCONNECTED:
+                ldms_xprt_put(x);
+                conn_status = ENOTCONN;
+                break;
+        case LDMS_XPRT_EVENT_ERROR:
+                conn_status = ECONNREFUSED;
+                break;
+        case LDMS_XPRT_EVENT_RECV:
+                sem_post(&recv_sem);
+                server_rc = ldmsd_stream_response(e);
+                break;
+        default:
+                printf("Received invalid event type %d\n", e->type);
+        }
+}
+
+ldms_t setup_connection(const char *xprt, const char *host,
+                        const char *port, const char *auth)
+{
+        char hostname[PATH_MAX];
+        const char *timeout = "5";
+        int rc;
+
+        if (!host) {
+                if (0 == gethostname(hostname, sizeof(hostname)))
+                        host = hostname;
+        }
+        if (!timeout) {
+                ts.tv_sec = time(NULL) + 5;
+                ts.tv_nsec = 0;
+        } else {
+                to = atoi(timeout);
+                if (to <= 0)
+                        to = 5;
+                ts.tv_sec = time(NULL) + to;
+                ts.tv_nsec = 0;
+        }
+        ldms_g = ldms_xprt_new_with_auth(xprt, NULL, auth, NULL);
+        if (!ldms_g) {
+                printf("Error %d creating the '%s' transport\n",
+                       errno, xprt);
+                return NULL;
+        }
+
+        sem_init(&recv_sem, 1, 0);
+        sem_init(&conn_sem, 1, 0);
+
+        rc = ldms_xprt_connect_by_name(ldms_g, host, port, event_cb, NULL);
+        if (rc) {
+                printf("Error %d connecting to %s:%s\n",
+                       rc, host, port);
+                return NULL;
+        }
+        sem_timedwait(&conn_sem, &ts);
+        if (conn_status)
+                return NULL;
+        return ldms_g;
+}
+
+void dxt_darshan_ldms_connector_initialize()
+{
+    //const char* env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
+    const char* env_ldms_xprt    = getenv("DARSHAN_LDMS_XPRT");
+    const char* env_ldms_host    = getenv("DARSHAN_LDMS_HOST");
+    const char* env_ldms_port    = getenv("DARSHAN_LDMS_PORT");
+    //const int   env_ldms_port    = atoi(getenv("DARSHAN_LDMS_PORT"));
+    const char* env_ldms_auth    = getenv("DARSHAN_LDMS_AUTH");
+    
+    //*ln = ldms_sps_create_1(env_ldms_stream, env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth, 1, 30, llog, LN_FLAG_VERBOSE);
+    ldms_g = setup_connection(env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth);
+    
+    if (ldms_g->disconnected){
+                printf("Error setting up connection -- exiting\n");
+                exit(1);
+        }
+    
+   // if (!*ln)
+    //	printf("FAILED ldms_sps_create_1\n");
+    
+    return;
+}
+
+static pthread_mutex_t ln_lock = PTHREAD_MUTEX_INITIALIZER;
+
+static void dxt_darshan_ldms_connector_send(uint64_t rec_id, int64_t record_count, char *rw, int64_t rank, char *hostname, int64_t offset, int64_t length, double start_time, double end_time, char *mod_name)
+{
+    if(strcmp(getenv("DXT_ENABLE_LDMS"),"1")!=0)
+        return;
+    
+    const char* env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
+    //struct ldms_sps_send_result r = LN_NULL_RESULT;
+    char *op_name, *op_name2;
+    int rc;
+    
+    pthread_mutex_lock(&ln_lock);
+    if (!ldms_g){
+        printf("before initialized \n");
+        dxt_darshan_ldms_connector_initialize();
+        printf("initialized \n");
+    }
+
+    if (!ldms_g){
+        printf("ldms_g does not exist \n");
+        pthread_mutex_unlock(&ln_lock);
+        return;
+    }
+    pthread_mutex_unlock(&ln_lock);
+    
+    if (strcmp(rw, "write") == 0){
+        op_name = "write";
+        op_name2 = "writes_segment_";
+    }
+    if (strcmp(rw, "read") == 0){
+        op_name = "read";
+        op_name2 = "reads_segment_";
+    }
+
+    jbuf_t jb, jbd;
+    jbd = jb = jbuf_new(); if (!jb) goto out_1;
+    jb = jbuf_append_str(jb, "{ "); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "module_name", "\"%s\",", mod_name); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "record_id","%"PRIu64",", rec_id); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "file_name", "\"%s\",", filename); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "type","\"%s\",", op_name); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "count", "%d,", record_count); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "rank", "%d,", rank); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "hostname", "\"%s\",", hostname); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "operation","\"%s%d\",", op_name2,record_count-1); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "segment", "[{"); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "offset", "%lld,", offset);if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "length", "%lld,", length);if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "start_time", "\"%fs\",", start_time); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "end_time", "\"%fs\"", end_time); if (!jb) goto out_1;
+    jb = jbuf_append_str(jb, "}]}");
+    printf("this is in jb %s \n", jb->buf);
+
+    //save json to a file
+    FILE *fp;
+    fp = fopen("/projects/darshan/test/dxt_output.json", "a");
+    fprintf(fp, "%s\n", jb->buf);
+    fclose(fp);
+    //r = ldms_sps_send_event(ln, jb);
+    //printf("this is the publish_count for %s: %i, ack_count: %i, rc: %i\n", mod_name, r.publish_count, r.ack_count, r.rc);
+    
+    rc = ldmsd_stream_publish(ldms_g, env_ldms_stream, LDMSD_STREAM_JSON, jb->buf, (jb->cursor) + 1);
+    if (rc)
+        printf("Error %d publishing data.\n", rc);
+    
+ out_1:
+        if (!jb ){
+	    jbuf_free(jbd);
+        }
+    return;
+}
+#endif
+
 void dxt_posix_write(darshan_record_id rec_id, int64_t offset,
         int64_t length, double start_time, double end_time)
 {
@@ -455,6 +652,11 @@ void dxt_posix_write(darshan_record_id rec_id, int64_t offset,
     rec_ref->write_traces[file_rec->write_count].start_time = start_time;
     rec_ref->write_traces[file_rec->write_count].end_time = end_time;
     file_rec->write_count += 1;
+
+#ifdef HAVE_DXT_LDMS
+    dxt_darshan_ldms_connector_send(file_rec->base_rec.id, file_rec->write_count, "write", 
+            file_rec->base_rec.rank, file_rec->hostname, offset, length, start_time, end_time, "X_POSIX");
+#endif
 
     DXT_UNLOCK();
 }
@@ -513,6 +715,11 @@ void dxt_posix_read(darshan_record_id rec_id, int64_t offset,
     rec_ref->read_traces[file_rec->read_count].end_time = end_time;
     file_rec->read_count += 1;
 
+#ifdef HAVE_DXT_LDMS
+    dxt_darshan_ldms_connector_send(file_rec->base_rec.id, file_rec->write_count, "read", 
+            file_rec->base_rec.rank, file_rec->hostname, offset, length, start_time, end_time, "X_POSIX");
+#endif
+
     DXT_UNLOCK();
 }
 
@@ -570,6 +777,11 @@ void dxt_mpiio_write(darshan_record_id rec_id, int64_t offset,
     rec_ref->write_traces[file_rec->write_count].end_time = end_time;
     file_rec->write_count += 1;
 
+#ifdef HAVE_DXT_LDMS
+    dxt_darshan_ldms_connector_send(file_rec->base_rec.id, file_rec->write_count, "write", 
+            file_rec->base_rec.rank, file_rec->hostname, offset, length, start_time, end_time, "X_MPIIO");
+#endif
+
     DXT_UNLOCK();
 }
 
@@ -626,6 +838,11 @@ void dxt_mpiio_read(darshan_record_id rec_id, int64_t offset,
     rec_ref->read_traces[file_rec->read_count].start_time = start_time;
     rec_ref->read_traces[file_rec->read_count].end_time = end_time;
     file_rec->read_count += 1;
+
+#ifdef HAVE_DXT_LDMS
+    dxt_darshan_ldms_connector_send(file_rec->base_rec.id, file_rec->write_count, "read", 
+            file_rec->base_rec.rank, file_rec->hostname, offset, length, start_time, end_time, "X_MPIIO");
+#endif
 
     DXT_UNLOCK();
 }

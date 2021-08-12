@@ -2,13 +2,7 @@
 #
 # @configure_input@
 
-LDMS_LIBS = -lldmsd_stream -lldms -lovis_json -lcoll -lldms_sps
-#ldms_dir = /opt/ovis
-ldms_dir = /projects/ovis/darshanConnector/ovis-sps/LDMS_install
-#LDFLAGS += -L${ldms_dir}/lib64 -Wl,-rpath=${ldms_dir}/lib64
-LDMS_LD_FLAGS = -L${ldms_dir}/lib -Wl,-rpath=${ldms_dir}/lib
-
-AM_CPPFLAGS = -I${top_srcdir}/../include -I${ldms_dir}/include
+AM_CPPFLAGS = -I${top_srcdir}/../include
 
 if ENABLE_LDPRELOAD
    lib_LTLIBRARIES = libdarshan.la
@@ -95,11 +89,17 @@ darshan-apmpi.c:
 	$(LN_S) $(apmpi_root)/lib/darshan-apmpi.c .
 
 libdarshan_la_SOURCES  = $(C_SRCS)
-libdarshan_la_LIBADD   = $(LDMS_LIBS) $(LDMS_LD_FLAGS) -lpthread -lrt -lz -ldl $(DARSHAN_LUSTRE_LD_FLAGS)
+libdarshan_la_LIBADD   = -lpthread -lrt -lz -ldl $(DARSHAN_LUSTRE_LD_FLAGS)
 libdarshan_la_CPPFLAGS = $(AM_CPPFLAGS) -D_LARGEFILE64_SOURCE -DDARSHAN_PRELOAD
 
 libdarshan_a_SOURCES   = $(C_SRCS)
 libdarshan_a_CPPFLAGS  = $(AM_CPPFLAGS) -D_LARGEFILE64_SOURCE -DDARSHAN_WRAP_MMAP
+
+if HAVE_DXT_LDMS
+libdarshan_la_LIBADD += -lldmsd_stream -lldms -lovis_json -lcoll -lldms_sps
+libdarshan_la_CPPFLAGS += -I$(LDMS_HOME)/include
+libdarshan_la_LDFLAGS = -L$(LDMS_HOME)/lib -Wl,-rpath=$(LDMS_HOME)/lib
+endif
 
 H_SRCS = darshan-common.h \
          darshan.h \

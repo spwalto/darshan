@@ -237,6 +237,7 @@ static int my_rank = -1;
         __tm1, __tm2, rec_ref->last_meta_end); \
     darshan_add_record_ref(&(mpiio_runtime->fh_hash), &__fh, sizeof(MPI_File), rec_ref); \
     if(newpath != __path) free(newpath); \
+    dxt_darshan_ldms_set_filename(__path); \
 } while(0)
 
 /* XXX: this check is needed to work around an OpenMPI bug that is triggered by
@@ -1198,6 +1199,12 @@ static void mpiio_runtime_initialize()
 
     /* allow DXT module to initialize if needed */
     dxt_mpiio_runtime_initialize();
+
+#ifdef HAVE_DXT_LDMS
+    /* check if DXT LDMS is enabled and intialize LDMSD if it is*/
+    if(strcmp(getenv("DXT_ENABLE_LDMS"),"1")==0)
+        dxt_darshan_ldms_connector_initialize();
+#endif
 
     return;
 }
