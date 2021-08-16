@@ -53,4 +53,16 @@ void dxt_mpiio_read(darshan_record_id rec_id, int64_t offset,
 void dxt_posix_filter_dynamic_traces(
     struct darshan_posix_file *(*rec_id_to_psx_file)(darshan_record_id));
 
+/* dxt_darshan_ldms_connector_initialize(), dxt_darshan_ldms_set_filename
+ *
+ * DXT funtion to intialize LDMSD streams plugin for realtime data
+ * output of the DXT module.
+ *
+ * DXT function to retrieve the file directory and name where the IO activity
+ * is taking place.
+ */
+void dxt_darshan_ldms_connector_initialize();
+
+void dxt_darshan_ldms_set_filename(const char *tmp_filename);
+
 #endif /* __DARSHAN_DXT_H */
