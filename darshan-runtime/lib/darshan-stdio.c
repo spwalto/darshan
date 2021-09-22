@@ -86,6 +86,8 @@
 
 #include "darshan.h"
 #include "darshan-dynamic.h"
+//me
+#include "darshan-dxt.h"
 
 #ifndef HAVE_OFF64_T
 typedef int64_t off64_t;
@@ -187,8 +189,8 @@ extern int __real_fileno(FILE *stream);
     STDIO_LOCK(); \
     if(!darshan_core_disabled_instrumentation()) { \
         if(!stdio_runtime) stdio_runtime_initialize(); \
-        if(stdio_runtime) break; \
-    } \
+        if(stdio_runtime) break;\
+    }\
     STDIO_UNLOCK(); \
     return(ret); \
 } while(0)
@@ -197,7 +199,7 @@ extern int __real_fileno(FILE *stream);
     STDIO_UNLOCK(); \
 } while(0)
 
-#define STDIO_RECORD_OPEN(__ret, __path, __tm1, __tm2) do { \
+#define STDIO_RECORD_OPEN(__ret, __path, __tm1, __tm2, __tv1, __tv2) do { \
     darshan_record_id __rec_id; \
     struct stdio_file_record_ref *__rec_ref; \
     char *__newpath; \
@@ -217,18 +219,23 @@ extern int __real_fileno(FILE *stream);
         if(__newpath != (char*)__path) free(__newpath); \
         break; \
     } \
-    _STDIO_RECORD_OPEN(__ret, __rec_ref, __tm1, __tm2, 1, -1); \
+    _STDIO_RECORD_OPEN(__ret, __rec_ref, __tm1, __tm2, __tv1, __tv2, 1, -1); \
     __fd = __real_fileno(__ret); \
     darshan_instrument_fs_data(__rec_ref->fs_type, __newpath, __fd); \
-    if(__newpath != (char*)__path) free(__newpath); \
+    if(__newpath != (char*)__path) free(__newpath);\
+    /* LDMS to publish realtime read tracing information to daemon*/ \
+    if(strcmp(getenv("STDIO_ENABLE_LDMS"),"1")==0){\
+        darshan_ldms_set_meta(__path, __rec_ref->file_rec->base_rec.id, __rec_ref->file_rec->base_rec.rank);\
+        dxt_darshan_ldms_connector_send(__rec_ref->file_rec->counters[STDIO_OPENS], "open", -1, -1, -1, -1, __tm1, __tm2, __tv1, __tv2, __rec_ref->file_rec->fcounters[STDIO_F_META_TIME], "STDIO", "MET");\
+    }\
 } while(0)
 
-#define STDIO_RECORD_REFOPEN(__ret, __rec_ref, __tm1, __tm2, __ref_counter) do { \
+#define STDIO_RECORD_REFOPEN(__ret, __rec_ref, __tm1, __tm2, __tv1, __tv2, __ref_counter) do { \
     if(!ret || !rec_ref) break; \
-    _STDIO_RECORD_OPEN(__ret, __rec_ref, __tm1, __tm2, 0, __ref_counter); \
+    _STDIO_RECORD_OPEN(__ret, __rec_ref, __tm1, __tm2,  __tv1, __tv2, 0, __ref_counter); \
 } while(0)
 
-#define _STDIO_RECORD_OPEN(__ret, __rec_ref, __tm1, __tm2, __reset_flag, __ref_counter) do { \
+#define _STDIO_RECORD_OPEN(__ret, __rec_ref, __tm1, __tm2, __tv1, __tv2, __reset_flag, __ref_counter) do { \
     if(__reset_flag) __rec_ref->offset = 0; \
     __rec_ref->file_rec->counters[STDIO_OPENS] += 1; \
     if(__ref_counter >= 0) __rec_ref->file_rec->counters[__ref_counter] += 1; \
@@ -241,7 +248,7 @@ extern int __real_fileno(FILE *stream);
 } while(0)
 
 
-#define STDIO_RECORD_READ(__fp, __bytes,  __tm1, __tm2) do{ \
+#define STDIO_RECORD_READ(__fp, __bytes,  __tm1, __tm2, __tv1, __tv2) do{ \
     struct stdio_file_record_ref* rec_ref; \
     int64_t this_offset; \
     rec_ref = darshan_lookup_record_ref(stdio_runtime->stream_hash, &(__fp), sizeof(__fp)); \
@@ -256,10 +263,13 @@ extern int __real_fileno(FILE *stream);
      rec_ref->file_rec->fcounters[STDIO_F_READ_START_TIMESTAMP] > __tm1) \
         rec_ref->file_rec->fcounters[STDIO_F_READ_START_TIMESTAMP] = __tm1; \
     rec_ref->file_rec->fcounters[STDIO_F_READ_END_TIMESTAMP] = __tm2; \
-    DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->file_rec->fcounters[STDIO_F_READ_TIME], __tm1, __tm2, rec_ref->last_read_end); \
+    DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->file_rec->fcounters[STDIO_F_READ_TIME], __tm1, __tm2, rec_ref->last_read_end);\
+    /* LDMS to publish realtime read tracing information to daemon*/ \
+    if(strcmp(getenv("STDIO_ENABLE_LDMS"),"1")==0)\
+        dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[STDIO_READS], "read", this_offset, __bytes, rec_ref->file_rec->counters[STDIO_MAX_BYTE_READ], -1, __tm1, __tm2, __tv1, __tv2, rec_ref->file_rec->fcounters[STDIO_F_READ_TIME], "STDIO", "MOD"); \
 } while(0)
 
-#define STDIO_RECORD_WRITE(__fp, __bytes,  __tm1, __tm2, __fflush_flag) do{ \
+#define STDIO_RECORD_WRITE(__fp, __bytes,  __tm1, __tm2, __tv1, __tv2, __fflush_flag) do{ \
     struct stdio_file_record_ref* rec_ref; \
     int64_t this_offset; \
     rec_ref = darshan_lookup_record_ref(stdio_runtime->stream_hash, &(__fp), sizeof(__fp)); \
@@ -278,21 +288,24 @@ extern int __real_fileno(FILE *stream);
         rec_ref->file_rec->fcounters[STDIO_F_WRITE_START_TIMESTAMP] = __tm1; \
     rec_ref->file_rec->fcounters[STDIO_F_WRITE_END_TIMESTAMP] = __tm2; \
     DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->file_rec->fcounters[STDIO_F_WRITE_TIME], __tm1, __tm2, rec_ref->last_write_end); \
+    if(strcmp(getenv("STDIO_ENABLE_LDMS"),"1")==0)\
+        dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[STDIO_WRITES], "write", this_offset, __bytes, rec_ref->file_rec->counters[STDIO_MAX_BYTE_WRITTEN], -1, __tm1, __tm2, __tv1, __tv2,  rec_ref->file_rec->fcounters[STDIO_F_WRITE_TIME], "STDIO", "MOD"); \
 } while(0)
 
 FILE* DARSHAN_DECL(fopen)(const char *path, const char *mode)
 {
     FILE* ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(fopen);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_fopen(path, mode);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
-    STDIO_RECORD_OPEN(ret, path, tm1, tm2);
+    STDIO_RECORD_OPEN(ret, path, tm1, tm2, tv1, tv2);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -302,15 +315,16 @@ FILE* DARSHAN_DECL(fopen64)(const char *path, const char *mode)
 {
     FILE* ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(fopen64);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_fopen64(path, mode);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
-    STDIO_RECORD_OPEN(ret, path, tm1, tm2);
+    STDIO_RECORD_OPEN(ret, path, tm1, tm2, tv1, tv2);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -320,14 +334,15 @@ FILE* DARSHAN_DECL(fdopen)(int fd, const char *mode)
 {
     FILE* ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
     darshan_record_id rec_id;
     struct stdio_file_record_ref *rec_ref;
 
     MAP_OR_FAIL(fdopen);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_fdopen(fd, mode);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     if(ret)
     {
@@ -341,7 +356,7 @@ FILE* DARSHAN_DECL(fdopen)(int fd, const char *mode)
                 &rec_id, sizeof(darshan_record_id));
             if(!rec_ref)
                 rec_ref = stdio_track_new_file_record(rec_id, rec_name);
-            STDIO_RECORD_REFOPEN(ret, rec_ref, tm1, tm2, STDIO_FDOPENS);
+            STDIO_RECORD_REFOPEN(ret, rec_ref, tm1, tm2, tv1, tv2,  STDIO_FDOPENS);
             STDIO_POST_RECORD();
         }
     }
@@ -354,15 +369,16 @@ FILE* DARSHAN_DECL(freopen)(const char *path, const char *mode, FILE *stream)
 {
     FILE* ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(freopen);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_freopen(path, mode, stream);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
-    STDIO_RECORD_OPEN(ret, path, tm1, tm2);
+    STDIO_RECORD_OPEN(ret, path, tm1, tm2, tv1, tv2);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -372,15 +388,16 @@ FILE* DARSHAN_DECL(freopen64)(const char *path, const char *mode, FILE *stream)
 {
     FILE* ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(freopen64);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_freopen64(path, mode, stream);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
-    STDIO_RECORD_OPEN(ret, path, tm1, tm2);
+    STDIO_RECORD_OPEN(ret, path, tm1, tm2, tv1, tv2);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -390,17 +407,18 @@ FILE* DARSHAN_DECL(freopen64)(const char *path, const char *mode, FILE *stream)
 int DARSHAN_DECL(fflush)(FILE *fp)
 {
     double tm1, tm2;
+    struct timeval tv1, tv2;
     int ret;
 
     MAP_OR_FAIL(fflush);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_fflush(fp);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret >= 0)
-        STDIO_RECORD_WRITE(fp, 0, tm1, tm2, 1);
+        STDIO_RECORD_WRITE(fp, 0, tm1, tm2, tv1, tv2, 1);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -409,14 +427,15 @@ int DARSHAN_DECL(fflush)(FILE *fp)
 int DARSHAN_DECL(fclose)(FILE *fp)
 {
     double tm1, tm2;
+    struct timeval tv1, tv2;
     int ret;
     struct stdio_file_record_ref *rec_ref;
 
     MAP_OR_FAIL(fclose);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_fclose(fp);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     rec_ref = darshan_lookup_record_ref(stdio_runtime->stream_hash, &fp, sizeof(fp));
@@ -440,16 +459,17 @@ size_t DARSHAN_DECL(fwrite)(const void *ptr, size_t size, size_t nmemb, FILE *st
 {
     size_t ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(fwrite);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_fwrite(ptr, size, nmemb, stream);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret > 0)
-        STDIO_RECORD_WRITE(stream, size*ret, tm1, tm2, 0);
+        STDIO_RECORD_WRITE(stream, size*ret, tm1, tm2, tv1, tv2,  0);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -460,16 +480,17 @@ int DARSHAN_DECL(fputc)(int c, FILE *stream)
 {
     int ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(fputc);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_fputc(c, stream);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret != EOF)
-        STDIO_RECORD_WRITE(stream, 1, tm1, tm2, 0);
+        STDIO_RECORD_WRITE(stream, 1, tm1, tm2, tv1, tv2,  0);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -479,16 +500,17 @@ int DARSHAN_DECL(putw)(int w, FILE *stream)
 {
     int ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(putw);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_putw(w, stream);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret != EOF)
-        STDIO_RECORD_WRITE(stream, sizeof(int), tm1, tm2, 0);
+        STDIO_RECORD_WRITE(stream, sizeof(int), tm1, tm2, tv1, tv2,  0);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -500,16 +522,17 @@ int DARSHAN_DECL(fputs)(const char *s, FILE *stream)
 {
     int ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(fputs);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_fputs(s, stream);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret != EOF && ret > 0)
-        STDIO_RECORD_WRITE(stream, strlen(s), tm1, tm2, 0);
+        STDIO_RECORD_WRITE(stream, strlen(s), tm1, tm2, tv1, tv2,  0);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -519,16 +542,17 @@ int DARSHAN_DECL(vprintf)(const char *format, va_list ap)
 {
     int ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(vprintf);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_vprintf(format, ap);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret > 0)
-        STDIO_RECORD_WRITE(stdout, ret, tm1, tm2, 0);
+        STDIO_RECORD_WRITE(stdout, ret, tm1, tm2, tv1, tv2,  0);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -538,16 +562,17 @@ int DARSHAN_DECL(vfprintf)(FILE *stream, const char *format, va_list ap)
 {
     int ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(vfprintf);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_vfprintf(stream, format, ap);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret > 0)
-        STDIO_RECORD_WRITE(stream, ret, tm1, tm2, 0);
+        STDIO_RECORD_WRITE(stream, ret, tm1, tm2, tv1, tv2,  0);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -558,22 +583,23 @@ int DARSHAN_DECL(printf)(const char *format, ...)
 {
     int ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
     va_list ap;
 
     MAP_OR_FAIL(vprintf);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     /* NOTE: we intentionally switch to vprintf here to handle the variable
      * length arguments.
      */
     va_start(ap, format);
     ret = __real_vprintf(format, ap);
     va_end(ap);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret > 0)
-        STDIO_RECORD_WRITE(stdout, ret, tm1, tm2, 0);
+        STDIO_RECORD_WRITE(stdout, ret, tm1, tm2, tv1, tv2,  0);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -583,22 +609,23 @@ int DARSHAN_DECL(fprintf)(FILE *stream, const char *format, ...)
 {
     int ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
     va_list ap;
 
     MAP_OR_FAIL(vfprintf);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     /* NOTE: we intentionally switch to vfprintf here to handle the variable
      * length arguments.
      */
     va_start(ap, format);
     ret = __real_vfprintf(stream, format, ap);
     va_end(ap);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret > 0)
-        STDIO_RECORD_WRITE(stream, ret, tm1, tm2, 0);
+        STDIO_RECORD_WRITE(stream, ret, tm1, tm2, tv1, tv2,  0);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -608,16 +635,17 @@ size_t DARSHAN_DECL(fread)(void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
     size_t ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(fread);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_fread(ptr, size, nmemb, stream);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret > 0)
-        STDIO_RECORD_READ(stream, size*ret, tm1, tm2);
+        STDIO_RECORD_READ(stream, size*ret, tm1, tm2, tv1, tv2);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -627,16 +655,17 @@ int DARSHAN_DECL(fgetc)(FILE *stream)
 {
     int ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(fgetc);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_fgetc(stream);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret != EOF)
-        STDIO_RECORD_READ(stream, 1, tm1, tm2);
+        STDIO_RECORD_READ(stream, 1, tm1, tm2, tv1, tv2);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -647,16 +676,17 @@ int DARSHAN_DECL(_IO_getc)(FILE *stream)
 {
     int ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(_IO_getc);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real__IO_getc(stream);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret != EOF)
-        STDIO_RECORD_READ(stream, 1, tm1, tm2);
+        STDIO_RECORD_READ(stream, 1, tm1, tm2, tv1, tv2);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -667,16 +697,17 @@ int DARSHAN_DECL(_IO_putc)(int c, FILE *stream)
 {
     int ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(_IO_putc);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real__IO_putc(c, stream);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret != EOF)
-        STDIO_RECORD_WRITE(stream, 1, tm1, tm2, 0);
+        STDIO_RECORD_WRITE(stream, 1, tm1, tm2, tv1, tv2,  0);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -686,16 +717,17 @@ int DARSHAN_DECL(getw)(FILE *stream)
 {
     int ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(getw);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_getw(stream);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret != EOF || ferror(stream) == 0)
-        STDIO_RECORD_READ(stream, sizeof(int), tm1, tm2);
+        STDIO_RECORD_READ(stream, sizeof(int), tm1, tm2, tv1, tv2);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -709,12 +741,13 @@ int DARSHAN_DECL(__isoc99_fscanf)(FILE *stream, const char *format, ...)
 {
     int ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
     va_list ap;
     long start_off, end_off;
 
     MAP_OR_FAIL(vfscanf);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     /* NOTE: we intentionally switch to vfscanf here to handle the variable
      * length arguments.
      */
@@ -723,11 +756,11 @@ int DARSHAN_DECL(__isoc99_fscanf)(FILE *stream, const char *format, ...)
     ret = __real_vfscanf(stream, format, ap);
     va_end(ap);
     end_off = ftell(stream);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret != 0)
-        STDIO_RECORD_READ(stream, (end_off-start_off), tm1, tm2);
+        STDIO_RECORD_READ(stream, (end_off-start_off), tm1, tm2, tv1, tv2);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -738,12 +771,13 @@ int DARSHAN_DECL(fscanf)(FILE *stream, const char *format, ...)
 {
     int ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
     va_list ap;
     long start_off, end_off;
 
     MAP_OR_FAIL(vfscanf);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     /* NOTE: we intentionally switch to vfscanf here to handle the variable
      * length arguments.
      */
@@ -752,11 +786,11 @@ int DARSHAN_DECL(fscanf)(FILE *stream, const char *format, ...)
     ret = __real_vfscanf(stream, format, ap);
     va_end(ap);
     end_off = ftell(stream);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret != 0)
-        STDIO_RECORD_READ(stream, (end_off-start_off), tm1, tm2);
+        STDIO_RECORD_READ(stream, (end_off-start_off), tm1, tm2, tv1, tv2);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -766,19 +800,20 @@ int DARSHAN_DECL(vfscanf)(FILE *stream, const char *format, va_list ap)
 {
     int ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
     long start_off, end_off;
 
     MAP_OR_FAIL(vfscanf);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     start_off = ftell(stream);
     ret = __real_vfscanf(stream, format, ap);
     end_off = ftell(stream);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret != 0)
-        STDIO_RECORD_READ(stream, end_off-start_off, tm1, tm2);
+        STDIO_RECORD_READ(stream, end_off-start_off, tm1, tm2, tv1, tv2);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -789,16 +824,17 @@ char* DARSHAN_DECL(fgets)(char *s, int size, FILE *stream)
 {
     char *ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(fgets);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_fgets(s, size, stream);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     STDIO_PRE_RECORD();
     if(ret != NULL)
-        STDIO_RECORD_READ(stream, strlen(ret), tm1, tm2);
+        STDIO_RECORD_READ(stream, strlen(ret), tm1, tm2, tv1, tv2);
     STDIO_POST_RECORD();
 
     return(ret);
@@ -808,13 +844,14 @@ char* DARSHAN_DECL(fgets)(char *s, int size, FILE *stream)
 void DARSHAN_DECL(rewind)(FILE *stream)
 {
     double tm1, tm2;
+    struct timeval tv1, tv2;
     struct stdio_file_record_ref *rec_ref;
 
     MAP_OR_FAIL(rewind);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     __real_rewind(stream);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     /* NOTE: we don't use STDIO_PRE_RECORD here because there is no return
      * value in this wrapper.
@@ -850,12 +887,13 @@ int DARSHAN_DECL(fseek)(FILE *stream, long offset, int whence)
     int ret;
     struct stdio_file_record_ref *rec_ref;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(fseek);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_fseek(stream, offset, whence);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     if(ret >= 0)
     {
@@ -880,12 +918,13 @@ int DARSHAN_DECL(fseeko)(FILE *stream, off_t offset, int whence)
     int ret;
     struct stdio_file_record_ref *rec_ref;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(fseeko);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_fseeko(stream, offset, whence);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     if(ret >= 0)
     {
@@ -910,12 +949,13 @@ int DARSHAN_DECL(fseeko64)(FILE *stream, off64_t offset, int whence)
     int ret;
     struct stdio_file_record_ref *rec_ref;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(fseeko64);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_fseeko64(stream, offset, whence);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     if(ret >= 0)
     {
@@ -940,12 +980,13 @@ int DARSHAN_DECL(fsetpos)(FILE *stream, const fpos_t *pos)
     int ret;
     struct stdio_file_record_ref *rec_ref;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(fsetpos);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_fsetpos(stream, pos);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     if(ret >= 0)
     {
@@ -970,12 +1011,13 @@ int DARSHAN_DECL(fsetpos64)(FILE *stream, const fpos64_t *pos)
     int ret;
     struct stdio_file_record_ref *rec_ref;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(fsetpos64);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_fsetpos64(stream, pos);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     if(ret >= 0)
     {
@@ -1002,7 +1044,9 @@ int DARSHAN_DECL(fsetpos64)(FILE *stream, const fpos64_t *pos)
 /* initialize internal STDIO module data structures and register with darshan-core */
 static void stdio_runtime_initialize()
 {
+    struct timeval tv1, tv2;
     size_t stdio_buf_size;
+
     darshan_module_funcs mod_funcs = {
 #ifdef HAVE_MPI
     .mod_redux_func = &stdio_mpi_redux,
@@ -1031,9 +1075,10 @@ static void stdio_runtime_initialize()
     memset(stdio_runtime, 0, sizeof(*stdio_runtime));
 
     /* instantiate records for stdin, stdout, and stderr */
-    STDIO_RECORD_OPEN(stdin, "<STDIN>", 0, 0);
-    STDIO_RECORD_OPEN(stdout, "<STDOUT>", 0, 0);
-    STDIO_RECORD_OPEN(stderr, "<STDERR>", 0, 0);
+    STDIO_RECORD_OPEN(stdin, "<STDIN>", 0, 0, tv1, tv2);
+    STDIO_RECORD_OPEN(stdout, "<STDOUT>", 0, 0, tv1, tv2);
+    STDIO_RECORD_OPEN(stderr, "<STDERR>", 0, 0, tv1, tv2);
+
 }
 
 static struct stdio_file_record_ref *stdio_track_new_file_record(
@@ -1213,7 +1258,7 @@ static void stdio_shared_record_variance(MPI_Comm mod_comm,
     var_send_buf = malloc(shared_rec_count * sizeof(struct darshan_variance_dt));
     if(!var_send_buf)
         return;
-
+    
     if(my_rank == 0)
     {
         var_recv_buf = malloc(shared_rec_count * sizeof(struct darshan_variance_dt));

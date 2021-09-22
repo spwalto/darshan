@@ -216,7 +216,7 @@ char *darshan_core_lookup_record_name(
  * Returns the elapsed time relative to (roughly) the start of
  * the application.
  */
-double darshan_core_wtime(void);
+double darshan_core_wtime(struct timeval *tval);
 
 /* darshan_core_fprintf()
  *

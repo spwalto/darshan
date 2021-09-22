@@ -82,7 +82,7 @@ static int my_rank = -1;
     PNETCDF_UNLOCK(); \
 } while(0)
 
-#define PNETCDF_RECORD_OPEN(__ncidp, __path, __comm, __tm1, __tm2) do { \
+#define PNETCDF_RECORD_OPEN(__ncidp, __path, __comm, __tm1, __tm2, __tv1, __tv2) do { \
     darshan_record_id rec_id; \
     struct pnetcdf_file_record_ref *rec_ref; \
     char *newpath; \
@@ -109,6 +109,7 @@ static int my_rank = -1;
     else rec_ref->file_rec->counters[PNETCDF_COLL_OPENS] += 1; \
     darshan_add_record_ref(&(pnetcdf_runtime->ncid_hash), __ncidp, sizeof(int), rec_ref); \
     if(newpath != __path) free(newpath); \
+    printf("this is the ncidp for pnetcdf module: %i \n", __ncidp);\
 } while(0)
 
 /*********************************************************
@@ -121,12 +122,13 @@ int DARSHAN_DECL(ncmpi_create)(MPI_Comm comm, const char *path,
     int ret;
     char* tmp;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(ncmpi_create);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_ncmpi_create(comm, path, cmode, info, ncidp);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
     if(ret == 0)
     {
         /* use ROMIO approach to strip prefix if present */
@@ -140,7 +142,7 @@ int DARSHAN_DECL(ncmpi_create)(MPI_Comm comm, const char *path,
         }
 
         PNETCDF_PRE_RECORD();
-        PNETCDF_RECORD_OPEN(ncidp, path, comm, tm1, tm2);
+        PNETCDF_RECORD_OPEN(ncidp, path, comm, tm1, tm2, tv1, tv2);
         PNETCDF_POST_RECORD();
     }
 
@@ -153,12 +155,13 @@ int DARSHAN_DECL(ncmpi_open)(MPI_Comm comm, const char *path,
     int ret;
     char* tmp;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(ncmpi_open);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_ncmpi_open(comm, path, omode, info, ncidp);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
     if(ret == 0)
     {
         /* use ROMIO approach to strip prefix if present */
@@ -172,7 +175,7 @@ int DARSHAN_DECL(ncmpi_open)(MPI_Comm comm, const char *path,
         }
 
         PNETCDF_PRE_RECORD();
-        PNETCDF_RECORD_OPEN(ncidp, path, comm, tm1, tm2);
+        PNETCDF_RECORD_OPEN(ncidp, path, comm, tm1, tm2, tv1, tv2);
         PNETCDF_POST_RECORD();
     }
 
@@ -184,12 +187,13 @@ int DARSHAN_DECL(ncmpi_close)(int ncid)
     struct pnetcdf_file_record_ref *rec_ref;
     int ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(ncmpi_close);
 
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_ncmpi_close(ncid);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     PNETCDF_PRE_RECORD();
     rec_ref = darshan_lookup_record_ref(pnetcdf_runtime->ncid_hash,

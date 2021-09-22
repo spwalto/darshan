@@ -6,7 +6,7 @@
 
 #ifndef __DARSHAN_DXT_H
 #define __DARSHAN_DXT_H
-
+#include <stdbool.h>
 /* dxt_load_trigger_conf()
  *
  * DXT function exposed to Darshan core to read in any trace triggers
@@ -35,9 +35,9 @@ void dxt_mpiio_runtime_initialize(void);
  * are starting and ending timestamps for the operation, respectively.
  */
 void dxt_posix_write(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time);
+        int64_t length, double start_time, double end_time, struct timeval tval_start, struct timeval tval_end);
 void dxt_posix_read(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time);
+        int64_t length, double start_time, double end_time, struct timeval tval_start, struct timeval tval_end);
 
 /* dxt_mpiio_write(), dxt_mpiio_read()
  *
@@ -46,23 +46,11 @@ void dxt_posix_read(darshan_record_id rec_id, int64_t offset,
  * timestamps for the operation, respectively.
  */
 void dxt_mpiio_write(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time);
+        int64_t length, double start_time, double end_time, struct timeval tval_start, struct timeval tval_end);
 void dxt_mpiio_read(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time);
+        int64_t length, double start_time, double end_time, struct timeval tval_start, struct timeval tval_end);
 
 void dxt_posix_filter_dynamic_traces(
     struct darshan_posix_file *(*rec_id_to_psx_file)(darshan_record_id));
-
-/* dxt_darshan_ldms_connector_initialize(), dxt_darshan_ldms_set_filename
- *
- * DXT funtion to intialize LDMSD streams plugin for realtime data
- * output of the DXT module.
- *
- * DXT function to retrieve the file directory and name where the IO activity
- * is taking place.
- */
-void dxt_darshan_ldms_connector_initialize();
-
-void dxt_darshan_ldms_set_filename(const char *tmp_filename);
 
 #endif /* __DARSHAN_DXT_H */

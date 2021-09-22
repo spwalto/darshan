@@ -142,7 +142,7 @@ static int my_rank = -1;
 } while(0)
 
 /* macro for instrumenting the "MDHIM" module's put function */
-#define MDHIM_RECORD_PUT(__ret, __md, __id, __vallen, __tm1, __tm2) do{ \
+#define MDHIM_RECORD_PUT(__ret, __md, __id, __vallen, __tm1, __tm2, __tv1, __tv2) do{ \
     darshan_record_id rec_id; \
     struct mdhim_record_ref *rec_ref; \
     double __elapsed = __tm2 - __tm1; \
@@ -171,7 +171,7 @@ static int my_rank = -1;
 } while(0)
 
 /* macro for instrumenting the "MDHIM" module's get function */
-#define MDHIM_RECORD_GET(__ret, __md, __id, __keylen, __tm1, __tm2) do{ \
+#define MDHIM_RECORD_GET(__ret, __md, __id, __keylen, __tm1, __tm2, __tv1, __tv2) do{ \
     darshan_record_id rec_id; \
     struct mdhim_record_ref *rec_ref; \
     double __elapsed = __tm2 - __tm1; \
@@ -249,6 +249,7 @@ mdhim_rm_t *DARSHAN_DECL(mdhimPut)(mdhim_t *md,
 {
     mdhim_rm_t *ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     /* The MAP_OR_FAIL macro attempts to obtain the address of the actual
      * underlying put function call (__real_put), in the case of LD_PRELOADing
@@ -260,9 +261,9 @@ mdhim_rm_t *DARSHAN_DECL(mdhimPut)(mdhim_t *md,
     /* In general, Darshan wrappers begin by calling the real version of the
      * given wrapper function. Timers are used to record the duration of this
      * operation. */
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_mdhimPut(md, index, key, key_len, value, value_len);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     int server_id = mdhimWhichDB(md, key, key_len);
 
@@ -270,7 +271,7 @@ mdhim_rm_t *DARSHAN_DECL(mdhimPut)(mdhim_t *md,
     /* Call macro for instrumenting data for mdhimPut function calls. */
     /* TODO: call the mdhim hash routines and instrument which servers
      * get this request */
-    MDHIM_RECORD_PUT(ret, md, server_id, value_len, tm1, tm2);
+    MDHIM_RECORD_PUT(ret, md, server_id, value_len, tm1, tm2, tv1, tv2);
 
     MDHIM_POST_RECORD();
 
@@ -283,21 +284,22 @@ mdhim_grm_t * DARSHAN_DECL(mdhimGet)(mdhim_t *md,
 {
     mdhim_grm_t *ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     MAP_OR_FAIL(mdhimGet);
 
     /* In general, Darshan wrappers begin by calling the real version of the
      * given wrapper function. Timers are used to record the duration of this
      * operation. */
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_mdhimGet(md, index, key, key_len, op);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     int server_id = mdhimWhichDB(md, key, key_len);
 
     MDHIM_PRE_RECORD();
     /* Call macro for instrumenting data for get function calls. */
-    MDHIM_RECORD_GET(ret, md, server_id, key_len, tm1, tm2);
+    MDHIM_RECORD_GET(ret, md, server_id, key_len, tm1, tm2, tv1, tv2);
     MDHIM_POST_RECORD();
     return ret;
 }

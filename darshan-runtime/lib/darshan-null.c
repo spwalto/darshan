@@ -131,7 +131,7 @@ static int my_rank = -1;
 } while(0)
 
 /* macro for instrumenting the "NULL" module's foo function */
-#define NULL_RECORD_FOO(__ret, __name, __dat, __tm1, __tm2) do{ \
+#define NULL_RECORD_FOO(__ret, __name, __dat, __tm1, __tm2, __tv1, __tv2) do{ \
     darshan_record_id rec_id; \
     struct null_record_ref *rec_ref; \
     double __elapsed = __tm2 - __tm1; \
@@ -169,6 +169,7 @@ int DARSHAN_DECL(foo)(const char* name, int arg1)
 {
     ssize_t ret;
     double tm1, tm2;
+    struct timeval tv1, tv2;
 
     /* The MAP_OR_FAIL macro attempts to obtain the address of the actual
      * underlying foo function call (__real_foo), in the case of LD_PRELOADing
@@ -180,13 +181,13 @@ int DARSHAN_DECL(foo)(const char* name, int arg1)
     /* In general, Darshan wrappers begin by calling the real version of the
      * given wrapper function. Timers are used to record the duration of this
      * operation. */
-    tm1 = darshan_core_wtime();
+    tm1 = darshan_core_wtime(&tv1);
     ret = __real_foo(name, arg1);
-    tm2 = darshan_core_wtime();
+    tm2 = darshan_core_wtime(&tv2);
 
     NULL_PRE_RECORD();
     /* Call macro for instrumenting data for foo function calls. */
-    NULL_RECORD_FOO(ret, name, arg1, tm1, tm2);
+    NULL_RECORD_FOO(ret, name, arg1, tm1, tm2, tv1, tv2);
     NULL_POST_RECORD();
 
     return(ret);
