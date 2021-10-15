@@ -95,7 +95,7 @@ libdarshan_la_CPPFLAGS = $(AM_CPPFLAGS) -D_LARGEFILE64_SOURCE -DDARSHAN_PRELOAD
 libdarshan_a_SOURCES   = $(C_SRCS)
 libdarshan_a_CPPFLAGS  = $(AM_CPPFLAGS) -D_LARGEFILE64_SOURCE -DDARSHAN_WRAP_MMAP
 
-if HAVE_DXT_LDMS
+if HAVE_LDMS
 libdarshan_la_LIBADD += -lldmsd_stream -lldms -lovis_json -lcoll -lldms_sps
 libdarshan_la_CPPFLAGS += -I$(LDMS_HOME)/include
 libdarshan_la_LDFLAGS = -L$(LDMS_HOME)/lib -Wl,-rpath=$(LDMS_HOME)/lib

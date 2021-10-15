@@ -36,7 +36,7 @@
 #include "darshan-dxt.h"
 
 /* Check for LDMS libraries if Darshan is built --with-dxt-ldms */
-#ifdef HAVE_DXT_LDMS
+#ifdef HAVE_LDMS
 #include "darshan-core.h"
 #include <ldms/ldms_sps.h>
 #include <ldms/ldms.h>
@@ -149,7 +149,7 @@ struct dxt_trigger_info
     } u;
 };
 
-#ifdef HAVE_DXT_LDMS
+#ifdef HAVE_LDMS
 
 /* Initialize darshanConnector struct and set extra metrics to add to json message if LDMS is enabled. */
 struct darshanConnector dC;
@@ -429,7 +429,7 @@ void dxt_mpiio_runtime_initialize()
     return;
 }
 
-#ifdef HAVE_DXT_LDMS
+#ifdef HAVE_LDMS
 ldms_t ldms_g;
 void event_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
 {

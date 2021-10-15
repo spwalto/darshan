@@ -1595,7 +1595,7 @@ static void hdf5_dataset_mpi_redux(
         rec_ref->dataset_rec->base_rec.rank = -1;
     }
 
-#ifdef HAVE_DXT_LDMS
+#ifdef HAVE_LDMS
     /* check if DXT LDMS EXTRA is enabled and intialize LDMSD if it is. Set job for ldms stream mesage.*/
     if(strcmp(getenv("EXTRA_ENABLE_LDMS"),"1")==0)
             darshan_ldms_set_rank_info(rec_ref->dataset_rec->counters[H5D_FASTEST_RANK], rec_ref->dataset_rec->counters[H5D_SLOWEST_RANK], rec_ref->dataset_rec->fcounters[H5D_F_FASTEST_RANK_TIME],rec_ref->dataset_rec->fcounters[H5D_F_SLOWEST_RANK_TIME]);
