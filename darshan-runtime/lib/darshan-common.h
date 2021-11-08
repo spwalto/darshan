@@ -287,7 +287,7 @@ void darshan_variance_reduce(
     MPI_Datatype *dt);
 #endif
 
-#ifdef HAVE_DXT_LDMS
+#ifdef HAVE_LDMS
 #include <ldms/ldms_sps.h>
 #include <ldms/ldms.h>
 #include <ldms/ldmsd_stream.h>

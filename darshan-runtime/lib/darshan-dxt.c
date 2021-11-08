@@ -36,7 +36,7 @@
 #include "darshan-dxt.h"
 
 /* Check for LDMS libraries if Darshan is built --with-dxt-ldms */
-#ifdef HAVE_DXT_LDMS
+#ifdef HAVE_LDMS
 #include "darshan-core.h"
 #include <ldms/ldms_sps.h>
 #include <ldms/ldms.h>
@@ -149,7 +149,7 @@ struct dxt_trigger_info
     } u;
 };
 
-#ifdef HAVE_DXT_LDMS
+#ifdef HAVE_LDMS
 
 /* Initialize darshanConnector struct and set extra metrics to add to json message if LDMS is enabled. */
 struct darshanConnector dC;
@@ -429,77 +429,82 @@ void dxt_mpiio_runtime_initialize()
     return;
 }
 
-#ifdef HAVE_DXT_LDMS
+#ifdef HAVE_LDMS
 ldms_t ldms_g;
-void event_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
+static void event_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
 {
-        switch (e->type) {
-        case LDMS_XPRT_EVENT_CONNECTED:
-                sem_post(&dC.conn_sem);
-                dC.conn_status = 0;
-                break;
-        case LDMS_XPRT_EVENT_REJECTED:
-                ldms_xprt_put(x);
-                dC.conn_status = ECONNREFUSED;
-                break;
-        case LDMS_XPRT_EVENT_DISCONNECTED:
-                ldms_xprt_put(x);
-                dC.conn_status = ENOTCONN;
-                break;
-        case LDMS_XPRT_EVENT_ERROR:
-                dC.conn_status = ECONNREFUSED;
-                break;
-        case LDMS_XPRT_EVENT_RECV:
-                sem_post(&dC.recv_sem);
-                dC.server_rc = ldmsd_stream_response(e);
-                break;
-        default:
-                printf("Received invalid event type %d\n", e->type);
-        }
+	switch (e->type) {
+	case LDMS_XPRT_EVENT_CONNECTED:
+		sem_post(&dC.conn_sem);
+		dC.conn_status = 0;
+		break;
+	case LDMS_XPRT_EVENT_REJECTED:
+		ldms_xprt_put(x);
+		dC.conn_status = ECONNREFUSED;
+		break;
+	case LDMS_XPRT_EVENT_DISCONNECTED:
+		ldms_xprt_put(x);
+		dC.conn_status = ENOTCONN;
+		break;
+	case LDMS_XPRT_EVENT_ERROR:
+		dC.conn_status = ECONNREFUSED;
+		break;
+	case LDMS_XPRT_EVENT_RECV:
+		sem_post(&dC.recv_sem);
+		break;
+	case LDMS_XPRT_EVENT_SEND_COMPLETE:
+		break;
+	default:
+		printf("Received invalid event type %d\n", e->type);
+	}
 }
+
+#define SLURM_NOTIFY_TIMEOUT 5
 
 ldms_t setup_connection(const char *xprt, const char *host,
-                        const char *port, const char *auth)
+			const char *port, const char *auth)
 {
-        char hostname[PATH_MAX];
-        const char *timeout = "2";
-        int rc;
+	char hostname[PATH_MAX];
+	const char *timeout = "5";
+	int rc;
+	struct timespec ts;
 
-        if (!host) {
-                if (0 == gethostname(hostname, sizeof(hostname)))
-                        host = hostname;
-        }
-        if (!timeout) {
-                dC.ts.tv_sec = time(NULL) + 5;
-                dC.ts.tv_nsec = 0;
-        } else {
-                dC.to = atoi(timeout);
-                if (dC.to <= 0)
-                        dC.to = 5;
-                dC.ts.tv_sec = time(NULL) + dC.to;
-                dC.ts.tv_nsec = 0;
-        }
-        ldms_g = ldms_xprt_new_with_auth(xprt, NULL, auth, NULL);
-        if (!ldms_g) {
-                printf("Error %d creating the '%s' transport\n",
-                       errno, xprt);
-                return NULL;
-        }
+	if (!host) {
+		if (0 == gethostname(hostname, sizeof(hostname)))
+			host = hostname;
+	}
+	if (!timeout) {
+		ts.tv_sec = time(NULL) + 5;
+		ts.tv_nsec = 0;
+	} else {
+		int to = atoi(timeout);
+		if (to <= 0)
+			to = 5;
+		ts.tv_sec = time(NULL) + to;
+		ts.tv_nsec = 0;
+	}
+	ldms_g = ldms_xprt_new_with_auth(xprt, NULL, auth, NULL);
+	if (!ldms_g) {
+		printf("Error %d creating the '%s' transport\n",
+		       errno, xprt);
+		return NULL;
+	}
 
-        sem_init(&dC.recv_sem, 1, 0);
-        sem_init(&dC.conn_sem, 1, 0);
+	sem_init(&dC.recv_sem, 1, 0);
+	sem_init(&dC.conn_sem, 1, 0);
 
-        rc = ldms_xprt_connect_by_name(ldms_g, host, port, event_cb, NULL);
-        if (rc) {
-                printf("Error %d connecting to %s:%s\n",
-                       rc, host, port);
-                return NULL;
-        }
-        sem_timedwait(&dC.conn_sem, &dC.ts);
-        if (dC.conn_status)
-                return NULL;
-        return ldms_g;
+	rc = ldms_xprt_connect_by_name(ldms_g, host, port, event_cb, NULL);
+	if (rc) {
+		printf("Error %d connecting to %s:%s\n",
+		       rc, host, port);
+		return NULL;
+	}
+	sem_timedwait(&dC.conn_sem, &ts);
+	if (dC.conn_status)
+		return NULL;
+	return ldms_g;
 }
+
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 static int log_level = 0;
 static void llog(int lvl, const char *fmt, ...) {
@@ -524,14 +529,13 @@ void dxt_darshan_ldms_connector_initialize()
     int i;
     int size;
     size = sizeof(dC.ldms_darsh)/sizeof(dC.ldms_darsh[0]);
-    //const char* env_ldms_port [] = {"10444", "10445"};
-    //const char* env_ldms_host [] = {"nid00046", "nid00046"};
+    //dC.env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
     //const int   env_ldms_port    = atoi(getenv("DARSHAN_LDMS_PORT"));
     const char* env_ldms_xprt    = getenv("DARSHAN_LDMS_XPRT");
     const char* env_ldms_host    = getenv("DARSHAN_LDMS_HOST");
     const char* env_ldms_port    = getenv("DARSHAN_LDMS_PORT");
     const char* env_ldms_auth    = getenv("DARSHAN_LDMS_AUTH");
-    //ln = ldms_sps_create_1(dC.env_ldms_stream, dC.env_ldms_xprt, dC.env_ldms_host, dC.env_ldms_port, dC.env_ldms_auth, 1, 5, llog, 0, "/projects/darshan/test/test_sps.send.log");
+    //dC.ln = ldms_sps_create_1(dC.env_ldms_stream, env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth, 1, 5, llog, 0, "/projects/darshan/test/test_sps.send.log");
 
     for(i = 0; i < size-1; i++){
     dC.ldms_darsh[i] = setup_connection(env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth);
@@ -542,7 +546,7 @@ void dxt_darshan_ldms_connector_initialize()
     
     }
     
-    //if (!ln)
+    //if (!dC.ln)
     //	printf("FAILED ldms_sps_create_1\n");
     
     return;
@@ -645,11 +649,11 @@ void dxt_darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t of
 
     pthread_mutex_lock(&ln_lock);
     if (!dC.ldms_darsh[0])
-    //if (!ln)
+    //if (!dC.ln)
         dxt_darshan_ldms_connector_initialize();
 
     if (!dC.ldms_darsh[0]){
-    //if (!ln){
+    //if (!dC.ln){
         printf("ldms_mod does not exist \n");
         pthread_mutex_unlock(&ln_lock);
         return;
@@ -693,7 +697,7 @@ void dxt_darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t of
     jb = jbuf_append_attr(jb, "dur", "%0.2f,", total_time); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "timestamp", "%lu.%0.6lu", tval_end.tv_sec, tval_end.tv_usec); if (!jb) goto out_1;
     jb = jbuf_append_str(jb, "}]}");
-    //printf("this is in jb %s \n", jb->buf);
+    printf("this is in jb %s \n", jb->buf);
 /*
     //save json to a file
     FILE *fp;
@@ -702,7 +706,7 @@ void dxt_darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t of
     fclose(fp);
   */  
 
-    //r = ldms_sps_send_event(ln, jb);
+    //r = ldms_sps_send_event(dC.ln, jb);
     //printf("this is the publish_count for %s: %i, rc: %i\n", mod_name, r.publish_count,r.rc);
     
     rc = ldmsd_stream_publish(dC.ldms_darsh[0], dC.env_ldms_stream, LDMSD_STREAM_JSON, jb->buf, (jb->cursor) + 1);

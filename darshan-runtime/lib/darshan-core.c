@@ -383,7 +383,7 @@ void darshan_core_initialize(int argc, char **argv)
         init_core->log_job_p->nprocs = nprocs;
         init_core->log_job_p->jobid = (int64_t)jobid;
 
-#ifdef HAVE_DXT_LDMS
+#ifdef HAVE_LDMS
     /* check if DXT LDMS is enabled and intialize LDMSD if it is. Set job for ldms stream mesage.*/
         extern struct darshanConnector dC;
         dC.jobid = init_core->log_job_p->jobid;
