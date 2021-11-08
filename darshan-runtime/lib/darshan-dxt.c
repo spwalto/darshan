@@ -529,25 +529,25 @@ void dxt_darshan_ldms_connector_initialize()
     int i;
     int size;
     size = sizeof(dC.ldms_darsh)/sizeof(dC.ldms_darsh[0]);
-    dC.env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
-    const int   env_ldms_port    = atoi(getenv("DARSHAN_LDMS_PORT"));
+    //dC.env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
+    //const int   env_ldms_port    = atoi(getenv("DARSHAN_LDMS_PORT"));
     const char* env_ldms_xprt    = getenv("DARSHAN_LDMS_XPRT");
     const char* env_ldms_host    = getenv("DARSHAN_LDMS_HOST");
-    //const char* env_ldms_port    = getenv("DARSHAN_LDMS_PORT");
+    const char* env_ldms_port    = getenv("DARSHAN_LDMS_PORT");
     const char* env_ldms_auth    = getenv("DARSHAN_LDMS_AUTH");
-    dC.ln = ldms_sps_create_1(dC.env_ldms_stream, env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth, 1, 5, llog, 0, "/projects/darshan/test/test_sps.send.log");
+    //dC.ln = ldms_sps_create_1(dC.env_ldms_stream, env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth, 1, 5, llog, 0, "/projects/darshan/test/test_sps.send.log");
 
-    //for(i = 0; i < size-1; i++){
-    //dC.ldms_darsh[i] = setup_connection(env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth);
-    //if (dC.ldms_darsh[i]->disconnected){
-    //            printf("Error setting up connection -- exiting\n");
-    //            return;
-    //    }
+    for(i = 0; i < size-1; i++){
+    dC.ldms_darsh[i] = setup_connection(env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth);
+    if (dC.ldms_darsh[i]->disconnected){
+                printf("Error setting up connection -- exiting\n");
+                return;
+        }
     
-    //}
+    }
     
-    if (!dC.ln)
-    	printf("FAILED ldms_sps_create_1\n");
+    //if (!dC.ln)
+    //	printf("FAILED ldms_sps_create_1\n");
     
     return;
 }
@@ -640,7 +640,7 @@ void darshan_ldms_set_meta(const char *filename, uint64_t record_id, int64_t ran
 void dxt_darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset, int64_t length, int64_t max_byte, int64_t rw_switch, double start_time, double end_time, struct timeval tval_start, struct timeval tval_end, double total_time, char *mod_name, char *data_type)
 {
     int rc, ret;
-    struct ldms_sps_send_result r = LN_NULL_RESULT;
+    //struct ldms_sps_send_result r = LN_NULL_RESULT;
     dC.env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
     
     // set hostname
@@ -648,12 +648,12 @@ void dxt_darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t of
     (void)gethostname(hname, sizeof(hname));
 
     pthread_mutex_lock(&ln_lock);
-    //if (!dC.ldms_darsh[0])
-    if (!dC.ln)
+    if (!dC.ldms_darsh[0])
+    //if (!dC.ln)
         dxt_darshan_ldms_connector_initialize();
 
-    //if (!dC.ldms_darsh[0]){
-    if (!dC.ln){
+    if (!dC.ldms_darsh[0]){
+    //if (!dC.ln){
         printf("ldms_mod does not exist \n");
         pthread_mutex_unlock(&ln_lock);
         return;
@@ -706,12 +706,12 @@ void dxt_darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t of
     fclose(fp);
   */  
 
-    r = ldms_sps_send_event(dC.ln, jb);
-    printf("this is the publish_count for %s: %i, rc: %i\n", mod_name, r.publish_count,r.rc);
+    //r = ldms_sps_send_event(dC.ln, jb);
+    //printf("this is the publish_count for %s: %i, rc: %i\n", mod_name, r.publish_count,r.rc);
     
-    //rc = ldmsd_stream_publish(dC.ldms_darsh[0], dC.env_ldms_stream, LDMSD_STREAM_JSON, jb->buf, (jb->cursor) + 1);
-    //if (rc)
-    //    printf("Error %d publishing data.\n", rc);
+    rc = ldmsd_stream_publish(dC.ldms_darsh[0], dC.env_ldms_stream, LDMSD_STREAM_JSON, jb->buf, (jb->cursor) + 1);
+    if (rc)
+        printf("Error %d publishing data.\n", rc);
     
  out_1:
         if (!jb ){
