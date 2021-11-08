@@ -162,6 +162,7 @@ static int my_rank = -1;
     darshan_add_record_ref(&(hdf5_file_runtime->hid_hash), &__ret, sizeof(hid_t), __rec_ref); \
     if(__newpath != __path) free(__newpath); \
     /* LDMS to publish realtime read tracing information to daemon*/ \
+    printf("we are in the H5F part yoooooooooooooo \n");\
     if(strcmp(getenv("HDF5_ENABLE_LDMS"),"1")==0){\
         printf("this is the H5F part \n");\
         darshan_ldms_set_meta((char *)__path, __rec_ref->file_rec->base_rec.id, __rec_ref->file_rec->base_rec.rank);\
