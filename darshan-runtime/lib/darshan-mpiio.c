@@ -238,9 +238,9 @@ static int my_rank = -1;
     darshan_add_record_ref(&(mpiio_runtime->fh_hash), &__fh, sizeof(MPI_File), rec_ref); \
     if(newpath != __path) free(newpath);\
     /* LDMS to publish realtime read tracing information to daemon*/ \
-    if(strcmp(getenv("DXT_ENABLE_LDMS"),"1")==0 || strcmp(getenv("MPIIO_ENABLE_LDMS"),"1")==0){\
-        darshan_ldms_set_meta(__path, rec_ref->file_rec->base_rec.id, rec_ref->file_rec->base_rec.rank);\
-        dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[MPIIO_COLL_OPENS] + rec_ref->file_rec->counters[MPIIO_INDEP_OPENS], "open", -1, -1, -1, -1, __tm1, __tm2, __tv1, __tv2, rec_ref->file_rec->fcounters[MPIIO_F_META_TIME], "MPIIO", "MET");\
+    if(getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS")){\
+        darshan_ldms_set_meta(__path, "N/A", rec_ref->file_rec->base_rec.id, rec_ref->file_rec->base_rec.rank);\
+        dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[MPIIO_COLL_OPENS] + rec_ref->file_rec->counters[MPIIO_INDEP_OPENS], "open", -1, -1, -1, -1, -1, __tm1, __tm2, __tv1, __tv2, rec_ref->file_rec->fcounters[MPIIO_F_META_TIME], "MPIIO", "MET");\
     }\
 } while(0)
 
@@ -292,8 +292,8 @@ static int get_byte_offset = 0;
     DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->file_rec->fcounters[MPIIO_F_READ_TIME], \
         __tm1, __tm2, rec_ref->last_read_end); \
     /* LDMS to publish realtime read tracing information to daemon*/ \
-    if(strcmp(getenv("DXT_ENABLE_LDMS"),"1")==0 || strcmp(getenv("MPIIO_ENABLE_LDMS"),"1")==0)\
-    dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[__counter], "read", displacement, size, -1, rec_ref->file_rec->counters[MPIIO_RW_SWITCHES], __tm1, __tm2, __tv1, __tv2, rec_ref->file_rec->fcounters[MPIIO_F_READ_TIME], "MPIIO", "MOD");\
+    if(getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS"))\
+    dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[__counter], "read", displacement, size, -1, rec_ref->file_rec->counters[MPIIO_RW_SWITCHES], -1, __tm1, __tm2, __tv1, __tv2, rec_ref->file_rec->fcounters[MPIIO_F_READ_TIME], "MPIIO", "MOD");\
 } while(0)
 
 #define MPIIO_RECORD_WRITE(__ret, __fh, __count, __datatype, __offset, __counter, __tm1, __tm2, __tv1, __tv2) do { \
@@ -334,8 +334,8 @@ static int get_byte_offset = 0;
     DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->file_rec->fcounters[MPIIO_F_WRITE_TIME], \
         __tm1, __tm2, rec_ref->last_write_end); \
     /* LDMS to publish realtime read tracing information to daemon*/ \
-    if(strcmp(getenv("DXT_ENABLE_LDMS"),"1")==0 || strcmp(getenv("MPIIO_ENABLE_LDMS"),"1")==0)\
-    dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[__counter], "write", displacement, size, -1, rec_ref->file_rec->counters[MPIIO_RW_SWITCHES],  __tm1, __tm2, __tv1, __tv2,rec_ref->file_rec->fcounters[MPIIO_F_WRITE_TIME], "MPIIO", "MOD");\
+    if(getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS"))\
+    dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[__counter], "write", displacement, size, -1, rec_ref->file_rec->counters[MPIIO_RW_SWITCHES], -1,  __tm1, __tm2, __tv1, __tv2,rec_ref->file_rec->fcounters[MPIIO_F_WRITE_TIME], "MPIIO", "MOD");\
 } while(0)
 
 /**********************************************************
@@ -1379,6 +1379,17 @@ static void mpiio_record_reduction_op(void* infile_v, void* inoutfile_v,
                 &(tmp_file.counters[MPIIO_ACCESS1_ACCESS]),
                 &(tmp_file.counters[MPIIO_ACCESS1_COUNT]),
                 &inoutfile->counters[j], 1, inoutfile->counters[j+4], 1);
+
+#ifdef HAVE_LDMS
+        /* set Darshan count and access vales to LDMS arrays */
+        if(getenv("ENABLE_LDMS_EXTRA") && (getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS"))){
+            extern struct darshanConnector_extra dC_e;
+            dC_e.access_access[j-39] = infile->counters[j];
+            dC_e.access_count[j-39] = infile->counters[j+4];
+            dC_e.access_stride[j-39] = -1;
+        }
+#endif
+
         }
 
         /* min non-zero (if available) value */
@@ -1483,25 +1494,27 @@ static void mpiio_record_reduction_op(void* infile_v, void* inoutfile_v,
 
 #ifdef HAVE_LDMS
     /* check if DXT LDMS is enabled and intialize LDMSD if it is. Set job for ldms stream mesage.*/
-    if(strcmp(getenv("EXTRA_ENABLE_LDMS"),"1")==0){
-    darshan_ldms_connector_send_extra("write", "MPIIO", 
+    if(getenv("ENABLE_LDMS_EXTRA") && (getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS"))){
+        extern struct darshanConnector_extra dC_e;
+        dC_e.fastest_rank = tmp_file.counters[MPIIO_FASTEST_RANK];
+        dC_e.slowest_rank = tmp_file.counters[MPIIO_SLOWEST_RANK];
+        dC_e.fastest_rank_time = tmp_file.fcounters[MPIIO_F_FASTEST_RANK_TIME];
+        dC_e.slowest_rank_time = tmp_file.fcounters[MPIIO_F_SLOWEST_RANK_TIME];
+
+        darshan_ldms_connector_send_extra("write", "MPIIO", "extra",
             MPIIO_SIZE_WRITE_AGG_0_100, MPIIO_SIZE_WRITE_AGG_100_1K, 
             MPIIO_SIZE_WRITE_AGG_1K_10K,MPIIO_SIZE_WRITE_AGG_10K_100K, 
             MPIIO_SIZE_WRITE_AGG_100K_1M,MPIIO_SIZE_WRITE_AGG_1M_4M,
             MPIIO_SIZE_WRITE_AGG_4M_10M,MPIIO_SIZE_WRITE_AGG_10M_100M,
             MPIIO_SIZE_WRITE_AGG_100M_1G,MPIIO_SIZE_WRITE_AGG_1G_PLUS);
             
-    darshan_ldms_connector_send_extra("read", "MPIIO", 
+        darshan_ldms_connector_send_extra("read", "MPIIO", "extra",
             MPIIO_SIZE_READ_AGG_0_100, MPIIO_SIZE_READ_AGG_100_1K,
             MPIIO_SIZE_READ_AGG_1K_10K,MPIIO_SIZE_READ_AGG_10K_100K,
             MPIIO_SIZE_READ_AGG_100K_1M,MPIIO_SIZE_READ_AGG_1M_4M,
             MPIIO_SIZE_READ_AGG_4M_10M,MPIIO_SIZE_READ_AGG_10M_100M,
             MPIIO_SIZE_READ_AGG_100M_1G,MPIIO_SIZE_READ_AGG_1G_PLUS);
             
-    darshan_ldms_set_rank_info(tmp_file.counters[MPIIO_FASTEST_RANK], 
-            tmp_file.counters[MPIIO_SLOWEST_RANK],
-            tmp_file.fcounters[MPIIO_F_FASTEST_RANK_TIME],
-            tmp_file.fcounters[MPIIO_F_SLOWEST_RANK_TIME]);
     }
 
 #endif

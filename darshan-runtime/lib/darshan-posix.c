@@ -240,9 +240,9 @@ static int darshan_mem_alignment = 1;
     darshan_instrument_fs_data(__rec_ref->fs_type, __newpath, __ret); \
     if(__newpath != __path) free(__newpath); \
     /* LDMS to publish realtime read tracing information to daemon*/ \
-     if(strcmp(getenv("DXT_ENABLE_LDMS"),"1")==0 || strcmp(getenv("POSIX_ENABLE_LDMS"),"1")==0){\
-        darshan_ldms_set_meta((char *)__path, __rec_ref->file_rec->base_rec.id, __rec_ref->file_rec->base_rec.rank);\
-        dxt_darshan_ldms_connector_send(__rec_ref->file_rec->counters[POSIX_OPENS], "open", -1, -1, -1, -1, __tm1, __tm2, __tv1, __tv2, __rec_ref->file_rec->fcounters[POSIX_F_META_TIME], "POSIX", "MET");\
+     if(getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS")){\
+        darshan_ldms_set_meta((char *)__path, "N/A", __rec_ref->file_rec->base_rec.id, __rec_ref->file_rec->base_rec.rank);\
+        dxt_darshan_ldms_connector_send(__rec_ref->file_rec->counters[POSIX_OPENS], "open", -1, -1, -1, -1, -1, __tm1, __tm2, __tv1, __tv2, __rec_ref->file_rec->fcounters[POSIX_F_META_TIME], "POSIX", "MET");\
      }\
 } while(0)
 
@@ -331,8 +331,8 @@ static int darshan_mem_alignment = 1;
     DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->file_rec->fcounters[POSIX_F_READ_TIME], \
         __tm1, __tm2, rec_ref->last_read_end);\
     /* LDMS to publish realtime read tracing information to daemon*/ \
-    if(strcmp(getenv("DXT_ENABLE_LDMS"),"1")==0 || strcmp(getenv("POSIX_ENABLE_LDMS"),"1")==0)\
-        dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[POSIX_READS], "read", this_offset, __ret, rec_ref->file_rec->counters[POSIX_MAX_BYTE_READ],rec_ref->file_rec->counters[POSIX_RW_SWITCHES], __tm1, __tm2, __tv1, __tv2, rec_ref->file_rec->fcounters[POSIX_F_READ_TIME], "POSIX", "MOD");\
+    if(getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))\
+        dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[POSIX_READS], "read", this_offset, __ret, rec_ref->file_rec->counters[POSIX_MAX_BYTE_READ],rec_ref->file_rec->counters[POSIX_RW_SWITCHES], -1,  __tm1, __tm2, __tv1, __tv2, rec_ref->file_rec->fcounters[POSIX_F_READ_TIME], "POSIX", "MOD");\
 } while(0)
 
 #define POSIX_RECORD_WRITE(__ret, __fd, __pwrite_flag, __pwrite_offset, __aligned, __tm1, __tm2, __tv1, __tv2) do { \
@@ -397,8 +397,8 @@ static int darshan_mem_alignment = 1;
     DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->file_rec->fcounters[POSIX_F_WRITE_TIME], \
         __tm1, __tm2, rec_ref->last_write_end);\
     /* LDMS to publish realtime write tracing information to daemon*/ \
-    if(strcmp(getenv("DXT_ENABLE_LDMS"),"1")==0 || strcmp(getenv("POSIX_ENABLE_LDMS"),"1")==0)\
-    dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[POSIX_WRITES], "write", this_offset, __ret, rec_ref->file_rec->counters[POSIX_MAX_BYTE_WRITTEN], rec_ref->file_rec->counters[POSIX_RW_SWITCHES], __tm1, __tm2, __tv1, __tv2, rec_ref->file_rec->fcounters[POSIX_F_WRITE_TIME], "POSIX", "MOD");\
+    if(getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))\
+    dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[POSIX_WRITES], "write", this_offset, __ret, rec_ref->file_rec->counters[POSIX_MAX_BYTE_WRITTEN], rec_ref->file_rec->counters[POSIX_RW_SWITCHES], -1, __tm1, __tm2, __tv1, __tv2, rec_ref->file_rec->fcounters[POSIX_F_WRITE_TIME], "POSIX", "MOD");\
 } while(0)
 
 #define POSIX_LOOKUP_RECORD_STAT(__path, __statbuf, __tm1, __tm2, __tv1, __tv2) do { \
@@ -1654,6 +1654,13 @@ int DARSHAN_DECL(close)(int fd)
             tm1, tm2, rec_ref->last_meta_end);
         darshan_delete_record_ref(&(posix_runtime->fd_hash), &fd, sizeof(int));
     }
+
+#ifdef HAVE_LDMS
+        /* LDMS to publish runtime h5d tracing information to daemon*/
+    if(getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))
+        dxt_darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, -1, tm1, tm2, tv1, tv2, rec_ref->file_rec->fcounters[POSIX_F_META_TIME], "POSIX", "MET");
+#endif
+
     POSIX_POST_RECORD();
 
     return(ret);
@@ -2176,6 +2183,14 @@ static void posix_record_reduction_op(void* infile_v, void* inoutfile_v,
                 &(tmp_file.counters[POSIX_STRIDE1_STRIDE]),
                 &(tmp_file.counters[POSIX_STRIDE1_COUNT]),
                 &inoutfile->counters[j], 1, inoutfile->counters[j+4], 1);
+#ifdef HAVE_LDMS
+        /* set Darshan count and access vales to LDMS arrays */
+        if(getenv("ENABLE_LDMS_EXTRA")&& (getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))){
+            extern struct darshanConnector_extra dC_e;
+            dC_e.access_stride[j-49] = infile->counters[j];
+            dC_e.stride_count[j-49] = infile->counters[j+4];
+        }
+#endif
         }
 
         /* same for access counts */
@@ -2209,6 +2224,15 @@ static void posix_record_reduction_op(void* infile_v, void* inoutfile_v,
                 &(tmp_file.counters[POSIX_ACCESS1_ACCESS]),
                 &(tmp_file.counters[POSIX_ACCESS1_COUNT]),
                 &inoutfile->counters[j], 1, inoutfile->counters[j+4], 1);
+
+#ifdef HAVE_LDMS
+        /* set Darshan count and access vales to LDMS arrays */
+        if(getenv("ENABLE_LDMS_EXTRA") && (getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))){
+            extern struct darshanConnector_extra dC_e;
+            dC_e.access_access[j-57] = infile->counters[j];
+            dC_e.access_count[j-57] = infile->counters[j+4]; 
+        }
+#endif
         }
 
         /* min non-zero (if available) value */
@@ -2310,6 +2334,34 @@ static void posix_record_reduction_op(void* infile_v, void* inoutfile_v,
             tmp_file.fcounters[POSIX_F_SLOWEST_RANK_TIME] =
                 inoutfile->fcounters[POSIX_F_SLOWEST_RANK_TIME];
         }
+
+#ifdef HAVE_LDMS
+    /* check if DXT LDMS is enabled and intialize LDMSD if it is. Set job for ldms stream mesage.*/
+    if(getenv("ENABLE_LDMS_EXTRA") && (getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))){
+        extern struct darshanConnector_extra dC_e;
+        dC_e.fastest_rank = tmp_file.counters[POSIX_FASTEST_RANK];
+        dC_e.slowest_rank = tmp_file.counters[POSIX_SLOWEST_RANK];
+        dC_e.fastest_rank_time = tmp_file.fcounters[POSIX_F_FASTEST_RANK_TIME];
+        dC_e.slowest_rank_time = tmp_file.fcounters[POSIX_F_SLOWEST_RANK_TIME];
+
+
+        darshan_ldms_connector_send_extra("write", "POSIX", "extra",
+            POSIX_SIZE_WRITE_0_100, POSIX_SIZE_WRITE_100_1K,
+            POSIX_SIZE_WRITE_1K_10K,POSIX_SIZE_WRITE_10K_100K,
+            POSIX_SIZE_WRITE_100K_1M,POSIX_SIZE_WRITE_1M_4M,
+            POSIX_SIZE_WRITE_4M_10M,POSIX_SIZE_WRITE_10M_100M,
+            POSIX_SIZE_WRITE_100M_1G,POSIX_SIZE_WRITE_1G_PLUS);
+
+        darshan_ldms_connector_send_extra("read", "POSIX", "extra",
+            POSIX_SIZE_READ_0_100, POSIX_SIZE_READ_100_1K,
+            POSIX_SIZE_READ_1K_10K,POSIX_SIZE_READ_10K_100K,
+            POSIX_SIZE_READ_100K_1M,POSIX_SIZE_READ_1M_4M,
+            POSIX_SIZE_READ_4M_10M,POSIX_SIZE_READ_10M_100M,
+            POSIX_SIZE_READ_100M_1G,POSIX_SIZE_READ_1G_PLUS);
+
+    }
+
+#endif
 
         /* update pointers */
         *inoutfile = tmp_file;

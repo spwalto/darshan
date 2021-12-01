@@ -224,9 +224,9 @@ extern int __real_fileno(FILE *stream);
     darshan_instrument_fs_data(__rec_ref->fs_type, __newpath, __fd); \
     if(__newpath != (char*)__path) free(__newpath);\
     /* LDMS to publish realtime read tracing information to daemon*/ \
-    if(strcmp(getenv("STDIO_ENABLE_LDMS"),"1")==0){\
-        darshan_ldms_set_meta(__path, __rec_ref->file_rec->base_rec.id, __rec_ref->file_rec->base_rec.rank);\
-        dxt_darshan_ldms_connector_send(__rec_ref->file_rec->counters[STDIO_OPENS], "open", -1, -1, -1, -1, __tm1, __tm2, __tv1, __tv2, __rec_ref->file_rec->fcounters[STDIO_F_META_TIME], "STDIO", "MET");\
+    if(getenv("STDIO_ENABLE_LDMS")){\
+        darshan_ldms_set_meta(__path, "N/A",  __rec_ref->file_rec->base_rec.id, __rec_ref->file_rec->base_rec.rank);\
+        dxt_darshan_ldms_connector_send(__rec_ref->file_rec->counters[STDIO_OPENS], "open", -1, -1, -1, -1, -1, __tm1, __tm2, __tv1, __tv2, __rec_ref->file_rec->fcounters[STDIO_F_META_TIME], "STDIO", "MET");\
     }\
 } while(0)
 
@@ -265,8 +265,8 @@ extern int __real_fileno(FILE *stream);
     rec_ref->file_rec->fcounters[STDIO_F_READ_END_TIMESTAMP] = __tm2; \
     DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->file_rec->fcounters[STDIO_F_READ_TIME], __tm1, __tm2, rec_ref->last_read_end);\
     /* LDMS to publish realtime read tracing information to daemon*/ \
-    if(strcmp(getenv("STDIO_ENABLE_LDMS"),"1")==0)\
-        dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[STDIO_READS], "read", this_offset, __bytes, rec_ref->file_rec->counters[STDIO_MAX_BYTE_READ], -1, __tm1, __tm2, __tv1, __tv2, rec_ref->file_rec->fcounters[STDIO_F_READ_TIME], "STDIO", "MOD"); \
+    if(getenv("STDIO_ENABLE_LDMS"))\
+        dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[STDIO_READS], "read", this_offset, __bytes, rec_ref->file_rec->counters[STDIO_MAX_BYTE_READ], -1, -1, __tm1, __tm2, __tv1, __tv2, rec_ref->file_rec->fcounters[STDIO_F_READ_TIME],"STDIO", "MOD"); \
 } while(0)
 
 #define STDIO_RECORD_WRITE(__fp, __bytes,  __tm1, __tm2, __tv1, __tv2, __fflush_flag) do{ \
@@ -288,8 +288,8 @@ extern int __real_fileno(FILE *stream);
         rec_ref->file_rec->fcounters[STDIO_F_WRITE_START_TIMESTAMP] = __tm1; \
     rec_ref->file_rec->fcounters[STDIO_F_WRITE_END_TIMESTAMP] = __tm2; \
     DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->file_rec->fcounters[STDIO_F_WRITE_TIME], __tm1, __tm2, rec_ref->last_write_end); \
-    if(strcmp(getenv("STDIO_ENABLE_LDMS"),"1")==0)\
-        dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[STDIO_WRITES], "write", this_offset, __bytes, rec_ref->file_rec->counters[STDIO_MAX_BYTE_WRITTEN], -1, __tm1, __tm2, __tv1, __tv2,  rec_ref->file_rec->fcounters[STDIO_F_WRITE_TIME], "STDIO", "MOD"); \
+    if(getenv("STDIO_ENABLE_LDMS"))\
+        dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[STDIO_WRITES], "write", this_offset, __bytes, rec_ref->file_rec->counters[STDIO_MAX_BYTE_WRITTEN], -1, rec_ref->file_rec->counters[STDIO_FLUSHES], __tm1, __tm2, __tv1, __tv2,  rec_ref->file_rec->fcounters[STDIO_F_WRITE_TIME], "STDIO", "MOD"); \
 } while(0)
 
 FILE* DARSHAN_DECL(fopen)(const char *path, const char *mode)
@@ -450,6 +450,13 @@ int DARSHAN_DECL(fclose)(FILE *fp)
             tm1, tm2, rec_ref->last_meta_end);
         darshan_delete_record_ref(&(stdio_runtime->stream_hash), &fp, sizeof(fp));
     }
+
+#ifdef HAVE_LDMS
+        /* LDMS to publish runtime h5d tracing information to daemon*/
+    if(getenv("STDIO_ENABLE_LDMS"))
+        dxt_darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, rec_ref->file_rec->counters[STDIO_FLUSHES], tm1, tm2, tv1, tv2, rec_ref->file_rec->fcounters[STDIO_F_META_TIME], "STDIO", "MET");
+#endif
+
     STDIO_POST_RECORD();
 
     return(ret);
@@ -1229,6 +1236,20 @@ static void stdio_record_reduction_op(void* infile_v, void* inoutfile_v,
             tmp_file.fcounters[STDIO_F_SLOWEST_RANK_TIME] =
                 inoutfile->fcounters[STDIO_F_SLOWEST_RANK_TIME];
         }
+
+#ifdef HAVE_LDMS
+    /* check if DXT LDMS is enabled and intialize LDMSD if it is. Set job for ldms stream mesage.*/
+    if(getenv("ENABLE_LDMS_EXTRA") && getenv("STDIO_ENABLE_LDMS")){
+        extern struct darshanConnector_extra dC_e;
+        dC_e.fastest_rank = tmp_file.counters[STDIO_FASTEST_RANK];
+        dC_e.slowest_rank = tmp_file.counters[STDIO_SLOWEST_RANK];
+        dC_e.fastest_rank_time = tmp_file.fcounters[STDIO_F_FASTEST_RANK_TIME];
+        dC_e.slowest_rank_time = tmp_file.fcounters[STDIO_F_SLOWEST_RANK_TIME];
+
+        darshan_ldms_connector_send_extra("N/A","STDIO", "extra", -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+        
+    }
+#endif
 
         /* update pointers */
         *inoutfile = tmp_file;
