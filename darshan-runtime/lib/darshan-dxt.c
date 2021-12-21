@@ -38,7 +38,7 @@
 /* Check for LDMS libraries if Darshan is built --with-dxt-ldms */
 #ifdef HAVE_LDMS
 #include "darshan-core.h"
-#include <ldms/ldms_sps.h>
+#include <slps/simple_lps.h>
 #include <ldms/ldms.h>
 #include <ldms/ldmsd_stream.h>
 #include <ovis_util/util.h>
@@ -522,25 +522,20 @@ void dxt_darshan_ldms_connector_initialize()
     int i;
     int size;
     size = sizeof(dC.ldms_darsh)/sizeof(dC.ldms_darsh[0]);
-    //dC.env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
-    //const int   env_ldms_port    = atoi(getenv("DARSHAN_LDMS_PORT"));
     const char* env_ldms_xprt    = getenv("DARSHAN_LDMS_XPRT");
     const char* env_ldms_host    = getenv("DARSHAN_LDMS_HOST");
     const char* env_ldms_port    = getenv("DARSHAN_LDMS_PORT");
     const char* env_ldms_auth    = getenv("DARSHAN_LDMS_AUTH");
-    //dC.ln = ldms_sps_create_1(dC.env_ldms_stream, env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth, 1, 5, llog, 0, "/projects/darshan/test/test_sps.send.log");
 
-    for(i = 0; i < size; i++){
-    dC.ldms_darsh[i] = setup_connection(env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth);
-    if (dC.ldms_darsh[i]->disconnected){
+    for(i = 0; i < size; i++)
+    {
+        dC.ldms_darsh[i] = setup_connection(env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth);
+        if (dC.ldms_darsh[i]->disconnected){
                 printf("Error setting up connection -- exiting\n");
                 return;
         }
     
     }
-    
-    //if (!dC.ln)
-    //	printf("FAILED ldms_sps_create_1\n");
     
     return;
 }
@@ -559,20 +554,18 @@ void darshan_ldms_set_meta(const char *filename, const char *data_set, uint64_t 
 void dxt_darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset, int64_t length, int64_t max_byte, int64_t rw_switch, int64_t flushes,  double start_time, double end_time, struct timeval tval_start, struct timeval tval_end, double total_time, char *mod_name, char *data_type)
 {
     int rc, ret, i, size;
-    //struct ldms_sps_send_result r = LN_NULL_RESULT;
+    struct slps_send_result r = LN_NULL_RESULT;
     dC.env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
-
+    
     // set hostname
     char hname[HOST_NAME_MAX];
     (void)gethostname(hname, sizeof(hname));
 
     pthread_mutex_lock(&ln_lock);
     if (!dC.ldms_darsh[0])
-    //if (!dC.ln)
         dxt_darshan_ldms_connector_initialize();
 
     if (!dC.ldms_darsh[0]){
-    //if (!dC.ln){
         printf("ldms_mod does not exist \n");
         pthread_mutex_unlock(&ln_lock);
         return;
@@ -618,16 +611,16 @@ void dxt_darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t of
     jb = jbuf_append_attr(jb, "type","\"%s\",", data_type); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "max_byte", "%lld,", max_byte);if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "switches", "%d,", rw_switch);if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "flushes", "%d,", flushes);if (!jb) goto out_1;
+    //jb = jbuf_append_attr(jb, "flushes", "%d,", flushes);if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "cnt", "%d,", record_count); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "op","\"%s%d\",", dC.op_name,record_count-1); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "seg", "[{"); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "data_set", "\"%s\",", dC.data_set); if (!jb) goto out_1;
+    /*jb = jbuf_append_attr(jb, "data_set", "\"%s\",", dC.data_set); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "pt_sel", "%lld,", dC.hdf5_data[0]);if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "irreg_hslab", "%lld,", dC.hdf5_data[1]);if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "reg_hslab", "%lld,", dC.hdf5_data[2]);if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "ndims", "%lld,", dC.hdf5_data[3]);if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "npoints", "%lld,", dC.hdf5_data[4]);if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "npoints", "%lld,", dC.hdf5_data[4]);if (!jb) goto out_1;*/
     jb = jbuf_append_attr(jb, "off", "%lld,", offset);if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "len", "%lld,", length);if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "dur", "%0.2f,", total_time); if (!jb) goto out_1;
@@ -638,14 +631,11 @@ void dxt_darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t of
 /*
     //save json to a file
     FILE *fp;
-    fp = fopen("/projects/darshan/logs/darshan_output_new.json", "a");
+    fp = fopen("/projects/darshan/test/darshan_output_new.json", "a");
     fprintf(fp, "%s\n", jb->buf);
     fclose(fp);
-*/  
+  */
 
-    //r = ldms_sps_send_event(dC.ln, jb);
-    //printf("this is the publish_count for %s: %i, rc: %i\n", mod_name, r.publish_count,r.rc);
-    
     rc = ldmsd_stream_publish(dC.ldms_darsh[0], dC.env_ldms_stream, LDMSD_STREAM_JSON, jb->buf, (jb->cursor) + 1);
     if (rc)
         printf("Error %d publishing data.\n", rc);
@@ -710,7 +700,8 @@ void darshan_ldms_connector_send_extra(char* rwo, char *mod_name, char *data_typ
     jb = jbuf_append_attr(jb, "fast_rank_tm","\"%f\",", dC_e.fastest_rank_time); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "slow_rank", "%d,", dC_e.slowest_rank); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "slow_rank_tm","\"%f\",", dC_e.slowest_rank_time); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "size", "[{"); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "op","\"%s%d\",", dC.op_name); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "seg", "[{"); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "0_100", "%d,", size_0_100); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "100_1K", "%d,", size_100_1K); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "1K_10K", "%d,", size_1K_10K); if (!jb) goto out_1;
@@ -721,9 +712,8 @@ void darshan_ldms_connector_send_extra(char* rwo, char *mod_name, char *data_typ
     jb = jbuf_append_attr(jb, "10M_100M", "%d,", size_10M_100M); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "100M_1G", "%d,", size_100M_1G); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "1G_PLUS", "%d", size_1G_PLUS); if (!jb) goto out_1;
-    jb = jbuf_append_str(jb, "}],");
+    
     /* add additional info from POSIX, MPIIO and H5D */
-    jb = jbuf_append_attr(jb, "acc-data", "[{"); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "acc_1", "%d,", dC_e.access_access[0]); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "acc_2", "%d,", dC_e.access_access[1]); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "acc_3", "%d,", dC_e.access_access[2]); if (!jb) goto out_1;
@@ -740,16 +730,17 @@ void darshan_ldms_connector_send_extra(char* rwo, char *mod_name, char *data_typ
     jb = jbuf_append_attr(jb, "scnt_2", "%d,", dC_e.stride_count[1]); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "scnt_3", "%d,", dC_e.stride_count[2]); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "scnt_4", "%d,", dC_e.stride_count[3]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "length_1", "%d,", dC_e.access_length[0]); if (!jb) goto out_1;
+    /*jb = jbuf_append_attr(jb, "length_1", "%d,", dC_e.access_length[0]); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "length_2", "%d,", dC_e.access_length[1]); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "length_3", "%d,", dC_e.access_length[2]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "length_4", "%d,", dC_e.access_length[3]); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "length_4", "%d,", dC_e.access_length[3]); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "lcnt_1", "%d,", dC_e.length_count[0]); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "lcnt_2", "%d,", dC_e.length_count[1]); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "lcnt_3", "%d,", dC_e.length_count[2]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "lcnt_4", "%d", dC_e.length_count[3]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "lcnt_4", "%d", dC_e.length_count[3]); if (!jb) goto out_1;*/
     jb = jbuf_append_str(jb, "}]}");
-    printf("this is in jb for EXTRA: %s \n", jb->buf);
+    //printf("this is in jb for EXTRA: %s \n", jb->buf);
 
     rc = ldmsd_stream_publish(dC.ldms_darsh[1], dC.env_ldms_stream, LDMSD_STREAM_JSON, jb->buf, (jb->cursor) + 1);
     if (rc)
