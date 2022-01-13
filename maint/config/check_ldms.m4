@@ -20,7 +20,7 @@ else
   AC_MSG_ERROR(ldms installation path is required)
 fi])
 
-AC_CHECK_HEADERS([ldms/ldms.h ldms/ldmsd_stream.h ovis_json/ovis_json.h ldms/ldms_sps.h ovis_util/util.h], 
+AC_CHECK_HEADERS([ldms/ldms.h ldms/ldmsd_stream.h ovis_json/ovis_json.h ovis_util/util.h], 
 	[ldms_found_stream_headers=yes; break;],
 	[AC_MSG_ERROR(One or more LDMS headers not found)])
 

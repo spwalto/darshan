@@ -387,7 +387,7 @@ void darshan_core_initialize(int argc, char **argv)
     /* check if DXT LDMS is enabled and intialize LDMSD if it is. Set job for ldms stream mesage.*/
         extern struct darshanConnector dC;
         dC.jobid = init_core->log_job_p->jobid;
-        dxt_darshan_ldms_connector_initialize();
+        darshan_ldms_connector_initialize();
 #endif
         /* if we are using any hints to write the log file, then record those
          * hints with the darshan job information
@@ -473,6 +473,7 @@ void darshan_core_shutdown(int write_log)
     darshan_record_id *mod_shared_recs = NULL;
     int shared_rec_cnt = 0;
 #endif
+    //darshan_core_fprintf(stdout, "We are in the darshan core right after the DARSHAN_CORE_LOCK() #1");
 
     /* disable darhan-core while we shutdown */
     DARSHAN_CORE_LOCK();
@@ -481,6 +482,7 @@ void darshan_core_shutdown(int write_log)
         DARSHAN_CORE_UNLOCK();
         return;
     }
+    //darshan_core_fprintf(stdout, "We are in the darshan cor right after the DARSHAN_CORE_LOCK()");
     final_core = darshan_core;
     darshan_core = NULL;
     DARSHAN_CORE_UNLOCK();
