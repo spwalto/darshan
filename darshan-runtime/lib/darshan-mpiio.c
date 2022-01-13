@@ -240,7 +240,7 @@ static int my_rank = -1;
     /* LDMS to publish realtime read tracing information to daemon*/ \
     if(getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS")){\
         darshan_ldms_set_meta(__path, "N/A", rec_ref->file_rec->base_rec.id, rec_ref->file_rec->base_rec.rank);\
-        dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[MPIIO_COLL_OPENS] + rec_ref->file_rec->counters[MPIIO_INDEP_OPENS], "open", -1, -1, -1, -1, -1, __tm1, __tm2, __tv1, __tv2, rec_ref->file_rec->fcounters[MPIIO_F_META_TIME], "MPIIO", "MET");\
+        darshan_ldms_connector_send(rec_ref->file_rec->counters[MPIIO_COLL_OPENS] + rec_ref->file_rec->counters[MPIIO_INDEP_OPENS], "open", -1, -1, -1, -1, -1, __tm1, __tm2, __tv1, __tv2, rec_ref->file_rec->fcounters[MPIIO_F_META_TIME], "MPIIO", "MET");\
     }\
 } while(0)
 
@@ -293,7 +293,7 @@ static int get_byte_offset = 0;
         __tm1, __tm2, rec_ref->last_read_end); \
     /* LDMS to publish realtime read tracing information to daemon*/ \
     if(getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS"))\
-    dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[__counter], "read", displacement, size, -1, rec_ref->file_rec->counters[MPIIO_RW_SWITCHES], -1, __tm1, __tm2, __tv1, __tv2, rec_ref->file_rec->fcounters[MPIIO_F_READ_TIME], "MPIIO", "MOD");\
+    darshan_ldms_connector_send(rec_ref->file_rec->counters[__counter], "read", displacement, size, -1, rec_ref->file_rec->counters[MPIIO_RW_SWITCHES], -1, __tm1, __tm2, __tv1, __tv2, rec_ref->file_rec->fcounters[MPIIO_F_READ_TIME], "MPIIO", "MOD");\
 } while(0)
 
 #define MPIIO_RECORD_WRITE(__ret, __fh, __count, __datatype, __offset, __counter, __tm1, __tm2, __tv1, __tv2) do { \
@@ -335,7 +335,7 @@ static int get_byte_offset = 0;
         __tm1, __tm2, rec_ref->last_write_end); \
     /* LDMS to publish realtime read tracing information to daemon*/ \
     if(getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS"))\
-    dxt_darshan_ldms_connector_send(rec_ref->file_rec->counters[__counter], "write", displacement, size, -1, rec_ref->file_rec->counters[MPIIO_RW_SWITCHES], -1,  __tm1, __tm2, __tv1, __tv2,rec_ref->file_rec->fcounters[MPIIO_F_WRITE_TIME], "MPIIO", "MOD");\
+    darshan_ldms_connector_send(rec_ref->file_rec->counters[__counter], "write", displacement, size, -1, rec_ref->file_rec->counters[MPIIO_RW_SWITCHES], -1,  __tm1, __tm2, __tv1, __tv2,rec_ref->file_rec->fcounters[MPIIO_F_WRITE_TIME], "MPIIO", "MOD");\
 } while(0)
 
 /**********************************************************
@@ -1208,6 +1208,13 @@ int DARSHAN_DECL(MPI_File_close)(MPI_File *fh)
             tm1, tm2, rec_ref->last_meta_end);
         darshan_delete_record_ref(&(mpiio_runtime->fh_hash),
             &tmp_fh, sizeof(MPI_File));
+
+#ifdef HAVE_LDMS
+    /* publish close information for mpiio */
+    if(getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS"))
+        darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, -1, tm1, tm2, tv1, tv2, rec_ref->file_rec->fcounters[MPIIO_F_META_TIME], "MPIIO", "MET");
+#endif
+
     }
     MPIIO_POST_RECORD();
 

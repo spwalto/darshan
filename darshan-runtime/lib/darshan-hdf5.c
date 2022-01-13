@@ -164,7 +164,7 @@ static int my_rank = -1;
     /* LDMS to publish realtime read tracing information to daemon*/ \
     if(getenv("HDF5_ENABLE_LDMS")){\
         darshan_ldms_set_meta(__path, "N/A", __rec_ref->file_rec->base_rec.id, __rec_ref->file_rec->base_rec.rank);\
-        dxt_darshan_ldms_connector_send(__rec_ref->file_rec->counters[H5F_OPENS], "open", -1, -1, -1, -1, __rec_ref->file_rec->counters[H5F_FLUSHES], __tm1, __tm2, __tv1, __tv2, __rec_ref->file_rec->fcounters[H5F_F_META_TIME], "H5F", "MET");\
+        darshan_ldms_connector_send(__rec_ref->file_rec->counters[H5F_OPENS], "open", -1, -1, -1, -1, __rec_ref->file_rec->counters[H5F_FLUSHES], __tm1, __tm2, __tv1, __tv2, __rec_ref->file_rec->fcounters[H5F_F_META_TIME], "H5F", "MET");\
     }\
 } while(0)
 
@@ -390,12 +390,14 @@ herr_t DARSHAN_DECL(H5Fclose)(hid_t file_id)
                 tm1, tm2, rec_ref->last_meta_end);
             darshan_delete_record_ref(&(hdf5_file_runtime->hid_hash),
                 &file_id, sizeof(hid_t));
-        }
+
 #ifdef HAVE_LDMS
-        /* LDMS to publish runtime h5d tracing information to daemon*/ 
-    if(getenv("HDF5_ENABLE_LDMS"))
-        dxt_darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, rec_ref->file_rec->counters[H5F_FLUSHES],rec_ref->file_rec->fcounters[H5F_F_CLOSE_START_TIMESTAMP], rec_ref->file_rec->fcounters[H5F_F_CLOSE_END_TIMESTAMP],tv1, tv2, rec_ref->file_rec->fcounters[H5F_F_META_TIME], "H5F", "MET");
+        /* LDMS to publish runtime h5d tracing information to daemon*/
+        if(getenv("HDF5_ENABLE_LDMS"))
+        darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, rec_ref->file_rec->counters[H5F_FLUSHES],rec_ref->file_rec->fcounters[H5F_F_CLOSE_START_TIMESTAMP], rec_ref->file_rec->fcounters[H5F_F_CLOSE_END_TIMESTAMP],tv1, tv2, rec_ref->file_rec->fcounters[H5F_F_META_TIME], "H5F", "MET");
 #endif
+
+        }
 
         H5F_POST_RECORD();
     }
@@ -488,7 +490,7 @@ herr_t DARSHAN_DECL(H5Fclose)(hid_t file_id)
     /* LDMS to publish runtime h5d tracing information to daemon*/ \
     if(getenv("HDF5_ENABLE_LDMS")){\
         darshan_ldms_set_meta("N/A", __name, __rec_ref->dataset_rec->base_rec.id, __rec_ref->dataset_rec->base_rec.rank);\
-        dxt_darshan_ldms_connector_send(__rec_ref->dataset_rec->counters[H5D_OPENS], "open", -1, -1, -1, -1, __rec_ref->dataset_rec->counters[H5D_FLUSHES], __tm1, __tm2, __tv1, __tv2, __rec_ref->dataset_rec->fcounters[H5D_F_META_TIME], "H5D", "MET");\
+        darshan_ldms_connector_send(__rec_ref->dataset_rec->counters[H5D_OPENS], "open", -1, -1, -1, -1, __rec_ref->dataset_rec->counters[H5D_FLUSHES], __tm1, __tm2, __tv1, __tv2, __rec_ref->dataset_rec->fcounters[H5D_F_META_TIME], "H5D", "MET");\
     }\
 } while(0)
 
@@ -756,7 +758,7 @@ herr_t DARSHAN_DECL(H5Dread)(hid_t dataset_id, hid_t mem_type_id, hid_t mem_spac
                 dC.hdf5_data[3] = rec_ref->dataset_rec->counters[H5D_DATASPACE_NDIMS];
                 dC.hdf5_data[4] = rec_ref->dataset_rec->counters[H5D_DATASPACE_NPOINTS];
 
-                dxt_darshan_ldms_connector_send(rec_ref->dataset_rec->counters[H5D_READS], "read", -1, rec_ref->dataset_rec->counters[H5D_MAX_READ_TIME_SIZE], -1, rec_ref->dataset_rec->counters[H5D_RW_SWITCHES], rec_ref->dataset_rec->counters[H5D_FLUSHES], rec_ref->dataset_rec->fcounters[H5D_F_READ_START_TIMESTAMP], rec_ref->dataset_rec->fcounters[H5D_F_READ_END_TIMESTAMP], tv1, tv2, rec_ref->dataset_rec->fcounters[H5D_F_READ_TIME], "H5D", "MOD");
+                darshan_ldms_connector_send(rec_ref->dataset_rec->counters[H5D_READS], "read", -1, rec_ref->dataset_rec->counters[H5D_MAX_READ_TIME_SIZE], -1, rec_ref->dataset_rec->counters[H5D_RW_SWITCHES], rec_ref->dataset_rec->counters[H5D_FLUSHES], rec_ref->dataset_rec->fcounters[H5D_F_READ_START_TIMESTAMP], rec_ref->dataset_rec->fcounters[H5D_F_READ_END_TIMESTAMP], tv1, tv2, rec_ref->dataset_rec->fcounters[H5D_F_READ_TIME], "H5D", "MOD");
             }
 #endif
         }
@@ -881,7 +883,6 @@ herr_t DARSHAN_DECL(H5Dwrite)(hid_t dataset_id, hid_t mem_type_id, hid_t mem_spa
             DARSHAN_TIMER_INC_NO_OVERLAP(
                 rec_ref->dataset_rec->fcounters[H5D_F_WRITE_TIME],
                 tm1, tm2, rec_ref->last_write_end);
-        }
 
 #ifdef HAVE_LDMS
             /* LDMS to publish runtime h5d tracing information to daemon*/
@@ -894,10 +895,12 @@ herr_t DARSHAN_DECL(H5Dwrite)(hid_t dataset_id, hid_t mem_type_id, hid_t mem_spa
                 dC.hdf5_data[3] = rec_ref->dataset_rec->counters[H5D_DATASPACE_NDIMS];
                 dC.hdf5_data[4] = rec_ref->dataset_rec->counters[H5D_DATASPACE_NPOINTS];
 
-                dxt_darshan_ldms_connector_send(rec_ref->dataset_rec->counters[H5D_WRITES], "write", -1, rec_ref->dataset_rec->counters[H5D_MAX_WRITE_TIME_SIZE], -1, rec_ref->dataset_rec->counters[H5D_RW_SWITCHES], rec_ref->dataset_rec->counters[H5D_FLUSHES], rec_ref->dataset_rec->fcounters[H5D_F_WRITE_START_TIMESTAMP], rec_ref->dataset_rec->fcounters[H5D_F_WRITE_END_TIMESTAMP], tv1, tv2, rec_ref->dataset_rec->fcounters[H5D_F_WRITE_TIME], "H5D", "MOD");
+                darshan_ldms_connector_send(rec_ref->dataset_rec->counters[H5D_WRITES], "write", -1, rec_ref->dataset_rec->counters[H5D_MAX_WRITE_TIME_SIZE], -1, rec_ref->dataset_rec->counters[H5D_RW_SWITCHES], rec_ref->dataset_rec->counters[H5D_FLUSHES], rec_ref->dataset_rec->fcounters[H5D_F_WRITE_START_TIMESTAMP], rec_ref->dataset_rec->fcounters[H5D_F_WRITE_END_TIMESTAMP], tv1, tv2, rec_ref->dataset_rec->fcounters[H5D_F_WRITE_TIME], "H5D", "MOD");
 
             }
 #endif
+
+        }
 
         H5D_POST_RECORD();
     }
@@ -965,13 +968,13 @@ herr_t DARSHAN_DECL(H5Dclose)(hid_t dataset_id)
             DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->dataset_rec->fcounters[H5D_F_META_TIME],
                 tm1, tm2, rec_ref->last_meta_end);
             darshan_delete_record_ref(&(hdf5_dataset_runtime->hid_hash), &dataset_id, sizeof(hid_t));
-        }
-
 #ifdef HAVE_LDMS
         /* LDMS to publish runtime h5d tracing information to daemon*/
     if(getenv("HDF5_ENABLE_LDMS"))
-        dxt_darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, rec_ref->dataset_rec->counters[H5D_FLUSHES], rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_START_TIMESTAMP], rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_END_TIMESTAMP], tv1, tv2, rec_ref->dataset_rec->fcounters[H5D_F_META_TIME], "H5D", "MET");
+        darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, rec_ref->dataset_rec->counters[H5D_FLUSHES], rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_START_TIMESTAMP], rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_END_TIMESTAMP], tv1, tv2, rec_ref->dataset_rec->fcounters[H5D_F_META_TIME], "H5D", "MET");
 #endif
+
+        }
 
         H5D_POST_RECORD();
     }
