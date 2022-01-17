@@ -38,7 +38,6 @@
 /* Check for LDMS libraries if Darshan is built --with-dxt-ldms */
 #ifdef HAVE_LDMS
 #include "darshan-core.h"
-#include <slps/simple_lps.h>
 #include <ldms/ldms.h>
 #include <ldms/ldmsd_stream.h>
 #include <ovis_util/util.h>
