@@ -205,8 +205,8 @@ static int darshan_mem_alignment = 1;
 #define POSIX_LOCK() pthread_mutex_lock(&posix_runtime_mutex)
 #define POSIX_UNLOCK() pthread_mutex_unlock(&posix_runtime_mutex)
 
-#define POSIX_WTIME() \
-    __darshan_disabled ? 0 : darshan_core_wtime();
+#define POSIX_WTIME(tspec) \
+    __darshan_disabled ? 0 : darshan_core_wtime(tspec);\
 
 /* note that if the break condition is triggered in this macro, then it
  * will exit the do/while loop holding a lock that will be released in
@@ -227,7 +227,7 @@ static int darshan_mem_alignment = 1;
     POSIX_UNLOCK(); \
 } while(0)
 
-#define POSIX_RECORD_OPEN(__ret, __path, __mode, __tm1, __tm2) do { \
+#define POSIX_RECORD_OPEN(__ret, __path, __mode, __tm1, __tm2, __ts1, __ts2) do { \
     darshan_record_id __rec_id; \
     struct posix_file_record_ref *__rec_ref; \
     char *__newpath; \
@@ -245,17 +245,22 @@ static int darshan_mem_alignment = 1;
         if(__newpath != __path) free(__newpath); \
         break; \
     } \
-    _POSIX_RECORD_OPEN(__ret, __rec_ref, __mode, __tm1, __tm2, 1, -1); \
+    _POSIX_RECORD_OPEN(__ret, __rec_ref, __mode, __tm1, __tm2, __ts1, __ts2, 1, -1); \
     darshan_instrument_fs_data(__rec_ref->fs_type, __newpath, __ret); \
     if(__newpath != __path) free(__newpath); \
+    /* LDMS to publish realtime read tracing information to daemon*/ \
+     if(getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS")){\
+         darshan_ldms_set_meta((char *)__path, "N/A", __rec_ref->file_rec->base_rec.id, __rec_ref->file_rec->base_rec.rank);\
+         darshan_ldms_connector_send(__rec_ref->file_rec->counters[POSIX_OPENS], "open", -1, -1, -1, -1, -1, __tm1, __tm2, __ts1, __ts2, __rec_ref->file_rec->fcounters[POSIX_F_META_TIME], "POSIX", "MET");\
+     }\
 } while(0)
 
-#define POSIX_RECORD_REFOPEN(__ret, __rec_ref, __tm1, __tm2, __ref_counter) do { \
+#define POSIX_RECORD_REFOPEN(__ret, __rec_ref, __tm1, __tm2, __ts1, __ts2, __ref_counter) do { \
     if(__ret < 0 || !__rec_ref) break; \
-    _POSIX_RECORD_OPEN(__ret, __rec_ref, 0, __tm1, __tm2, 0, __ref_counter); \
+    _POSIX_RECORD_OPEN(__ret, __rec_ref, 0, __tm1, __tm2, __ts1, __ts2,  0, __ref_counter); \
 } while(0)
 
-#define _POSIX_RECORD_OPEN(__ret, __rec_ref, __mode, __tm1, __tm2, __reset_flag, __ref_counter) do { \
+#define _POSIX_RECORD_OPEN(__ret, __rec_ref, __mode, __tm1, __tm2, __ts1, __ts2, __reset_flag, __ref_counter) do { \
     if(__mode) __rec_ref->file_rec->counters[POSIX_MODE] = __mode; \
     if(__reset_flag) { \
         __rec_ref->offset = 0; \
@@ -273,7 +278,7 @@ static int darshan_mem_alignment = 1;
     darshan_add_record_ref(&(posix_runtime->fd_hash), &__ret, sizeof(int), __rec_ref); \
 } while(0)
 
-#define POSIX_RECORD_READ(__ret, __fd, __pread_flag, __pread_offset, __aligned, __tm1, __tm2) do { \
+#define POSIX_RECORD_READ(__ret, __fd, __pread_flag, __pread_offset, __aligned, __tm1, __tm2, __ts1, __ts2) do { \
     struct posix_file_record_ref* rec_ref; \
     int64_t stride; \
     int64_t this_offset; \
@@ -288,7 +293,7 @@ static int darshan_mem_alignment = 1;
     else \
         this_offset = rec_ref->offset; \
     /* DXT to record detailed read tracing information */ \
-    dxt_posix_read(rec_ref->file_rec->base_rec.id, this_offset, __ret, __tm1, __tm2); \
+    dxt_posix_read(rec_ref->file_rec->base_rec.id, this_offset, __ret, __tm1, __tm2, __ts1, __ts2); \
     /* heatmap to record traffic summary */ \
     heatmap_update(posix_runtime->heatmap_id, HEATMAP_READ, __ret, __tm1, __tm2); \
     if(this_offset > rec_ref->last_byte_read) \
@@ -335,10 +340,13 @@ static int darshan_mem_alignment = 1;
         rec_ref->file_rec->fcounters[POSIX_F_MAX_READ_TIME] = __elapsed; \
         rec_ref->file_rec->counters[POSIX_MAX_READ_TIME_SIZE] = __ret; } \
     DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->file_rec->fcounters[POSIX_F_READ_TIME], \
-        __tm1, __tm2, rec_ref->last_read_end); \
+        __tm1, __tm2, rec_ref->last_read_end);\
+    /* LDMS to publish realtime read tracing information to daemon*/ \
+    if(getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))\
+        darshan_ldms_connector_send(rec_ref->file_rec->counters[POSIX_READS], "read", this_offset, __ret, rec_ref->file_rec->counters[POSIX_MAX_BYTE_READ],rec_ref->file_rec->counters[POSIX_RW_SWITCHES], -1,  __tm1, __tm2, __ts1, __ts2, rec_ref->file_rec->fcounters[POSIX_F_READ_TIME], "POSIX", "MOD");\
 } while(0)
 
-#define POSIX_RECORD_WRITE(__ret, __fd, __pwrite_flag, __pwrite_offset, __aligned, __tm1, __tm2) do { \
+#define POSIX_RECORD_WRITE(__ret, __fd, __pwrite_flag, __pwrite_offset, __aligned, __tm1, __tm2, __ts1, __ts2) do { \
     struct posix_file_record_ref* rec_ref; \
     int64_t stride; \
     int64_t this_offset; \
@@ -353,7 +361,7 @@ static int darshan_mem_alignment = 1;
     else \
         this_offset = rec_ref->offset; \
     /* DXT to record detailed write tracing information */ \
-    dxt_posix_write(rec_ref->file_rec->base_rec.id, this_offset, __ret, __tm1, __tm2); \
+    dxt_posix_write(rec_ref->file_rec->base_rec.id, this_offset, __ret, __tm1, __tm2, __ts1, __ts2); \
     /* heatmap to record traffic summary */ \
     heatmap_update(posix_runtime->heatmap_id, HEATMAP_WRITE, __ret, __tm1, __tm2); \
     if(this_offset > rec_ref->last_byte_written) \
@@ -400,10 +408,13 @@ static int darshan_mem_alignment = 1;
         rec_ref->file_rec->fcounters[POSIX_F_MAX_WRITE_TIME] = __elapsed; \
         rec_ref->file_rec->counters[POSIX_MAX_WRITE_TIME_SIZE] = __ret; } \
     DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->file_rec->fcounters[POSIX_F_WRITE_TIME], \
-        __tm1, __tm2, rec_ref->last_write_end); \
+        __tm1, __tm2, rec_ref->last_write_end);\
+    /* LDMS to publish realtime write tracing information to daemon*/ \
+    if(getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))\
+    darshan_ldms_connector_send(rec_ref->file_rec->counters[POSIX_WRITES], "write", this_offset, __ret, rec_ref->file_rec->counters[POSIX_MAX_BYTE_WRITTEN], rec_ref->file_rec->counters[POSIX_RW_SWITCHES], -1, __tm1, __tm2, __ts1, __ts2, rec_ref->file_rec->fcounters[POSIX_F_WRITE_TIME], "POSIX", "MOD");\
 } while(0)
 
-#define POSIX_LOOKUP_RECORD_STAT(__path, __statbuf, __tm1, __tm2) do { \
+#define POSIX_LOOKUP_RECORD_STAT(__path, __statbuf, __tm1, __tm2, __ts1, __ts2) do { \
     darshan_record_id rec_id; \
     struct posix_file_record_ref* rec_ref; \
     char *newpath = darshan_clean_file_path(__path); \
@@ -417,11 +428,11 @@ static int darshan_mem_alignment = 1;
     if(!rec_ref) rec_ref = posix_track_new_file_record(rec_id, newpath); \
     if(newpath != __path) free(newpath); \
     if(rec_ref) { \
-        POSIX_RECORD_STAT(rec_ref, __statbuf, __tm1, __tm2); \
+        POSIX_RECORD_STAT(rec_ref, __statbuf, __tm1, __tm2, __ts1, __ts2); \
     } \
 } while(0)
 
-#define POSIX_RECORD_STAT(__rec_ref, __statbuf, __tm1, __tm2) do { \
+#define POSIX_RECORD_STAT(__rec_ref, __statbuf, __tm1, __tm2, __ts1, __ts2) do { \
     (__rec_ref)->file_rec->counters[POSIX_STATS] += 1; \
     DARSHAN_TIMER_INC_NO_OVERLAP((__rec_ref)->file_rec->fcounters[POSIX_F_META_TIME], \
         __tm1, __tm2, (__rec_ref)->last_meta_end); \
@@ -437,6 +448,7 @@ int DARSHAN_DECL(open)(const char *path, int flags, ...)
     int mode = 0;
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(open);
 
@@ -447,19 +459,19 @@ int DARSHAN_DECL(open)(const char *path, int flags, ...)
         mode = va_arg(arg, int);
         va_end(arg);
 
-        tm1 = POSIX_WTIME();
+        tm1 = POSIX_WTIME(&ts1);
         ret = __real_open(path, flags, mode);
-        tm2 = POSIX_WTIME();
+        tm2 = POSIX_WTIME(&ts2);
     }
     else
     {
-        tm1 = POSIX_WTIME();
+        tm1 = POSIX_WTIME(&ts1);
         ret = __real_open(path, flags);
-        tm2 = POSIX_WTIME();
+        tm2 = POSIX_WTIME(&ts2);
     }
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_OPEN(ret, path, mode, tm1, tm2);
+    POSIX_RECORD_OPEN(ret, path, mode, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -469,15 +481,16 @@ int DARSHAN_DECL(__open_2)(const char *path, int oflag)
 {
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(__open_2);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real___open_2(path, oflag);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_OPEN(ret, path, 0, tm1, tm2);
+    POSIX_RECORD_OPEN(ret, path, 0, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -488,6 +501,7 @@ int DARSHAN_DECL(open64)(const char *path, int flags, ...)
     int mode = 0;
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(open64);
 
@@ -498,19 +512,19 @@ int DARSHAN_DECL(open64)(const char *path, int flags, ...)
         mode = va_arg(arg, int);
         va_end(arg);
 
-        tm1 = POSIX_WTIME();
+        tm1 = POSIX_WTIME(&ts1);
         ret = __real_open64(path, flags, mode);
-        tm2 = POSIX_WTIME();
+        tm2 = POSIX_WTIME(&ts2);
     }
     else
     {
-        tm1 = POSIX_WTIME();
+        tm1 = POSIX_WTIME(&ts1);
         ret = __real_open64(path, flags);
-        tm2 = POSIX_WTIME();
+        tm2 = POSIX_WTIME(&ts2);
     }
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_OPEN(ret, path, mode, tm1, tm2);
+    POSIX_RECORD_OPEN(ret, path, mode, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -521,6 +535,7 @@ int DARSHAN_DECL(openat)(int dirfd, const char *pathname, int flags, ...)
     int mode = 0;
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
     struct posix_file_record_ref *rec_ref;
     char tmp_path[PATH_MAX] = {0};
     char *dirpath = NULL;
@@ -534,15 +549,15 @@ int DARSHAN_DECL(openat)(int dirfd, const char *pathname, int flags, ...)
         mode = va_arg(arg, int);
         va_end(arg);
 
-        tm1 = POSIX_WTIME();
+        tm1 = POSIX_WTIME(&ts1);
         ret = __real_openat(dirfd, pathname, flags, mode);
-        tm2 = POSIX_WTIME();
+        tm2 = POSIX_WTIME(&ts2);
     }
     else
     {
-        tm1 = POSIX_WTIME();
+        tm1 = POSIX_WTIME(&ts1);
         ret = __real_openat(dirfd, pathname, flags);
-        tm2 = POSIX_WTIME();
+        tm2 = POSIX_WTIME(&ts2);
     }
 
     POSIX_PRE_RECORD();
@@ -552,7 +567,7 @@ int DARSHAN_DECL(openat)(int dirfd, const char *pathname, int flags, ...)
          *    - absolute path
          *    - dirfd equal to CWD
          */
-        POSIX_RECORD_OPEN(ret, pathname, mode, tm1, tm2);
+        POSIX_RECORD_OPEN(ret, pathname, mode, tm1, tm2, ts1, ts2);
     }
     else
     {
@@ -574,12 +589,12 @@ int DARSHAN_DECL(openat)(int dirfd, const char *pathname, int flags, ...)
         if(dirpath)
         {
             /* we were able to construct an absolute path */
-            POSIX_RECORD_OPEN(ret, tmp_path, mode, tm1, tm2);
+            POSIX_RECORD_OPEN(ret, tmp_path, mode, tm1, tm2, ts1, ts2);
         }
         else
         {
             /* fallback to relative path if Darshan doesn't know dirfd path */
-            POSIX_RECORD_OPEN(ret, pathname, mode, tm1, tm2);
+            POSIX_RECORD_OPEN(ret, pathname, mode, tm1, tm2, ts1, ts2);
         }
     }
     POSIX_POST_RECORD();
@@ -592,6 +607,7 @@ int DARSHAN_DECL(openat64)(int dirfd, const char *pathname, int flags, ...)
     int mode = 0;
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
     struct posix_file_record_ref *rec_ref;
     char tmp_path[PATH_MAX] = {0};
     char *dirpath = NULL;
@@ -605,15 +621,15 @@ int DARSHAN_DECL(openat64)(int dirfd, const char *pathname, int flags, ...)
         mode = va_arg(arg, int);
         va_end(arg);
 
-        tm1 = POSIX_WTIME();
+        tm1 = POSIX_WTIME(&ts1);
         ret = __real_openat64(dirfd, pathname, flags, mode);
-        tm2 = POSIX_WTIME();
+        tm2 = POSIX_WTIME(&ts2);
     }
     else
     {
-        tm1 = POSIX_WTIME();
+        tm1 = POSIX_WTIME(&ts1);
         ret = __real_openat64(dirfd, pathname, flags);
-        tm2 = POSIX_WTIME();
+        tm2 = POSIX_WTIME(&ts2);
     }
 
     POSIX_PRE_RECORD();
@@ -623,7 +639,7 @@ int DARSHAN_DECL(openat64)(int dirfd, const char *pathname, int flags, ...)
          *    - absolute path
          *    - dirfd equal to CWD
          */
-        POSIX_RECORD_OPEN(ret, pathname, mode, tm1, tm2);
+        POSIX_RECORD_OPEN(ret, pathname, mode, tm1, tm2, ts1, ts2);
     }
     else
     {
@@ -645,12 +661,12 @@ int DARSHAN_DECL(openat64)(int dirfd, const char *pathname, int flags, ...)
         if(dirpath)
         {
             /* we were able to construct an absolute path */
-            POSIX_RECORD_OPEN(ret, tmp_path, mode, tm1, tm2);
+            POSIX_RECORD_OPEN(ret, tmp_path, mode, tm1, tm2, ts1, ts2);
         }
         else
         {
             /* fallback to relative path if Darshan doesn't know dirfd path */
-            POSIX_RECORD_OPEN(ret, pathname, mode, tm1, tm2);
+            POSIX_RECORD_OPEN(ret, pathname, mode, tm1, tm2, ts1, ts2);
         }
     }
     POSIX_POST_RECORD();
@@ -662,15 +678,16 @@ int DARSHAN_DECL(creat)(const char* path, mode_t mode)
 {
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(creat);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_creat(path, mode);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_OPEN(ret, path, mode, tm1, tm2);
+    POSIX_RECORD_OPEN(ret, path, mode, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -680,15 +697,16 @@ int DARSHAN_DECL(creat64)(const char* path, mode_t mode)
 {
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(creat64);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_creat64(path, mode);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_OPEN(ret, path, mode, tm1, tm2);
+    POSIX_RECORD_OPEN(ret, path, mode, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -699,19 +717,20 @@ int DARSHAN_DECL(dup)(int oldfd)
     int ret;
     struct posix_file_record_ref *rec_ref;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(dup);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_dup(oldfd);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     if(ret >= 0)
     {
         POSIX_PRE_RECORD();
         rec_ref = darshan_lookup_record_ref(posix_runtime->fd_hash,
             &oldfd, sizeof(oldfd));
-        POSIX_RECORD_REFOPEN(ret, rec_ref, tm1, tm2, POSIX_DUPS);
+        POSIX_RECORD_REFOPEN(ret, rec_ref, tm1, tm2, ts1, ts2, POSIX_DUPS);
         POSIX_POST_RECORD();
     }
 
@@ -723,19 +742,20 @@ int DARSHAN_DECL(dup2)(int oldfd, int newfd)
     int ret;
     struct posix_file_record_ref *rec_ref;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(dup2);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_dup2(oldfd, newfd);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     if(ret >=0)
     {
         POSIX_PRE_RECORD();
         rec_ref = darshan_lookup_record_ref(posix_runtime->fd_hash,
             &oldfd, sizeof(oldfd));
-        POSIX_RECORD_REFOPEN(ret, rec_ref, tm1, tm2, POSIX_DUPS);
+        POSIX_RECORD_REFOPEN(ret, rec_ref, tm1, tm2, ts1, ts2, POSIX_DUPS);
         POSIX_POST_RECORD();
     }
 
@@ -747,19 +767,20 @@ int DARSHAN_DECL(dup3)(int oldfd, int newfd, int flags)
     int ret;
     struct posix_file_record_ref *rec_ref;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(dup3);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_dup3(oldfd, newfd, flags);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     if(ret >=0)
     {
         POSIX_PRE_RECORD();
         rec_ref = darshan_lookup_record_ref(posix_runtime->fd_hash,
             &oldfd, sizeof(oldfd));
-        POSIX_RECORD_REFOPEN(ret, rec_ref, tm1, tm2, POSIX_DUPS);
+        POSIX_RECORD_REFOPEN(ret, rec_ref, tm1, tm2, ts1, ts2, POSIX_DUPS);
         POSIX_POST_RECORD();
     }
 
@@ -770,14 +791,15 @@ int DARSHAN_DECL(fileno)(FILE *stream)
 {
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
     darshan_record_id rec_id;
     struct posix_file_record_ref *rec_ref;
 
     MAP_OR_FAIL(fileno);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_fileno(stream);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     if(ret >= 0)
     {
@@ -791,7 +813,7 @@ int DARSHAN_DECL(fileno)(FILE *stream)
                 &rec_id, sizeof(darshan_record_id));
             if(!rec_ref)
                 rec_ref = posix_track_new_file_record(rec_id, rec_name);
-            POSIX_RECORD_REFOPEN(ret, rec_ref, tm1, tm2, POSIX_FILENOS);
+            POSIX_RECORD_REFOPEN(ret, rec_ref, tm1, tm2, ts1, ts2, POSIX_FILENOS);
             POSIX_POST_RECORD();
         }
     }
@@ -803,15 +825,16 @@ int DARSHAN_DECL(mkstemp)(char* template)
 {
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(mkstemp);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_mkstemp(template);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_OPEN(ret, template, 0, tm1, tm2);
+    POSIX_RECORD_OPEN(ret, template, 0, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -821,15 +844,16 @@ int DARSHAN_DECL(mkostemp)(char* template, int flags)
 {
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(mkostemp);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_mkostemp(template, flags);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_OPEN(ret, template, 0, tm1, tm2);
+    POSIX_RECORD_OPEN(ret, template, 0, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -839,15 +863,16 @@ int DARSHAN_DECL(mkstemps)(char* template, int suffixlen)
 {
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(mkstemps);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_mkstemps(template, suffixlen);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_OPEN(ret, template, 0, tm1, tm2);
+    POSIX_RECORD_OPEN(ret, template, 0, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -857,15 +882,16 @@ int DARSHAN_DECL(mkostemps)(char* template, int suffixlen, int flags)
 {
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(mkostemps);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_mkostemps(template, suffixlen, flags);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_OPEN(ret, template, 0, tm1, tm2);
+    POSIX_RECORD_OPEN(ret, template, 0, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -876,17 +902,18 @@ ssize_t DARSHAN_DECL(read)(int fd, void *buf, size_t count)
     ssize_t ret;
     int aligned_flag = 0;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(read);
 
     if((unsigned long)buf % darshan_mem_alignment == 0) aligned_flag = 1;
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_read(fd, buf, count);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_READ(ret, fd, 0, 0, aligned_flag, tm1, tm2);
+    POSIX_RECORD_READ(ret, fd, 0, 0, aligned_flag, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -897,17 +924,18 @@ ssize_t DARSHAN_DECL(write)(int fd, const void *buf, size_t count)
     ssize_t ret;
     int aligned_flag = 0;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(write);
 
     if((unsigned long)buf % darshan_mem_alignment == 0) aligned_flag = 1;
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_write(fd, buf, count);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_WRITE(ret, fd, 0, 0, aligned_flag, tm1, tm2);
+    POSIX_RECORD_WRITE(ret, fd, 0, 0, aligned_flag, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -918,17 +946,18 @@ ssize_t DARSHAN_DECL(pread)(int fd, void *buf, size_t count, off_t offset)
     ssize_t ret;
     int aligned_flag = 0;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(pread);
 
     if((unsigned long)buf % darshan_mem_alignment == 0) aligned_flag = 1;
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_pread(fd, buf, count, offset);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_READ(ret, fd, 1, offset, aligned_flag, tm1, tm2);
+    POSIX_RECORD_READ(ret, fd, 1, offset, aligned_flag, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -939,17 +968,18 @@ ssize_t DARSHAN_DECL(pwrite)(int fd, const void *buf, size_t count, off_t offset
     ssize_t ret;
     int aligned_flag = 0;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(pwrite);
 
     if((unsigned long)buf % darshan_mem_alignment == 0) aligned_flag = 1;
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_pwrite(fd, buf, count, offset);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_WRITE(ret, fd, 1, offset, aligned_flag, tm1, tm2);
+    POSIX_RECORD_WRITE(ret, fd, 1, offset, aligned_flag, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -960,17 +990,18 @@ ssize_t DARSHAN_DECL(pread64)(int fd, void *buf, size_t count, off64_t offset)
     ssize_t ret;
     int aligned_flag = 0;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(pread64);
 
     if((unsigned long)buf % darshan_mem_alignment == 0) aligned_flag = 1;
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_pread64(fd, buf, count, offset);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_READ(ret, fd, 1, offset, aligned_flag, tm1, tm2);
+    POSIX_RECORD_READ(ret, fd, 1, offset, aligned_flag, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -981,17 +1012,18 @@ ssize_t DARSHAN_DECL(pwrite64)(int fd, const void *buf, size_t count, off64_t of
     ssize_t ret;
     int aligned_flag = 0;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(pwrite64);
 
     if((unsigned long)buf % darshan_mem_alignment == 0) aligned_flag = 1;
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_pwrite64(fd, buf, count, offset);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_WRITE(ret, fd, 1, offset, aligned_flag, tm1, tm2);
+    POSIX_RECORD_WRITE(ret, fd, 1, offset, aligned_flag, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -1003,6 +1035,7 @@ ssize_t DARSHAN_DECL(readv)(int fd, const struct iovec *iov, int iovcnt)
     int aligned_flag = 1;
     int i;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(readv);
 
@@ -1012,12 +1045,12 @@ ssize_t DARSHAN_DECL(readv)(int fd, const struct iovec *iov, int iovcnt)
             aligned_flag = 0;
     }
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_readv(fd, iov, iovcnt);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_READ(ret, fd, 0, 0, aligned_flag, tm1, tm2);
+    POSIX_RECORD_READ(ret, fd, 0, 0, aligned_flag, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -1030,6 +1063,7 @@ ssize_t DARSHAN_DECL(preadv)(int fd, const struct iovec *iov, int iovcnt, off_t 
     int aligned_flag = 1;
     int i;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(preadv);
 
@@ -1039,12 +1073,12 @@ ssize_t DARSHAN_DECL(preadv)(int fd, const struct iovec *iov, int iovcnt, off_t 
             aligned_flag = 0;
     }
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_preadv(fd, iov, iovcnt, offset);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_READ(ret, fd, 1, offset, aligned_flag, tm1, tm2);
+    POSIX_RECORD_READ(ret, fd, 1, offset, aligned_flag, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -1056,6 +1090,7 @@ ssize_t DARSHAN_DECL(preadv64)(int fd, const struct iovec *iov, int iovcnt, off6
     int aligned_flag = 1;
     int i;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(preadv64);
 
@@ -1065,12 +1100,12 @@ ssize_t DARSHAN_DECL(preadv64)(int fd, const struct iovec *iov, int iovcnt, off6
             aligned_flag = 0;
     }
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_preadv64(fd, iov, iovcnt, offset);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_READ(ret, fd, 1, offset, aligned_flag, tm1, tm2);
+    POSIX_RECORD_READ(ret, fd, 1, offset, aligned_flag, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -1085,6 +1120,7 @@ ssize_t DARSHAN_DECL(preadv2)(int fd, const struct iovec *iov, int iovcnt, off_t
     int aligned_flag = 1;
     int i;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(preadv2);
 
@@ -1094,12 +1130,12 @@ ssize_t DARSHAN_DECL(preadv2)(int fd, const struct iovec *iov, int iovcnt, off_t
             aligned_flag = 0;
     }
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_preadv2(fd, iov, iovcnt, offset, flags);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_READ(ret, fd, 1, offset, aligned_flag, tm1, tm2);
+    POSIX_RECORD_READ(ret, fd, 1, offset, aligned_flag, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -1111,6 +1147,7 @@ ssize_t DARSHAN_DECL(preadv64v2)(int fd, const struct iovec *iov, int iovcnt, of
     int aligned_flag = 1;
     int i;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(preadv64v2);
 
@@ -1120,12 +1157,12 @@ ssize_t DARSHAN_DECL(preadv64v2)(int fd, const struct iovec *iov, int iovcnt, of
             aligned_flag = 0;
     }
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_preadv64v2(fd, iov, iovcnt, offset, flags);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_READ(ret, fd, 1, offset, aligned_flag, tm1, tm2);
+    POSIX_RECORD_READ(ret, fd, 1, offset, aligned_flag, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -1138,6 +1175,7 @@ ssize_t DARSHAN_DECL(writev)(int fd, const struct iovec *iov, int iovcnt)
     int aligned_flag = 1;
     int i;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(writev);
 
@@ -1147,12 +1185,12 @@ ssize_t DARSHAN_DECL(writev)(int fd, const struct iovec *iov, int iovcnt)
             aligned_flag = 0;
     }
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_writev(fd, iov, iovcnt);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_WRITE(ret, fd, 0, 0, aligned_flag, tm1, tm2);
+    POSIX_RECORD_WRITE(ret, fd, 0, 0, aligned_flag, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -1165,6 +1203,7 @@ ssize_t DARSHAN_DECL(pwritev)(int fd, const struct iovec *iov, int iovcnt, off_t
     int aligned_flag = 1;
     int i;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(pwritev);
 
@@ -1174,12 +1213,12 @@ ssize_t DARSHAN_DECL(pwritev)(int fd, const struct iovec *iov, int iovcnt, off_t
             aligned_flag = 0;
     }
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_pwritev(fd, iov, iovcnt, offset);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_WRITE(ret, fd, 1, offset, aligned_flag, tm1, tm2);
+    POSIX_RECORD_WRITE(ret, fd, 1, offset, aligned_flag, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -1191,6 +1230,7 @@ ssize_t DARSHAN_DECL(pwritev64)(int fd, const struct iovec *iov, int iovcnt, off
     int aligned_flag = 1;
     int i;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(pwritev64);
 
@@ -1200,12 +1240,12 @@ ssize_t DARSHAN_DECL(pwritev64)(int fd, const struct iovec *iov, int iovcnt, off
             aligned_flag = 0;
     }
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_pwritev64(fd, iov, iovcnt, offset);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_WRITE(ret, fd, 1, offset, aligned_flag, tm1, tm2);
+    POSIX_RECORD_WRITE(ret, fd, 1, offset, aligned_flag, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -1219,6 +1259,7 @@ ssize_t DARSHAN_DECL(pwritev2)(int fd, const struct iovec *iov, int iovcnt, off_
     int aligned_flag = 1;
     int i;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(pwritev2);
 
@@ -1228,12 +1269,12 @@ ssize_t DARSHAN_DECL(pwritev2)(int fd, const struct iovec *iov, int iovcnt, off_
             aligned_flag = 0;
     }
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_pwritev2(fd, iov, iovcnt, offset, flags);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_WRITE(ret, fd, 1, offset, aligned_flag, tm1, tm2);
+    POSIX_RECORD_WRITE(ret, fd, 1, offset, aligned_flag, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -1245,6 +1286,7 @@ ssize_t DARSHAN_DECL(pwritev64v2)(int fd, const struct iovec *iov, int iovcnt, o
     int aligned_flag = 1;
     int i;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(pwritev64v2);
 
@@ -1254,12 +1296,12 @@ ssize_t DARSHAN_DECL(pwritev64v2)(int fd, const struct iovec *iov, int iovcnt, o
             aligned_flag = 0;
     }
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_pwritev64v2(fd, iov, iovcnt, offset, flags);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
-    POSIX_RECORD_WRITE(ret, fd, 1, offset, aligned_flag, tm1, tm2);
+    POSIX_RECORD_WRITE(ret, fd, 1, offset, aligned_flag, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -1272,12 +1314,13 @@ off_t DARSHAN_DECL(lseek)(int fd, off_t offset, int whence)
     off_t ret;
     struct posix_file_record_ref *rec_ref;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(lseek);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_lseek(fd, offset, whence);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     if(ret >= 0)
     {
@@ -1302,12 +1345,13 @@ off64_t DARSHAN_DECL(lseek64)(int fd, off64_t offset, int whence)
     off_t ret;
     struct posix_file_record_ref *rec_ref;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(lseek64);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_lseek64(fd, offset, whence);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     if(ret >= 0)
     {
@@ -1331,18 +1375,19 @@ int DARSHAN_DECL(__xstat)(int vers, const char *path, struct stat *buf)
 {
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(__xstat);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real___xstat(vers, path, buf);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     if(ret < 0 || !S_ISREG(buf->st_mode))
         return(ret);
 
     POSIX_PRE_RECORD();
-    POSIX_LOOKUP_RECORD_STAT(path, buf, tm1, tm2);
+    POSIX_LOOKUP_RECORD_STAT(path, buf, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -1352,18 +1397,19 @@ int DARSHAN_DECL(__xstat64)(int vers, const char *path, struct stat64 *buf)
 {
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(__xstat64);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real___xstat64(vers, path, buf);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     if(ret < 0 || !S_ISREG(buf->st_mode))
         return(ret);
 
     POSIX_PRE_RECORD();
-    POSIX_LOOKUP_RECORD_STAT(path, buf, tm1, tm2);
+    POSIX_LOOKUP_RECORD_STAT(path, buf, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -1373,18 +1419,19 @@ int DARSHAN_DECL(__lxstat)(int vers, const char *path, struct stat *buf)
 {
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(__lxstat);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real___lxstat(vers, path, buf);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     if(ret < 0 || !S_ISREG(buf->st_mode))
         return(ret);
 
     POSIX_PRE_RECORD();
-    POSIX_LOOKUP_RECORD_STAT(path, buf, tm1, tm2);
+    POSIX_LOOKUP_RECORD_STAT(path, buf, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -1394,18 +1441,19 @@ int DARSHAN_DECL(__lxstat64)(int vers, const char *path, struct stat64 *buf)
 {
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(__lxstat64);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real___lxstat64(vers, path, buf);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     if(ret < 0 || !S_ISREG(buf->st_mode))
         return(ret);
 
     POSIX_PRE_RECORD();
-    POSIX_LOOKUP_RECORD_STAT(path, buf, tm1, tm2);
+    POSIX_LOOKUP_RECORD_STAT(path, buf, tm1, tm2, ts1, ts2);
     POSIX_POST_RECORD();
 
     return(ret);
@@ -1416,12 +1464,13 @@ int DARSHAN_DECL(__fxstat)(int vers, int fd, struct stat *buf)
     int ret;
     struct posix_file_record_ref *rec_ref;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(__fxstat);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real___fxstat(vers, fd, buf);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     if(ret < 0 || !S_ISREG(buf->st_mode))
         return(ret);
@@ -1430,7 +1479,7 @@ int DARSHAN_DECL(__fxstat)(int vers, int fd, struct stat *buf)
     rec_ref = darshan_lookup_record_ref(posix_runtime->fd_hash, &fd, sizeof(int));
     if(rec_ref)
     {
-        POSIX_RECORD_STAT(rec_ref, buf, tm1, tm2);
+        POSIX_RECORD_STAT(rec_ref, buf, tm1, tm2, ts1, ts2);
     }
     POSIX_POST_RECORD();
 
@@ -1442,12 +1491,13 @@ int DARSHAN_DECL(__fxstat64)(int vers, int fd, struct stat64 *buf)
     int ret;
     struct posix_file_record_ref *rec_ref;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(__fxstat64);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real___fxstat64(vers, fd, buf);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     if(ret < 0 || !S_ISREG(buf->st_mode))
         return(ret);
@@ -1456,7 +1506,7 @@ int DARSHAN_DECL(__fxstat64)(int vers, int fd, struct stat64 *buf)
     rec_ref = darshan_lookup_record_ref(posix_runtime->fd_hash, &fd, sizeof(int));
     if(rec_ref)
     {
-        POSIX_RECORD_STAT(rec_ref, buf, tm1, tm2);
+        POSIX_RECORD_STAT(rec_ref, buf, tm1, tm2, ts1, ts2);
     }
     POSIX_POST_RECORD();
 
@@ -1535,12 +1585,13 @@ int DARSHAN_DECL(fsync)(int fd)
     int ret;
     struct posix_file_record_ref *rec_ref;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(fsync);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_fsync(fd);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     if(ret < 0)
         return(ret);
@@ -1564,12 +1615,13 @@ int DARSHAN_DECL(fdatasync)(int fd)
     int ret;
     struct posix_file_record_ref *rec_ref;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(fdatasync);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_fdatasync(fd);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     if(ret < 0)
         return(ret);
@@ -1593,12 +1645,13 @@ int DARSHAN_DECL(close)(int fd)
     int ret;
     struct posix_file_record_ref *rec_ref;
     double tm1, tm2;
+    struct timespec ts1, ts2;
 
     MAP_OR_FAIL(close);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_close(fd);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
     rec_ref = darshan_lookup_record_ref(posix_runtime->fd_hash, &fd, sizeof(int));
@@ -1614,7 +1667,15 @@ int DARSHAN_DECL(close)(int fd)
             rec_ref->file_rec->fcounters[POSIX_F_META_TIME],
             tm1, tm2, rec_ref->last_meta_end);
         darshan_delete_record_ref(&(posix_runtime->fd_hash), &fd, sizeof(int));
+    
+#ifdef HAVE_LDMS
+    /* publish close information for posix */
+    if(getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))
+        darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, -1, tm1, tm2, ts1, ts2, rec_ref->file_rec->fcounters[POSIX_F_META_TIME], "POSIX", "MET");
+#endif
+
     }
+
     POSIX_POST_RECORD();
 
     return(ret);
@@ -1694,11 +1755,12 @@ ssize_t DARSHAN_DECL(aio_return)(struct aiocb *aiocbp)
     double tm2;
     struct posix_aio_tracker *tmp;
     int aligned_flag = 0;
+    struct timespec ts1,ts2;
 
     MAP_OR_FAIL(aio_return);
 
     ret = __real_aio_return(aiocbp);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
     tmp = posix_aio_tracker_del(aiocbp->aio_fildes, aiocbp);
@@ -1710,13 +1772,13 @@ ssize_t DARSHAN_DECL(aio_return)(struct aiocb *aiocbp)
         {
             POSIX_RECORD_WRITE(ret, aiocbp->aio_fildes,
                 1, aiocbp->aio_offset, aligned_flag,
-                tmp->tm1, tm2);
+                tmp->tm1, tm2, ts1, ts2);
         }
         else if(aiocbp->aio_lio_opcode == LIO_READ)
         {
             POSIX_RECORD_READ(ret, aiocbp->aio_fildes,
                 1, aiocbp->aio_offset, aligned_flag,
-                tmp->tm1, tm2);
+                tmp->tm1, tm2, ts1, ts2);
         }
         free(tmp);
     }
@@ -1731,11 +1793,12 @@ ssize_t DARSHAN_DECL(aio_return64)(struct aiocb64 *aiocbp)
     double tm2;
     struct posix_aio_tracker *tmp;
     int aligned_flag = 0;
+    struct timespec ts1,ts2;
 
     MAP_OR_FAIL(aio_return64);
 
     ret = __real_aio_return64(aiocbp);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     POSIX_PRE_RECORD();
     tmp = posix_aio_tracker_del(aiocbp->aio_fildes, aiocbp);
@@ -1747,13 +1810,13 @@ ssize_t DARSHAN_DECL(aio_return64)(struct aiocb64 *aiocbp)
         {
             POSIX_RECORD_WRITE(ret, aiocbp->aio_fildes,
                 1, aiocbp->aio_offset, aligned_flag,
-                tmp->tm1, tm2);
+                tmp->tm1, tm2, ts1, ts2);
         }
         else if(aiocbp->aio_lio_opcode == LIO_READ)
         {
             POSIX_RECORD_READ(ret, aiocbp->aio_fildes,
                 1, aiocbp->aio_offset, aligned_flag,
-                tmp->tm1, tm2);
+                tmp->tm1, tm2, ts1, ts2);
         }
         free(tmp);
     }
@@ -1810,6 +1873,7 @@ int DARSHAN_DECL(rename)(const char *oldpath, const char *newpath)
 {
     int ret;
     double tm1, tm2;
+    struct timespec ts1, ts2;
     char *oldpath_clean, *newpath_clean;
     darshan_record_id old_rec_id, new_rec_id;
     struct posix_file_record_ref *old_rec_ref, *new_rec_ref;
@@ -1824,9 +1888,9 @@ int DARSHAN_DECL(rename)(const char *oldpath, const char *newpath)
 
     MAP_OR_FAIL(rename);
 
-    tm1 = POSIX_WTIME();
+    tm1 = POSIX_WTIME(&ts1);
     ret = __real_rename(oldpath, newpath);
-    tm2 = POSIX_WTIME();
+    tm2 = POSIX_WTIME(&ts2);
 
     if(disabled)
         return(ret);
@@ -2017,6 +2081,7 @@ static void posix_aio_tracker_add(int fd, void *aiocbp)
 {
     struct posix_aio_tracker* tracker;
     struct posix_file_record_ref *rec_ref;
+    struct timespec ts1, ts2;
 
     rec_ref = darshan_lookup_record_ref(posix_runtime->fd_hash, &fd, sizeof(int));
     if(rec_ref)
@@ -2024,7 +2089,7 @@ static void posix_aio_tracker_add(int fd, void *aiocbp)
         tracker = malloc(sizeof(*tracker));
         if(tracker)
         {
-            tracker->tm1 = darshan_core_wtime();
+            tracker->tm1 = darshan_core_wtime(&ts1);
             tracker->aiocbp = aiocbp;
             LL_PREPEND(rec_ref->aio_list, tracker);
         }
@@ -2136,6 +2201,14 @@ static void posix_record_reduction_op(void* infile_v, void* inoutfile_v,
                 &(tmp_file.counters[POSIX_STRIDE1_STRIDE]),
                 &(tmp_file.counters[POSIX_STRIDE1_COUNT]),
                 &inoutfile->counters[j], 1, inoutfile->counters[j+4], 1);
+#ifdef HAVE_LDMS
+        /* set Darshan count and access vales to LDMS arrays */
+        if(getenv("ENABLE_LDMS_EXTRA")&& (getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))){
+            extern struct darshanConnector_extra dC_e;
+            dC_e.access_stride[j-49] = infile->counters[j];
+            dC_e.stride_count[j-49] = infile->counters[j+4];
+        }
+#endif
         }
 
         /* same for access counts */
@@ -2169,6 +2242,15 @@ static void posix_record_reduction_op(void* infile_v, void* inoutfile_v,
                 &(tmp_file.counters[POSIX_ACCESS1_ACCESS]),
                 &(tmp_file.counters[POSIX_ACCESS1_COUNT]),
                 &inoutfile->counters[j], 1, inoutfile->counters[j+4], 1);
+
+#ifdef HAVE_LDMS
+        /* set Darshan count and access vales to LDMS arrays */
+        if(getenv("ENABLE_LDMS_EXTRA") && (getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))){
+            extern struct darshanConnector_extra dC_e;
+            dC_e.access_access[j-57] = infile->counters[j];
+            dC_e.access_count[j-57] = infile->counters[j+4]; 
+        }
+#endif
         }
 
         /* min non-zero (if available) value */
@@ -2270,6 +2352,34 @@ static void posix_record_reduction_op(void* infile_v, void* inoutfile_v,
             tmp_file.fcounters[POSIX_F_SLOWEST_RANK_TIME] =
                 inoutfile->fcounters[POSIX_F_SLOWEST_RANK_TIME];
         }
+
+#ifdef HAVE_LDMS
+    /* check if DXT LDMS is enabled and intialize LDMSD if it is. Set job for ldms stream mesage.*/
+    if(getenv("ENABLE_LDMS_EXTRA") && (getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))){
+        extern struct darshanConnector_extra dC_e;
+        dC_e.fastest_rank = tmp_file.counters[POSIX_FASTEST_RANK];
+        dC_e.slowest_rank = tmp_file.counters[POSIX_SLOWEST_RANK];
+        dC_e.fastest_rank_time = tmp_file.fcounters[POSIX_F_FASTEST_RANK_TIME];
+        dC_e.slowest_rank_time = tmp_file.fcounters[POSIX_F_SLOWEST_RANK_TIME];
+
+
+        darshan_ldms_connector_send_extra("write", "POSIX", "extra",
+            POSIX_SIZE_WRITE_0_100, POSIX_SIZE_WRITE_100_1K,
+            POSIX_SIZE_WRITE_1K_10K,POSIX_SIZE_WRITE_10K_100K,
+            POSIX_SIZE_WRITE_100K_1M,POSIX_SIZE_WRITE_1M_4M,
+            POSIX_SIZE_WRITE_4M_10M,POSIX_SIZE_WRITE_10M_100M,
+            POSIX_SIZE_WRITE_100M_1G,POSIX_SIZE_WRITE_1G_PLUS);
+
+        darshan_ldms_connector_send_extra("read", "POSIX", "extra",
+            POSIX_SIZE_READ_0_100, POSIX_SIZE_READ_100_1K,
+            POSIX_SIZE_READ_1K_10K,POSIX_SIZE_READ_10K_100K,
+            POSIX_SIZE_READ_100K_1M,POSIX_SIZE_READ_1M_4M,
+            POSIX_SIZE_READ_4M_10M,POSIX_SIZE_READ_10M_100M,
+            POSIX_SIZE_READ_100M_1G,POSIX_SIZE_READ_1G_PLUS);
+
+    }
+
+#endif
 
         /* update pointers */
         *inoutfile = tmp_file;
@@ -2400,6 +2510,7 @@ void darshan_posix_shutdown_bench_setup(int test_case)
 {
     char filepath[256];
     int *fd_array;
+    struct timespec ts1, ts2;
     int64_t *size_array;
     int i;
 
@@ -2423,15 +2534,15 @@ void darshan_posix_shutdown_bench_setup(int test_case)
         case 1: /* single file-per-process */
             snprintf(filepath, 256, "fpp-0_rank-%d", my_rank);
             
-            POSIX_RECORD_OPEN(fd_array[0], filepath, 777, 0, 1);
-            POSIX_RECORD_WRITE(size_array[0], fd_array[0], 0, 0, 1, 1, 2);
+            POSIX_RECORD_OPEN(fd_array[0], filepath, 777, 0, 1, ts1, ts2);
+            POSIX_RECORD_WRITE(size_array[0], fd_array[0], 0, 0, 1, 1, 2, ts1, ts2);
 
             break;
         case 2: /* single shared file */
             snprintf(filepath, 256, "shared-0");
 
-            POSIX_RECORD_OPEN(fd_array[0], filepath, 777, 0, 1);
-            POSIX_RECORD_WRITE(size_array[0], fd_array[0], 0, 0, 1, 1, 2);
+            POSIX_RECORD_OPEN(fd_array[0], filepath, 777, 0, 1, ts1, ts2);
+            POSIX_RECORD_WRITE(size_array[0], fd_array[0], 0, 0, 1, 1, 2, ts1, ts2);
 
             break;
         case 3: /* 1024 unique files per proc */
@@ -2439,9 +2550,9 @@ void darshan_posix_shutdown_bench_setup(int test_case)
             {
                 snprintf(filepath, 256, "fpp-%d_rank-%d", i , my_rank);
 
-                POSIX_RECORD_OPEN(fd_array[i], filepath, 777, 0, 1);
+                POSIX_RECORD_OPEN(fd_array[i], filepath, 777, 0, 1, ts1, ts2);
                 POSIX_RECORD_WRITE(size_array[i % DARSHAN_COMMON_VAL_MAX_RUNTIME_COUNT],
-                    fd_array[i], 0, 0, 1, 1, 2);
+                    fd_array[i], 0, 0, 1, 1, 2, ts1, ts2);
             }
 
             break;
@@ -2450,9 +2561,9 @@ void darshan_posix_shutdown_bench_setup(int test_case)
             {
                 snprintf(filepath, 256, "shared-%d", i);
 
-                POSIX_RECORD_OPEN(fd_array[i], filepath, 777, 0, 1);
+                POSIX_RECORD_OPEN(fd_array[i], filepath, 777, 0, 1, ts1, ts2);
                 POSIX_RECORD_WRITE(size_array[i % DARSHAN_COMMON_VAL_MAX_RUNTIME_COUNT],
-                    fd_array[i], 0, 0, 1, 1, 2);
+                    fd_array[i], 0, 0, 1, 1, 2, ts1, ts2);
             }
 
             break;
@@ -2530,6 +2641,7 @@ static void posix_mpi_redux(
 
         rec_ref->file_rec->base_rec.rank = -1;
     }
+
 
     /* sort the array of records so we get all of the shared records
      * (marked by rank -1) in a contiguous portion at end of the array

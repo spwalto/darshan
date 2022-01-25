@@ -118,6 +118,7 @@ static void heatmap_output(
     double end_timestamp;
     unsigned long this_size;
     int tmp_nbins;
+    struct timespec ts1, ts2;
 
     HEATMAP_LOCK();
     assert(heatmap_runtime);
@@ -125,7 +126,7 @@ static void heatmap_output(
     *heatmap_buf_sz = 0;
 
     heatmap_runtime->frozen = 1;
-    end_timestamp = darshan_core_wtime();
+    end_timestamp = darshan_core_wtime(&ts2);
 
     contig_buf_ptr = *heatmap_buf;
 

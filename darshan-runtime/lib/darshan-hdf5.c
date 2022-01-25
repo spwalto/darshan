@@ -117,8 +117,8 @@ static int my_rank = -1;
 #define HDF5_LOCK() pthread_mutex_lock(&hdf5_runtime_mutex)
 #define HDF5_UNLOCK() pthread_mutex_unlock(&hdf5_runtime_mutex)
 
-#define HDF5_WTIME() \
-    __darshan_disabled ? 0 : darshan_core_wtime();
+#define HDF5_WTIME(tspec) \
+    __darshan_disabled ? 0 : darshan_core_wtime(tspec);
 
 /*********************************************************
  *        Wrappers for H5F functions of interest         * 
@@ -143,7 +143,7 @@ static int my_rank = -1;
     HDF5_UNLOCK(); \
 } while(0)
 
-#define H5F_RECORD_OPEN(__ret, __path, __use_mpio, __tm1, __tm2) do { \
+#define H5F_RECORD_OPEN(__ret, __path, __use_mpio, __tm1, __tm2, __ts1, __ts2) do { \
     darshan_record_id __rec_id; \
     struct hdf5_file_record_ref *__rec_ref; \
     char *__newpath; \
@@ -170,6 +170,11 @@ static int my_rank = -1;
         __tm1, __tm2, __rec_ref->last_meta_end); \
     darshan_add_record_ref(&(hdf5_file_runtime->hid_hash), &__ret, sizeof(hid_t), __rec_ref); \
     if(__newpath != __path) free(__newpath); \
+    /* LDMS to publish realtime read tracing information to daemon*/ \
+    if(getenv("HDF5_ENABLE_LDMS")){\
+        darshan_ldms_set_meta(__path, "N/A", __rec_ref->file_rec->base_rec.id, __rec_ref->file_rec->base_rec.rank);\
+        darshan_ldms_connector_send(__rec_ref->file_rec->counters[H5F_OPENS], "open", -1, -1, -1, -1, __rec_ref->file_rec->counters[H5F_FLUSHES], __tm1, __tm2, __ts1, __ts2, __rec_ref->file_rec->fcounters[H5F_F_META_TIME], "H5F", "MET");\
+    }\
 } while(0)
 
 hid_t DARSHAN_DECL(H5Fcreate)(const char *filename, unsigned flags,
@@ -178,6 +183,7 @@ hid_t DARSHAN_DECL(H5Fcreate)(const char *filename, unsigned flags,
     hid_t ret;
     char* tmp;
     double tm1, tm2;
+    struct timespec ts1, ts2;
     unsigned majnum, minnum, relnum;
     int tmp_rank = my_rank;
     int use_mpio = 0;
@@ -205,6 +211,7 @@ hid_t DARSHAN_DECL(H5Fcreate)(const char *filename, unsigned flags,
         if(tmp_rank < 0)
 #ifdef HAVE_MPI
             MPI_Comm_rank(MPI_COMM_WORLD, &tmp_rank);
+            darshan_core_fprintf(stdout, "we are in the hdf5 module code line 207\n");
 #else
             tmp_rank = 0;
 #endif
@@ -219,9 +226,9 @@ hid_t DARSHAN_DECL(H5Fcreate)(const char *filename, unsigned flags,
 
     MAP_OR_FAIL(H5Fcreate);
 
-    tm1 = HDF5_WTIME();
+    tm1 = HDF5_WTIME(&ts1);
     ret = __real_H5Fcreate(filename, flags, create_plist, access_plist);
-    tm2 = HDF5_WTIME();
+    tm2 = HDF5_WTIME(&ts2);
 
     if(ret >= 0)
     {
@@ -241,7 +248,7 @@ hid_t DARSHAN_DECL(H5Fcreate)(const char *filename, unsigned flags,
 #endif
 
         H5F_PRE_RECORD();
-        H5F_RECORD_OPEN(ret, filename, use_mpio, tm1, tm2);
+        H5F_RECORD_OPEN(ret, filename, use_mpio, tm1, tm2, ts1, ts2);
         H5F_POST_RECORD();
     }
 
@@ -254,6 +261,7 @@ hid_t DARSHAN_DECL(H5Fopen)(const char *filename, unsigned flags,
     hid_t ret;
     char* tmp;
     double tm1, tm2;
+    struct timespec ts1, ts2;
     unsigned majnum, minnum, relnum;
     int tmp_rank = my_rank;
     int use_mpio = 0;
@@ -295,9 +303,9 @@ hid_t DARSHAN_DECL(H5Fopen)(const char *filename, unsigned flags,
 
     MAP_OR_FAIL(H5Fopen);
 
-    tm1 = HDF5_WTIME();
+    tm1 = HDF5_WTIME(&ts1);
     ret = __real_H5Fopen(filename, flags, access_plist);
-    tm2 = HDF5_WTIME();
+    tm2 = HDF5_WTIME(&ts2);
 
     if(ret >= 0)
     {
@@ -317,7 +325,7 @@ hid_t DARSHAN_DECL(H5Fopen)(const char *filename, unsigned flags,
 #endif
 
         H5F_PRE_RECORD();
-        H5F_RECORD_OPEN(ret, filename, use_mpio, tm1, tm2);
+        H5F_RECORD_OPEN(ret, filename, use_mpio, tm1, tm2, ts1, ts2);
         H5F_POST_RECORD();
     }
 
@@ -330,13 +338,14 @@ herr_t DARSHAN_DECL(H5Fflush)(hid_t object_id, H5F_scope_t scope)
     struct hdf5_file_record_ref *rec_ref;
     hid_t file_id;
     double tm1, tm2;
+    struct timespec ts1, ts2;
     herr_t ret;
 
     MAP_OR_FAIL(H5Fflush);
 
-    tm1 = HDF5_WTIME();
+    tm1 = HDF5_WTIME(&ts1);
     ret = __real_H5Fflush(object_id, scope);
-    tm2 = HDF5_WTIME();
+    tm2 = HDF5_WTIME(&ts2);
 
     /* convert object_id to file_id so we can look it up */
     if(ret >= 0)
@@ -365,13 +374,14 @@ herr_t DARSHAN_DECL(H5Fclose)(hid_t file_id)
 {
     struct hdf5_file_record_ref *rec_ref;
     double tm1, tm2;
+    struct timespec ts1, ts2;
     herr_t ret;
 
     MAP_OR_FAIL(H5Fclose);
 
-    tm1 = HDF5_WTIME();
+    tm1 = HDF5_WTIME(&ts1);
     ret = __real_H5Fclose(file_id);
-    tm2 = HDF5_WTIME();
+    tm2 = HDF5_WTIME(&ts2);
 
     if(ret >= 0)
     {
@@ -389,7 +399,15 @@ herr_t DARSHAN_DECL(H5Fclose)(hid_t file_id)
                 tm1, tm2, rec_ref->last_meta_end);
             darshan_delete_record_ref(&(hdf5_file_runtime->hid_hash),
                 &file_id, sizeof(hid_t));
+
+#ifdef HAVE_LDMS
+        /* LDMS to publish runtime h5d tracing information to daemon*/
+        if(getenv("HDF5_ENABLE_LDMS"))
+        darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, rec_ref->file_rec->counters[H5F_FLUSHES],rec_ref->file_rec->fcounters[H5F_F_CLOSE_START_TIMESTAMP], rec_ref->file_rec->fcounters[H5F_F_CLOSE_END_TIMESTAMP],ts1, ts2, rec_ref->file_rec->fcounters[H5F_F_META_TIME], "H5F", "MET");
+#endif
+
         }
+
         H5F_POST_RECORD();
     }
 
@@ -423,7 +441,7 @@ herr_t DARSHAN_DECL(H5Fclose)(hid_t file_id)
     HDF5_UNLOCK(); \
 } while(0)
 
-#define H5D_RECORD_OPEN(__ret, __loc_id, __name, __type_id, __space_id, __dcpl_id, __use_depr,  __tm1, __tm2) do { \
+#define H5D_RECORD_OPEN(__ret, __loc_id, __name, __type_id, __space_id, __dcpl_id, __use_depr,  __tm1, __tm2, __ts1, __ts2) do { \
     char *__file_path, *__tmp_ptr; \
     char __rec_name[DARSHAN_HDF5_MAX_NAME_LEN] = {0}; \
     ssize_t __req_name_len = DARSHAN_HDF5_MAX_NAME_LEN-1, __ret_name_len; \
@@ -476,29 +494,36 @@ herr_t DARSHAN_DECL(H5Fclose)(hid_t file_id)
     if(__dcpl_id != H5P_DEFAULT && H5Pget_layout(__dcpl_id) == H5D_CHUNKED) { \
         __n_chunk_dims = H5Pget_chunk(__dcpl_id, H5D_MAX_NDIMS, __chunk_dims); \
         __n_chunk_dims = (__n_chunk_dims < H5D_MAX_NDIMS) ? __n_chunk_dims : H5D_MAX_NDIMS; \
-        for(__i = 0; __i < __n_chunk_dims; __i++) \
+        for(__i = 0; __i < __n_chunk_dims; __i++){ \
             __rec_ref->dataset_rec->counters[H5D_CHUNK_SIZE_D1 + __i] = __chunk_dims[__n_chunk_dims - __i - 1]; \
-    } \
+            printf("this i the counters for each h5d chunk: [H5D_CHUNK_SIZE_D1 + %i]: %d \n", __i, __rec_ref->dataset_rec->counters[H5D_CHUNK_SIZE_D1 + __i]);}\
+            }\
     __rec_ref->dataset_rec->counters[H5D_DATATYPE_SIZE] = H5Tget_size(__type_id); \
     __rec_ref->dataset_rec->file_rec_id = __file_rec_id; \
     darshan_add_record_ref(&(hdf5_dataset_runtime->hid_hash), &__ret, sizeof(hid_t), __rec_ref); \
+    /* LDMS to publish runtime h5d tracing information to daemon*/ \
+    if(getenv("HDF5_ENABLE_LDMS")){\
+        darshan_ldms_set_meta("N/A", __name, __rec_ref->dataset_rec->base_rec.id, __rec_ref->dataset_rec->base_rec.rank);\
+        darshan_ldms_connector_send(__rec_ref->dataset_rec->counters[H5D_OPENS], "open", -1, -1, -1, -1, __rec_ref->dataset_rec->counters[H5D_FLUSHES], __tm1, __tm2, __ts1, __ts2, __rec_ref->dataset_rec->fcounters[H5D_F_META_TIME], "H5D", "MET");\
+    }\
 } while(0)
 
 hid_t DARSHAN_DECL(H5Dcreate1)(hid_t loc_id, const char *name, hid_t type_id, hid_t space_id, hid_t dcpl_id)
 {
     double tm1, tm2;
+    struct timespec ts1, ts2;
     hid_t ret;
 
     MAP_OR_FAIL(H5Dcreate1);
 
-    tm1 = HDF5_WTIME();
+    tm1 = HDF5_WTIME(&ts1);
     ret = __real_H5Dcreate1(loc_id, name, type_id, space_id, dcpl_id);
-    tm2 = HDF5_WTIME();
+    tm2 = HDF5_WTIME(&ts2);
 
     if(ret >= 0)
     {
         H5D_PRE_RECORD();
-        H5D_RECORD_OPEN(ret, loc_id, name, type_id, space_id, dcpl_id, 1, tm1, tm2);
+        H5D_RECORD_OPEN(ret, loc_id, name, type_id, space_id, dcpl_id, 1, tm1, tm2, ts1, ts2);
         H5D_POST_RECORD();
     }
 
@@ -509,18 +534,19 @@ hid_t DARSHAN_DECL(H5Dcreate2)(hid_t loc_id, const char *name, hid_t dtype_id, h
     hid_t lcpl_id, hid_t dcpl_id, hid_t dapl_id)
 {
     double tm1, tm2;
+    struct timespec ts1, ts2;
     hid_t ret;
 
     MAP_OR_FAIL(H5Dcreate2);
 
-    tm1 = HDF5_WTIME();
+    tm1 = HDF5_WTIME(&ts1);
     ret = __real_H5Dcreate2(loc_id, name, dtype_id, space_id, lcpl_id, dcpl_id, dapl_id);
-    tm2 = HDF5_WTIME();
+    tm2 = HDF5_WTIME(&ts2);
 
     if(ret >= 0)
     {
         H5D_PRE_RECORD();
-        H5D_RECORD_OPEN(ret, loc_id, name, dtype_id, space_id, dcpl_id, 0, tm1, tm2);
+        H5D_RECORD_OPEN(ret, loc_id, name, dtype_id, space_id, dcpl_id, 0, tm1, tm2, ts1, ts2);
         H5D_POST_RECORD();
     }
 
@@ -533,13 +559,14 @@ hid_t DARSHAN_DECL(H5Dopen1)(hid_t loc_id, const char *name)
     hid_t space_id;
     hid_t dcpl_id;
     double tm1, tm2;
+    struct timespec ts1, ts2;
     hid_t ret;
 
     MAP_OR_FAIL(H5Dopen1);
 
-    tm1 = HDF5_WTIME();
+    tm1 = HDF5_WTIME(&ts1);
     ret = __real_H5Dopen1(loc_id, name);
-    tm2 = HDF5_WTIME();
+    tm2 = HDF5_WTIME(&ts2);
 
     if(ret >= 0)
     {
@@ -562,7 +589,7 @@ hid_t DARSHAN_DECL(H5Dopen1)(hid_t loc_id, const char *name)
         }
 
         H5D_PRE_RECORD();
-        H5D_RECORD_OPEN(ret, loc_id, name, dtype_id, space_id, dcpl_id, 1, tm1, tm2);
+        H5D_RECORD_OPEN(ret, loc_id, name, dtype_id, space_id, dcpl_id, 1, tm1, tm2, ts1, ts2);
         H5D_POST_RECORD();
 
         H5Tclose(dtype_id);
@@ -579,13 +606,14 @@ hid_t DARSHAN_DECL(H5Dopen2)(hid_t loc_id, const char *name, hid_t dapl_id)
     hid_t space_id;
     hid_t dcpl_id;
     double tm1, tm2;
+    struct timespec ts1, ts2;
     hid_t ret;
 
     MAP_OR_FAIL(H5Dopen2);
 
-    tm1 = HDF5_WTIME();
+    tm1 = HDF5_WTIME(&ts1);
     ret = __real_H5Dopen2(loc_id, name, dapl_id);
-    tm2 = HDF5_WTIME();
+    tm2 = HDF5_WTIME(&ts2);
 
     if(ret >= 0)
     {
@@ -608,7 +636,7 @@ hid_t DARSHAN_DECL(H5Dopen2)(hid_t loc_id, const char *name, hid_t dapl_id)
         }
 
         H5D_PRE_RECORD();
-        H5D_RECORD_OPEN(ret, loc_id, name, dtype_id, space_id, dcpl_id, 0, tm1, tm2);
+        H5D_RECORD_OPEN(ret, loc_id, name, dtype_id, space_id, dcpl_id, 0, tm1, tm2, ts1, ts2);
         H5D_POST_RECORD();
 
         H5Tclose(dtype_id);
@@ -635,14 +663,15 @@ herr_t DARSHAN_DECL(H5Dread)(hid_t dataset_id, hid_t mem_type_id, hid_t mem_spac
     struct darshan_common_val_counter *cvc;
     int i;
     double tm1, tm2, elapsed;
+    struct timespec ts1, ts2;
     herr_t ret;
 
     MAP_OR_FAIL(H5Dread);
 
-    tm1 = HDF5_WTIME();
+    tm1 = HDF5_WTIME(&ts1);
     ret = __real_H5Dread(dataset_id, mem_type_id, mem_space_id, file_space_id,
         xfer_plist_id, buf);
-    tm2 = HDF5_WTIME();
+    tm2 = HDF5_WTIME(&ts2);
 
     if(ret >= 0)
     {
@@ -733,6 +762,19 @@ herr_t DARSHAN_DECL(H5Dread)(hid_t dataset_id, hid_t mem_type_id, hid_t mem_spac
             DARSHAN_TIMER_INC_NO_OVERLAP(
                 rec_ref->dataset_rec->fcounters[H5D_F_READ_TIME],
                 tm1, tm2, rec_ref->last_read_end);
+#ifdef HAVE_LDMS
+            /* LDMS to publish runtime h5d tracing information to daemon*/ 
+            if(getenv("HDF5_ENABLE_LDMS")){
+                extern struct darshanConnector dC;
+                dC.hdf5_data[0] = rec_ref->dataset_rec->counters[H5D_POINT_SELECTS];
+                dC.hdf5_data[1] = rec_ref->dataset_rec->counters[H5D_IRREGULAR_HYPERSLAB_SELECTS];
+                dC.hdf5_data[2] = rec_ref->dataset_rec->counters[H5D_REGULAR_HYPERSLAB_SELECTS];
+                dC.hdf5_data[3] = rec_ref->dataset_rec->counters[H5D_DATASPACE_NDIMS];
+                dC.hdf5_data[4] = rec_ref->dataset_rec->counters[H5D_DATASPACE_NPOINTS];
+
+                darshan_ldms_connector_send(rec_ref->dataset_rec->counters[H5D_READS], "read", -1, rec_ref->dataset_rec->counters[H5D_MAX_READ_TIME_SIZE], -1, rec_ref->dataset_rec->counters[H5D_RW_SWITCHES], rec_ref->dataset_rec->counters[H5D_FLUSHES], rec_ref->dataset_rec->fcounters[H5D_F_READ_START_TIMESTAMP], rec_ref->dataset_rec->fcounters[H5D_F_READ_END_TIMESTAMP], ts1, ts2, rec_ref->dataset_rec->fcounters[H5D_F_READ_TIME], "H5D", "MOD");
+            }
+#endif
         }
         H5D_POST_RECORD();
     }
@@ -756,14 +798,15 @@ herr_t DARSHAN_DECL(H5Dwrite)(hid_t dataset_id, hid_t mem_type_id, hid_t mem_spa
     struct darshan_common_val_counter *cvc;
     int i;
     double tm1, tm2, elapsed;
+    struct timespec ts1, ts2;
     herr_t ret;
 
     MAP_OR_FAIL(H5Dwrite);
 
-    tm1 = HDF5_WTIME();
+    tm1 = HDF5_WTIME(&ts1);
     ret = __real_H5Dwrite(dataset_id, mem_type_id, mem_space_id, file_space_id,
         xfer_plist_id, buf);
-    tm2 = HDF5_WTIME();
+    tm2 = HDF5_WTIME(&ts2);
 
     if(ret >= 0)
     {
@@ -854,7 +897,25 @@ herr_t DARSHAN_DECL(H5Dwrite)(hid_t dataset_id, hid_t mem_type_id, hid_t mem_spa
             DARSHAN_TIMER_INC_NO_OVERLAP(
                 rec_ref->dataset_rec->fcounters[H5D_F_WRITE_TIME],
                 tm1, tm2, rec_ref->last_write_end);
+
+#ifdef HAVE_LDMS
+            /* LDMS to publish runtime h5d tracing information to daemon*/
+            if(getenv("HDF5_ENABLE_LDMS")){
+                int i;
+                extern struct darshanConnector dC;
+                dC.hdf5_data[0] = rec_ref->dataset_rec->counters[H5D_POINT_SELECTS];
+                dC.hdf5_data[1] = rec_ref->dataset_rec->counters[H5D_IRREGULAR_HYPERSLAB_SELECTS];
+                dC.hdf5_data[2] = rec_ref->dataset_rec->counters[H5D_REGULAR_HYPERSLAB_SELECTS];
+                dC.hdf5_data[3] = rec_ref->dataset_rec->counters[H5D_DATASPACE_NDIMS];
+                dC.hdf5_data[4] = rec_ref->dataset_rec->counters[H5D_DATASPACE_NPOINTS];
+
+                darshan_ldms_connector_send(rec_ref->dataset_rec->counters[H5D_WRITES], "write", -1, rec_ref->dataset_rec->counters[H5D_MAX_WRITE_TIME_SIZE], -1, rec_ref->dataset_rec->counters[H5D_RW_SWITCHES], rec_ref->dataset_rec->counters[H5D_FLUSHES], rec_ref->dataset_rec->fcounters[H5D_F_WRITE_START_TIMESTAMP], rec_ref->dataset_rec->fcounters[H5D_F_WRITE_END_TIMESTAMP], ts1, ts2, rec_ref->dataset_rec->fcounters[H5D_F_WRITE_TIME], "H5D", "MOD");
+
+            }
+#endif
+
         }
+
         H5D_POST_RECORD();
     }
 
@@ -866,13 +927,14 @@ herr_t DARSHAN_DECL(H5Dflush)(hid_t dataset_id)
 {
     struct hdf5_dataset_record_ref *rec_ref;
     double tm1, tm2;
+    struct timespec ts1, ts2;
     herr_t ret;
 
     MAP_OR_FAIL(H5Dflush);
 
-    tm1 = HDF5_WTIME();
+    tm1 = HDF5_WTIME(&ts1);
     ret = __real_H5Dflush(dataset_id);
-    tm2 = HDF5_WTIME();
+    tm2 = HDF5_WTIME(&ts2);
 
     if(ret >= 0)
     {
@@ -897,13 +959,14 @@ herr_t DARSHAN_DECL(H5Dclose)(hid_t dataset_id)
 {
     struct hdf5_dataset_record_ref *rec_ref;
     double tm1, tm2;
+    struct timespec ts1, ts2;
     herr_t ret;
 
     MAP_OR_FAIL(H5Dclose);
 
-    tm1 = HDF5_WTIME();
+    tm1 = HDF5_WTIME(&ts1);
     ret = __real_H5Dclose(dataset_id);
-    tm2 = HDF5_WTIME();
+    tm2 = HDF5_WTIME(&ts2);
 
     if(ret >= 0)
     {
@@ -919,7 +982,14 @@ herr_t DARSHAN_DECL(H5Dclose)(hid_t dataset_id)
             DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->dataset_rec->fcounters[H5D_F_META_TIME],
                 tm1, tm2, rec_ref->last_meta_end);
             darshan_delete_record_ref(&(hdf5_dataset_runtime->hid_hash), &dataset_id, sizeof(hid_t));
+#ifdef HAVE_LDMS
+        /* LDMS to publish runtime h5d tracing information to daemon*/
+    if(getenv("HDF5_ENABLE_LDMS"))
+        darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, rec_ref->dataset_rec->counters[H5D_FLUSHES], rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_START_TIMESTAMP], rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_END_TIMESTAMP], ts1, ts2, rec_ref->dataset_rec->fcounters[H5D_F_META_TIME], "H5D", "MET");
+#endif
+
         }
+
         H5D_POST_RECORD();
     }
 
@@ -1229,14 +1299,17 @@ static void hdf5_dataset_record_reduction_op(void* inrec_v, void* inoutrec_v,
                 &(tmp_dataset.counters[H5D_ACCESS1_COUNT]),
                 &inoutrec->counters[j], H5D_MAX_NDIMS+H5D_MAX_NDIMS+1,
                 inoutrec->counters[j2], 0);
+            fprintf(stdout, "this is j for access_accesss in hdf5: %i \n", j);
         }
 
         tmp_dataset.counters[H5D_DATASPACE_NDIMS] = inrec->counters[H5D_DATASPACE_NDIMS];
         tmp_dataset.counters[H5D_DATASPACE_NPOINTS] = inrec->counters[H5D_DATASPACE_NPOINTS];
         tmp_dataset.counters[H5D_DATATYPE_SIZE] = inrec->counters[H5D_DATATYPE_SIZE];
 
-        for(j=H5D_CHUNK_SIZE_D1; j<=H5D_CHUNK_SIZE_D5; j++)
+        for(j=H5D_CHUNK_SIZE_D1; j<=H5D_CHUNK_SIZE_D5; j++){
             tmp_dataset.counters[j] = inrec->counters[j];
+            fprintf(stdout, "this is j for H5D_CHUNK_SIZE%i: %i \n", j, tmp_dataset.counters[j]);
+        }
 
         if(inoutrec->counters[H5D_USE_MPIIO_COLLECTIVE] == 1 ||
                 inrec->counters[H5D_USE_MPIIO_COLLECTIVE] == 1)
@@ -1346,6 +1419,34 @@ static void hdf5_dataset_record_reduction_op(void* inrec_v, void* inoutrec_v,
             tmp_dataset.fcounters[H5D_F_SLOWEST_RANK_TIME] =
                 inoutrec->fcounters[H5D_F_SLOWEST_RANK_TIME];
         }
+
+#ifdef HAVE_LDMS
+    /* check if DXT LDMS is enabled and intialize LDMSD if it is. Set job for ldms stream mesage.*/
+    if(getenv("ENABLE_LDMS_EXTRA") && getenv("HDF5_ENABLE_LDMS")){
+    extern struct darshanConnector_extra dC_e;
+    
+    dC_e.fastest_rank = tmp_dataset.counters[H5D_FASTEST_RANK];
+    dC_e.slowest_rank = tmp_dataset.counters[H5D_SLOWEST_RANK];
+    dC_e.fastest_rank_time = tmp_dataset.fcounters[H5D_F_FASTEST_RANK_TIME];
+    dC_e.slowest_rank_time = tmp_dataset.fcounters[H5D_F_SLOWEST_RANK_TIME];
+    
+    darshan_ldms_connector_send_extra("write", "H5D", "extra",
+            H5D_SIZE_WRITE_AGG_0_100, H5D_SIZE_WRITE_AGG_100_1K,
+            H5D_SIZE_WRITE_AGG_1K_10K,H5D_SIZE_WRITE_AGG_10K_100K,
+            H5D_SIZE_WRITE_AGG_100K_1M,H5D_SIZE_WRITE_AGG_1M_4M,
+            H5D_SIZE_WRITE_AGG_4M_10M,H5D_SIZE_WRITE_AGG_10M_100M,
+            H5D_SIZE_WRITE_AGG_100M_1G,H5D_SIZE_WRITE_AGG_1G_PLUS);
+
+    darshan_ldms_connector_send_extra("read", "H5D", "extra",
+            H5D_SIZE_READ_AGG_0_100, H5D_SIZE_READ_AGG_100_1K,
+            H5D_SIZE_READ_AGG_1K_10K, H5D_SIZE_READ_AGG_10K_100K,
+            H5D_SIZE_READ_AGG_100K_1M, H5D_SIZE_READ_AGG_1M_4M,
+            H5D_SIZE_READ_AGG_4M_10M, H5D_SIZE_READ_AGG_10M_100M,
+            H5D_SIZE_READ_AGG_100M_1G, H5D_SIZE_READ_AGG_1G_PLUS);
+
+    }
+
+#endif
 
         /* update pointers */
         *inoutrec = tmp_dataset;
@@ -1585,6 +1686,7 @@ static void hdf5_dataset_mpi_redux(
 
         rec_ref->dataset_rec->base_rec.rank = -1;
     }
+
 
     /* sort the array of records so we get all of the shared records
      * (marked by rank -1) in a contiguous portion at end of the array

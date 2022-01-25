@@ -84,6 +84,8 @@ if test "x$enable_darshan_runtime" = xyes ; then
 
    dnl runtime libraries require zlib
    CHECK_ZLIB
+   
+   CHECK_LDMS
 
    dnl runtime libraries requires math library (for calculations in heatmap)
    AC_SEARCH_LIBS([round], [m])
@@ -99,12 +101,12 @@ if test "x$enable_darshan_runtime" = xyes ; then
 
    AC_ARG_ENABLE([cuserid],
       [AS_HELP_STRING([--disable-cuserid],
-                      [Disables attempted use of cuserid() at run time])],
+		      [Disables attempted use of cuserid() at run time])],
       [], [enable_cuserid=yes]
    )
    if test "x$enable_cuserid" = "xno" ; then
       AC_DEFINE([__DARSHAN_DISABLE_CUSERID], 1,
-                [Define if cuserid() should be disabled])
+		[Define if cuserid() should be disabled])
    fi
 
    AC_ARG_ENABLE([group-readable-logs],
@@ -327,7 +329,7 @@ if test "x$enable_darshan_runtime" = xyes ; then
    )
    if test "x$enable_hdf5_mod" = xyes ; then
       if test -d "$with_hdf5" ; then
-         AC_PATH_PROG(H5DUMP_CHECK, h5dump, "no", "${with_hdf5}/bin")
+	      AC_PATH_PROG(H5DUMP_CHECK, h5dump, "no", "${with_hdf5}/bin")
       else
          AC_PATH_PROG(H5DUMP_CHECK, h5dump, "no")
          # autodetect HDF5 install prefix and set with_hdf5

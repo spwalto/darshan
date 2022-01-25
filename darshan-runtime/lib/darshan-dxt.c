@@ -35,6 +35,14 @@
 #include "darshan-dynamic.h"
 #include "darshan-dxt.h"
 
+/* Check for LDMS libraries if Darshan is built --with-dxt-ldms */
+#ifdef HAVE_LDMS
+#include <ldms/ldms.h>
+#include <ldms/ldmsd_stream.h>
+#include <ovis_util/util.h>
+#include "ovis_json/ovis_json.h"
+#endif
+
 #ifndef HAVE_OFF64_T
 typedef int64_t off64_t;
 #endif
@@ -140,6 +148,16 @@ struct dxt_trigger_info
         } unaligned_io;
     } u;
 };
+
+#ifdef HAVE_LDMS
+/* Initialize darshanConnector struct and set extra metrics to add to json message if LDMS is enabled. */
+struct darshanConnector dC;
+struct darshanConnector_extra dC_e;
+static pthread_mutex_t ln_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t ln_meta_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t ln_extra_lock = PTHREAD_MUTEX_INITIALIZER;
+
+#endif
 
 /* internal helper routines */
 static int dxt_should_trace_rank(
@@ -404,8 +422,338 @@ void dxt_mpiio_runtime_initialize()
     return;
 }
 
+#ifdef HAVE_LDMS
+ldms_t ldms_g;
+static void event_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
+{
+	switch (e->type) {
+	case LDMS_XPRT_EVENT_CONNECTED:
+		sem_post(&dC.conn_sem);
+		dC.conn_status = 0;
+		break;
+	case LDMS_XPRT_EVENT_REJECTED:
+		ldms_xprt_put(x);
+		dC.conn_status = ECONNREFUSED;
+		break;
+	case LDMS_XPRT_EVENT_DISCONNECTED:
+		ldms_xprt_put(x);
+		dC.conn_status = ENOTCONN;
+		break;
+	case LDMS_XPRT_EVENT_ERROR:
+		dC.conn_status = ECONNREFUSED;
+		break;
+	case LDMS_XPRT_EVENT_RECV:
+		sem_post(&dC.recv_sem);
+		break;
+	case LDMS_XPRT_EVENT_SEND_COMPLETE:
+		break;
+	default:
+		printf("Received invalid event type %d\n", e->type);
+	}
+}
+
+#define SLURM_NOTIFY_TIMEOUT 5
+
+ldms_t setup_connection(const char *xprt, const char *host,
+			const char *port, const char *auth)
+{
+	char hostname[PATH_MAX];
+	const char *timeout = "5";
+	int rc;
+	struct timespec ts;
+
+	if (!host) {
+		if (0 == gethostname(hostname, sizeof(hostname)))
+			host = hostname;
+	}
+	if (!timeout) {
+		ts.tv_sec = time(NULL) + 5;
+		ts.tv_nsec = 0;
+	} else {
+		int to = atoi(timeout);
+		if (to <= 0)
+			to = 5;
+		ts.tv_sec = time(NULL) + to;
+		ts.tv_nsec = 0;
+	}
+	ldms_g = ldms_xprt_new_with_auth(xprt, NULL, auth, NULL);
+	if (!ldms_g) {
+		printf("Error %d creating the '%s' transport\n",
+		       errno, xprt);
+		return NULL;
+	}
+
+	sem_init(&dC.recv_sem, 1, 0);
+	sem_init(&dC.conn_sem, 1, 0);
+
+	rc = ldms_xprt_connect_by_name(ldms_g, host, port, event_cb, NULL);
+	if (rc) {
+		printf("Error %d connecting to %s:%s\n",
+		       rc, host, port);
+		return NULL;
+	}
+	sem_timedwait(&dC.conn_sem, &ts);
+	if (dC.conn_status)
+		return NULL;
+	return ldms_g;
+}
+
+static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
+static int log_level = 0;
+static void llog(int lvl, const char *fmt, ...) {
+	if (lvl < log_level)
+		return;
+	pthread_mutex_lock(&log_lock);
+	switch (lvl) {
+	case 3:
+		printf("ERR: ");
+	default:
+		printf("Level-%d: ", lvl);
+	}
+        va_list ap;
+        va_start(ap, fmt);
+        vprintf(fmt, ap);
+        va_end(ap);
+	pthread_mutex_unlock(&log_lock);
+}
+
+void darshan_ldms_connector_initialize()
+{
+    int i;
+    int size;
+    size = sizeof(dC.ldms_darsh)/sizeof(dC.ldms_darsh[0]);
+    const char* env_ldms_xprt    = getenv("DARSHAN_LDMS_XPRT");
+    const char* env_ldms_host    = getenv("DARSHAN_LDMS_HOST");
+    const char* env_ldms_port    = getenv("DARSHAN_LDMS_PORT");
+    const char* env_ldms_auth    = getenv("DARSHAN_LDMS_AUTH");
+
+    for(i = 0; i < size; i++)
+    {
+        dC.ldms_darsh[i] = setup_connection(env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth);
+        if (dC.ldms_darsh[i]->disconnected){
+                printf("Error setting up connection -- exiting\n");
+                return;
+        }
+    
+    }
+    
+    return;
+}
+
+void darshan_ldms_set_meta(const char *filename, const char *data_set, uint64_t record_id, int64_t rank)
+{
+    dC.rank = rank;
+    dC.filename = filename;
+    dC.data_set = data_set;
+    dC.record_id = record_id;
+    return;
+
+}
+
+void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset, int64_t length, int64_t max_byte, int64_t rw_switch, int64_t flushes,  double start_time, double end_time, struct timespec tval_start, struct timespec tval_end, double total_time, char *mod_name, char *data_type)
+{
+    int rc, ret, i, size;
+    dC.env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
+    
+    // set hostname
+    char hname[HOST_NAME_MAX];
+    (void)gethostname(hname, sizeof(hname));
+
+    pthread_mutex_lock(&ln_lock);
+    if (!dC.ldms_darsh[0])
+        darshan_ldms_connector_initialize();
+
+    if (!dC.ldms_darsh[0]){
+        printf("ldms_mod does not exist \n");
+        pthread_mutex_unlock(&ln_lock);
+        return;
+    }
+    
+    pthread_mutex_unlock(&ln_lock);
+    
+    if (strcmp(rwo, "write") == 0){
+        dC.op_name = "writes_segment_";
+    }
+    if (strcmp(rwo, "read") == 0){
+        dC.op_name = "reads_segment_";
+    }
+    if (strcmp(rwo, "open") == 0){
+        dC.op_name = "opens_segment_";
+        dC.open_count = record_count;
+    }
+    if (strcmp(rwo, "close") == 0){
+        dC.op_name = "closes_segment_";
+        record_count = dC.open_count;
+    }
+
+    if (strcmp(mod_name, "H5D") == 1){
+        size = sizeof(dC.hdf5_data)/sizeof(dC.hdf5_data[0]);
+        dC.data_set = "N/A";
+        for (i=0; i < size; i++)
+            dC.hdf5_data[i] = -1;
+    }
+
+    if (strcmp(data_type, "MOD") == 0)
+        dC.filename = "N/A";
+
+    jbuf_t jb, jbd;
+    jbd = jb = jbuf_new(); if (!jb) goto out_1;
+    
+    jb = jbuf_append_str(jb, "{ "); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "job_id", "%d,", dC.jobid); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "rank", "%d,", dC.rank); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "ProducerName", "\"%s\",", hname); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "file", "\"%s\",", dC.filename); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "record_id","%"PRIu64",", dC.record_id); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "module", "\"%s\",", mod_name); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "type","\"%s\",", data_type); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "max_byte", "%lld,", max_byte);if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "switches", "%d,", rw_switch);if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "flushes", "%d,", flushes);if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "cnt", "%d,", record_count); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "op","\"%s%d\",", dC.op_name,record_count-1); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "seg", "[{"); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "data_set", "\"%s\",", dC.data_set); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "pt_sel", "%lld,", dC.hdf5_data[0]);if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "irreg_hslab", "%lld,", dC.hdf5_data[1]);if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "reg_hslab", "%lld,", dC.hdf5_data[2]);if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "ndims", "%lld,", dC.hdf5_data[3]);if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "npoints", "%lld,", dC.hdf5_data[4]);if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "off", "%lld,", offset);if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "len", "%lld,", length);if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "dur", "%0.2f,", total_time); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "timestamp", "%lu.%0.6lu", tval_end.tv_sec, (tval_end.tv_nsec/1.0e3)); if (!jb) goto out_1;
+    jb = jbuf_append_str(jb, "}]}"); if (!jb) goto out_1;
+    printf("this is in jb %s \n", jb->buf);
+
+    //save json to a file
+    FILE *fp;
+    fp = fopen("/projects/darshan/logs/darshan_output_hdf5.json", "a");
+    fprintf(fp, "%s\n", jb->buf);
+    fclose(fp);
+  
+
+    rc = ldmsd_stream_publish(dC.ldms_darsh[0], dC.env_ldms_stream, LDMSD_STREAM_JSON, jb->buf, (jb->cursor) + 1);
+    if (rc)
+        printf("Error %d publishing data.\n", rc);
+    
+ out_1:
+        if (!jb ){
+	    jbuf_free(jbd);
+        }
+    return;
+}
+
+void darshan_ldms_connector_send_extra(char* rwo, char *mod_name, char *data_type, int64_t size_0_100, int64_t size_100_1K, int64_t size_1K_10K, int64_t size_10K_100K, int64_t size_100K_1M, int64_t size_1M_4M,int64_t size_4M_10M, int64_t size_10M_100M, int64_t size_100M_1G, int64_t size_1G_PLUS)
+{
+    int rc, ret, i, size;
+    //struct ldms_sps_send_result r = LN_NULL_RESULT;
+
+    dC.env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM_EXTRA");
+
+    // set hostname
+    char hname[HOST_NAME_MAX];
+    (void)gethostname(hname, sizeof(hname));
+
+    pthread_mutex_lock(&ln_extra_lock);
+
+    if (!dC.ldms_darsh[1]){
+        darshan_ldms_connector_initialize();
+    }
+    if (!dC.ldms_darsh[1]){
+        printf("ldms_extra does not exist \n");
+        pthread_mutex_unlock(&ln_extra_lock);
+        return;
+    }
+
+    
+    pthread_mutex_unlock(&ln_extra_lock);
+
+    size = sizeof(dC_e.access_length)/sizeof(dC_e.access_length[0]);
+     if (strcmp(mod_name, "H5D") != 0)
+         for (i=0; i < size; i++){
+             /* set all "stride" -1 for mpiio */
+             if (strcmp(mod_name, "MPIIO") == 0){
+                dC_e.access_stride[i] = -1;
+                dC_e.stride_count[i] = -1;
+                }
+            dC_e.access_length[i] = -1;
+            dC_e.length_count[i] = -1;
+         }
+
+    jbuf_t jb, jbd;
+    jbd = jb = jbuf_new(); if (!jb) goto out_1;
+    jb = jbuf_append_str(jb, "{ "); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "job_id", "%d,", dC.jobid); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "rank", "%d,", dC.rank); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "ProducerName", "\"%s\",", hname); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "file", "\"%s\",", dC.filename); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "record_id","%"PRIu64",", dC.record_id); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "module", "\"%s\",", mod_name); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "type","\"%s\",", data_type); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "fast_rank", "%d,", dC_e.fastest_rank); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "fast_rank_tm","\"%f\",", dC_e.fastest_rank_time); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "slow_rank", "%d,", dC_e.slowest_rank); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "slow_rank_tm","\"%f\",", dC_e.slowest_rank_time); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "op","\"%s%d\",", dC.op_name); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "seg", "[{"); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "0_100", "%d,", size_0_100); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "100_1K", "%d,", size_100_1K); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "1K_10K", "%d,", size_1K_10K); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "10K_100K", "%d,", size_10K_100K); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "100K_1M", "%d,", size_100K_1M); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "1M_4M", "%d,", size_1M_4M); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "4M_10M", "%d,", size_4M_10M); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "10M_100M", "%d,", size_10M_100M); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "100M_1G", "%d,", size_100M_1G); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "1G_PLUS", "%d", size_1G_PLUS); if (!jb) goto out_1;
+    
+    /* add additional info from POSIX, MPIIO and H5D */
+    jb = jbuf_append_attr(jb, "acc_1", "%d,", dC_e.access_access[0]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "acc_2", "%d,", dC_e.access_access[1]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "acc_3", "%d,", dC_e.access_access[2]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "acc_4", "%d,", dC_e.access_access[3]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "acnt_1", "%d,", dC_e.access_count[0]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "acnt_2", "%d,", dC_e.access_count[1]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "acnt_3", "%d,", dC_e.access_count[2]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "acnt_4", "%d,", dC_e.access_count[3]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "strd_1", "%d,", dC_e.access_stride[0]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "strd_2", "%d,", dC_e.access_stride[1]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "strd_3", "%d,", dC_e.access_stride[2]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "strd_4", "%d,", dC_e.access_stride[3]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "scnt_1", "%d,", dC_e.stride_count[0]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "scnt_2", "%d,", dC_e.stride_count[1]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "scnt_3", "%d,", dC_e.stride_count[2]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "scnt_4", "%d,", dC_e.stride_count[3]); if (!jb) goto out_1;
+    /*jb = jbuf_append_attr(jb, "length_1", "%d,", dC_e.access_length[0]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "length_2", "%d,", dC_e.access_length[1]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "length_3", "%d,", dC_e.access_length[2]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "length_4", "%d,", dC_e.access_length[3]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "length_4", "%d,", dC_e.access_length[3]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "lcnt_1", "%d,", dC_e.length_count[0]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "lcnt_2", "%d,", dC_e.length_count[1]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "lcnt_3", "%d,", dC_e.length_count[2]); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "lcnt_4", "%d", dC_e.length_count[3]); if (!jb) goto out_1;*/
+    jb = jbuf_append_str(jb, "}]}");
+    //printf("this is in jb for EXTRA: %s \n", jb->buf);
+
+    rc = ldmsd_stream_publish(dC.ldms_darsh[1], dC.env_ldms_stream, LDMSD_STREAM_JSON, jb->buf, (jb->cursor) + 1);
+    if (rc)
+        printf("Error %d publishing data.\n", rc);
+
+ out_1:
+        if (!jb ){
+            jbuf_free(jbd);
+        }
+    return;
+
+
+}
+
+#endif
+
 void dxt_posix_write(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time)
+        int64_t length, double start_time, double end_time, struct timespec tval_start, struct timespec tval_end)
 {
     struct dxt_file_record_ref* rec_ref = NULL;
     struct dxt_file_record *file_rec;
@@ -462,7 +810,7 @@ void dxt_posix_write(darshan_record_id rec_id, int64_t offset,
 }
 
 void dxt_posix_read(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time)
+        int64_t length, double start_time, double end_time, struct timespec tval_start, struct timespec tval_end)
 {
     struct dxt_file_record_ref* rec_ref = NULL;
     struct dxt_file_record *file_rec;
@@ -519,7 +867,7 @@ void dxt_posix_read(darshan_record_id rec_id, int64_t offset,
 }
 
 void dxt_mpiio_write(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time)
+        int64_t length, double start_time, double end_time, struct timespec tval_start, struct timespec tval_end)
 {
     struct dxt_file_record_ref* rec_ref = NULL;
     struct dxt_file_record *file_rec;
@@ -576,7 +924,7 @@ void dxt_mpiio_write(darshan_record_id rec_id, int64_t offset,
 }
 
 void dxt_mpiio_read(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time)
+        int64_t length, double start_time, double end_time, struct timespec tval_start, struct timespec tval_end)
 {
     struct dxt_file_record_ref* rec_ref = NULL;
     struct dxt_file_record *file_rec;

@@ -6,7 +6,6 @@
 
 #ifndef __DARSHAN_DXT_H
 #define __DARSHAN_DXT_H
-
 /* dxt_load_trigger_conf()
  *
  * DXT function exposed to Darshan core to read in any trace triggers
@@ -35,9 +34,9 @@ void dxt_mpiio_runtime_initialize(void);
  * are starting and ending timestamps for the operation, respectively.
  */
 void dxt_posix_write(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time);
+        int64_t length, double start_time, double end_time, struct timespec tval_start, struct timespec tval_end);
 void dxt_posix_read(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time);
+        int64_t length, double start_time, double end_time, struct timespec tval_start, struct timespec tval_end);
 
 /* dxt_mpiio_write(), dxt_mpiio_read()
  *
@@ -46,9 +45,9 @@ void dxt_posix_read(darshan_record_id rec_id, int64_t offset,
  * timestamps for the operation, respectively.
  */
 void dxt_mpiio_write(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time);
+        int64_t length, double start_time, double end_time, struct timespec tval_start, struct timespec tval_end);
 void dxt_mpiio_read(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time);
+        int64_t length, double start_time, double end_time, struct timespec tval_start, struct timespec tval_end);
 
 void dxt_posix_filter_dynamic_traces(
     struct darshan_posix_file *(*rec_id_to_psx_file)(darshan_record_id));
