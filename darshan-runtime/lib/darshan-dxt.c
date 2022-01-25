@@ -753,7 +753,7 @@ void darshan_ldms_connector_send_extra(char* rwo, char *mod_name, char *data_typ
 #endif
 
 void dxt_posix_write(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time, struct timespec tval_start, struct timespec tval_end)
+        int64_t length, double start_time, double end_time)
 {
     struct dxt_file_record_ref* rec_ref = NULL;
     struct dxt_file_record *file_rec;
@@ -810,7 +810,7 @@ void dxt_posix_write(darshan_record_id rec_id, int64_t offset,
 }
 
 void dxt_posix_read(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time, struct timespec tval_start, struct timespec tval_end)
+        int64_t length, double start_time, double end_time)
 {
     struct dxt_file_record_ref* rec_ref = NULL;
     struct dxt_file_record *file_rec;
