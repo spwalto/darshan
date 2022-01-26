@@ -550,7 +550,7 @@ void darshan_ldms_set_meta(const char *filename, const char *data_set, uint64_t 
 
 }
 
-void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset, int64_t length, int64_t max_byte, int64_t rw_switch, int64_t flushes,  double start_time, double end_time, struct timespec tval_start, struct timespec tval_end, double total_time, char *mod_name, char *data_type)
+void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset, int64_t length, int64_t max_byte, int64_t rw_switch, int64_t flushes,  double start_time, double end_time, struct timespec tspec_start, struct timespec tspec_end, double total_time, char *mod_name, char *data_type)
 {
     int rc, ret, i, size;
     dC.env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
@@ -596,6 +596,8 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
     if (strcmp(data_type, "MOD") == 0)
         dC.filename = "N/A";
 
+    uint64_t ms = tspec_end.tv_nsec/1.0e3;
+
     jbuf_t jb, jbd;
     jbd = jb = jbuf_new(); if (!jb) goto out_1;
     
@@ -622,7 +624,7 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
     jb = jbuf_append_attr(jb, "off", "%lld,", offset);if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "len", "%lld,", length);if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "dur", "%0.2f,", total_time); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "timestamp", "%lu.%0.6lu", tval_end.tv_sec, (tval_end.tv_nsec/1.0e3)); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "timestamp", "%lu.%0.6lu", tspec_end.tv_sec, ms); if (!jb) goto out_1;
     jb = jbuf_append_str(jb, "}]}"); if (!jb) goto out_1;
     printf("this is in jb %s \n", jb->buf);
 
@@ -746,8 +748,6 @@ void darshan_ldms_connector_send_extra(char* rwo, char *mod_name, char *data_typ
             jbuf_free(jbd);
         }
     return;
-
-
 }
 
 #endif
@@ -867,7 +867,7 @@ void dxt_posix_read(darshan_record_id rec_id, int64_t offset,
 }
 
 void dxt_mpiio_write(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time, struct timespec tval_start, struct timespec tval_end)
+        int64_t length, double start_time, double end_time)
 {
     struct dxt_file_record_ref* rec_ref = NULL;
     struct dxt_file_record *file_rec;
@@ -924,7 +924,7 @@ void dxt_mpiio_write(darshan_record_id rec_id, int64_t offset,
 }
 
 void dxt_mpiio_read(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time, struct timespec tval_start, struct timespec tval_end)
+        int64_t length, double start_time, double end_time)
 {
     struct dxt_file_record_ref* rec_ref = NULL;
     struct dxt_file_record *file_rec;

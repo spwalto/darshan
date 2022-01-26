@@ -293,7 +293,7 @@ static int darshan_mem_alignment = 1;
     else \
         this_offset = rec_ref->offset; \
     /* DXT to record detailed read tracing information */ \
-    dxt_posix_read(rec_ref->file_rec->base_rec.id, this_offset, __ret, __tm1, __tm2, __ts1, __ts2); \
+    dxt_posix_read(rec_ref->file_rec->base_rec.id, this_offset, __ret, __tm1, __tm2); \
     /* heatmap to record traffic summary */ \
     heatmap_update(posix_runtime->heatmap_id, HEATMAP_READ, __ret, __tm1, __tm2); \
     if(this_offset > rec_ref->last_byte_read) \
@@ -361,7 +361,7 @@ static int darshan_mem_alignment = 1;
     else \
         this_offset = rec_ref->offset; \
     /* DXT to record detailed write tracing information */ \
-    dxt_posix_write(rec_ref->file_rec->base_rec.id, this_offset, __ret, __tm1, __tm2, __ts1, __ts2); \
+    dxt_posix_write(rec_ref->file_rec->base_rec.id, this_offset, __ret, __tm1, __tm2); \
     /* heatmap to record traffic summary */ \
     heatmap_update(posix_runtime->heatmap_id, HEATMAP_WRITE, __ret, __tm1, __tm2); \
     if(this_offset > rec_ref->last_byte_written) \

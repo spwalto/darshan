@@ -34,9 +34,9 @@ void dxt_mpiio_runtime_initialize(void);
  * are starting and ending timestamps for the operation, respectively.
  */
 void dxt_posix_write(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time, struct timespec tval_start, struct timespec tval_end);
+        int64_t length, double start_time, double end_time);
 void dxt_posix_read(darshan_record_id rec_id, int64_t offset,
-        int64_t length, double start_time, double end_time, struct timespec tval_start, struct timespec tval_end);
+        int64_t length, double start_time, double end_time);
 
 /* dxt_mpiio_write(), dxt_mpiio_read()
  *
