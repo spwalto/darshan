@@ -249,7 +249,6 @@ static int my_rank = -1;
     if(newpath != __path) free(newpath);\
     /* LDMS to publish realtime read tracing information to daemon*/ \
     if(getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS")){\
-        fprintf(stdout, "this is __tspec in MPIIO_RECORD_OPEN macro: %lu.%0.9lu \n", __ts1.tv_sec, __ts1.tv_nsec); \
         darshan_ldms_set_meta(__path, "N/A", rec_ref->file_rec->base_rec.id, rec_ref->file_rec->base_rec.rank);\
         darshan_ldms_connector_send(rec_ref->file_rec->counters[MPIIO_COLL_OPENS] + rec_ref->file_rec->counters[MPIIO_INDEP_OPENS], "open", -1, -1, -1, -1, -1, __tm1, __tm2, __ts1, __ts2, rec_ref->file_rec->fcounters[MPIIO_F_META_TIME], "MPIIO", "MET");\
     }\
@@ -1227,7 +1226,7 @@ int DARSHAN_DECL(MPI_File_close)(MPI_File *fh)
 #ifdef HAVE_LDMS
     /* publish close information for mpiio */
     if(getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS"))
-        darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, -1, tm1, tm2, ts1, ts2, rec_ref->file_rec->fcounters[MPIIO_F_META_TIME], "MPIIO", "MET");
+        darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, -1, tm1, tm2, ts1, ts2, rec_ref->file_rec->fcounters[MPIIO_F_META_TIME], "MPIIO", "MOD");
 #endif
 
     }

@@ -355,7 +355,7 @@ void darshan_ldms_set_meta(const char *filename, const char *data_set,  uint64_t
  * LDMS related function to retrieve and send the finalized/calculated Darshan module data
  * to LDMSD streams (access_lenth). LDMS_SEND_EXTRA environemt variable must be set. 
  *
- * access_access/count/length still need to be added.
+ * access_access/count/length still needs to be added.
  */
 typedef struct darshanConnector_extra {
         int64_t fastest_rank;

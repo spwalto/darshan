@@ -1671,7 +1671,7 @@ int DARSHAN_DECL(close)(int fd)
 #ifdef HAVE_LDMS
     /* publish close information for posix */
     if(getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))
-        darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, -1, tm1, tm2, ts1, ts2, rec_ref->file_rec->fcounters[POSIX_F_META_TIME], "POSIX", "MET");
+        darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, -1, tm1, tm2, ts1, ts2, rec_ref->file_rec->fcounters[POSIX_F_META_TIME], "POSIX", "MOD");
 #endif
 
     }

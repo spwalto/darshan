@@ -118,7 +118,6 @@ static int my_rank = -1;
     else rec_ref->file_rec->counters[PNETCDF_COLL_OPENS] += 1; \
     darshan_add_record_ref(&(pnetcdf_runtime->ncid_hash), __ncidp, sizeof(int), rec_ref); \
     if(newpath != __path) free(newpath); \
-    printf("this is the ncidp for pnetcdf module: %i \n", __ncidp);\
 } while(0)
 
 /*********************************************************

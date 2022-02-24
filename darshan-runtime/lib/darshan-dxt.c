@@ -553,6 +553,7 @@ void darshan_ldms_set_meta(const char *filename, const char *data_set, uint64_t 
 void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset, int64_t length, int64_t max_byte, int64_t rw_switch, int64_t flushes,  double start_time, double end_time, struct timespec tspec_start, struct timespec tspec_end, double total_time, char *mod_name, char *data_type)
 {
     int rc, ret, i, size;
+    uint64_t micro_s = tspec_end.tv_nsec/1.0e3;
     dC.env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
     
     // set hostname
@@ -572,17 +573,17 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
     pthread_mutex_unlock(&ln_lock);
     
     if (strcmp(rwo, "write") == 0){
-        dC.op_name = "writes_segment_";
+        dC.op_name = "writes_segment";
     }
     if (strcmp(rwo, "read") == 0){
-        dC.op_name = "reads_segment_";
+        dC.op_name = "reads_segment";
     }
     if (strcmp(rwo, "open") == 0){
-        dC.op_name = "opens_segment_";
+        dC.op_name = "opens_segment";
         dC.open_count = record_count;
     }
     if (strcmp(rwo, "close") == 0){
-        dC.op_name = "closes_segment_";
+        dC.op_name = "closes_segment";
         record_count = dC.open_count;
     }
 
@@ -595,8 +596,6 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
 
     if (strcmp(data_type, "MOD") == 0)
         dC.filename = "N/A";
-
-    uint64_t ms = tspec_end.tv_nsec/1.0e3;
 
     jbuf_t jb, jbd;
     jbd = jb = jbuf_new(); if (!jb) goto out_1;
@@ -613,7 +612,7 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
     jb = jbuf_append_attr(jb, "switches", "%d,", rw_switch);if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "flushes", "%d,", flushes);if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "cnt", "%d,", record_count); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "op","\"%s%d\",", dC.op_name,record_count-1); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "op","\"%s\",", dC.op_name); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "seg", "[{"); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "data_set", "\"%s\",", dC.data_set); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "pt_sel", "%lld,", dC.hdf5_data[0]);if (!jb) goto out_1;
@@ -624,16 +623,16 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
     jb = jbuf_append_attr(jb, "off", "%lld,", offset);if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "len", "%lld,", length);if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "dur", "%0.2f,", total_time); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "timestamp", "%lu.%0.6lu", tspec_end.tv_sec, ms); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "timestamp", "%lu.%0.6lu", tspec_end.tv_sec, micro_s); if (!jb) goto out_1;
     jb = jbuf_append_str(jb, "}]}"); if (!jb) goto out_1;
-    printf("this is in jb %s \n", jb->buf);
+    //printf("this is in jb %s \n", jb->buf);
 
     //save json to a file
-    FILE *fp;
+    /*FILE *fp;
     fp = fopen("/projects/darshan/logs/darshan_output_hdf5.json", "a");
     fprintf(fp, "%s\n", jb->buf);
-    fclose(fp);
-  
+    fclose(fp);*/
+    
 
     rc = ldmsd_stream_publish(dC.ldms_darsh[0], dC.env_ldms_stream, LDMSD_STREAM_JSON, jb->buf, (jb->cursor) + 1);
     if (rc)
@@ -649,7 +648,6 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
 void darshan_ldms_connector_send_extra(char* rwo, char *mod_name, char *data_type, int64_t size_0_100, int64_t size_100_1K, int64_t size_1K_10K, int64_t size_10K_100K, int64_t size_100K_1M, int64_t size_1M_4M,int64_t size_4M_10M, int64_t size_10M_100M, int64_t size_100M_1G, int64_t size_1G_PLUS)
 {
     int rc, ret, i, size;
-    //struct ldms_sps_send_result r = LN_NULL_RESULT;
 
     dC.env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM_EXTRA");
 

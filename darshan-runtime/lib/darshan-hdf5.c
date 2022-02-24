@@ -403,7 +403,7 @@ herr_t DARSHAN_DECL(H5Fclose)(hid_t file_id)
 #ifdef HAVE_LDMS
         /* LDMS to publish runtime h5d tracing information to daemon*/
         if(getenv("HDF5_ENABLE_LDMS"))
-        darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, rec_ref->file_rec->counters[H5F_FLUSHES],rec_ref->file_rec->fcounters[H5F_F_CLOSE_START_TIMESTAMP], rec_ref->file_rec->fcounters[H5F_F_CLOSE_END_TIMESTAMP],ts1, ts2, rec_ref->file_rec->fcounters[H5F_F_META_TIME], "H5F", "MET");
+        darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, rec_ref->file_rec->counters[H5F_FLUSHES],rec_ref->file_rec->fcounters[H5F_F_CLOSE_START_TIMESTAMP], rec_ref->file_rec->fcounters[H5F_F_CLOSE_END_TIMESTAMP],ts1, ts2, rec_ref->file_rec->fcounters[H5F_F_META_TIME], "H5F", "MOD");
 #endif
 
         }
@@ -496,14 +496,14 @@ herr_t DARSHAN_DECL(H5Fclose)(hid_t file_id)
         __n_chunk_dims = (__n_chunk_dims < H5D_MAX_NDIMS) ? __n_chunk_dims : H5D_MAX_NDIMS; \
         for(__i = 0; __i < __n_chunk_dims; __i++){ \
             __rec_ref->dataset_rec->counters[H5D_CHUNK_SIZE_D1 + __i] = __chunk_dims[__n_chunk_dims - __i - 1]; \
-            printf("this i the counters for each h5d chunk: [H5D_CHUNK_SIZE_D1 + %i]: %d \n", __i, __rec_ref->dataset_rec->counters[H5D_CHUNK_SIZE_D1 + __i]);}\
+            /*printf("this i the counters for each h5d chunk: [H5D_CHUNK_SIZE_D1 + %i]: %d \n", __i, __rec_ref->dataset_rec->counters[H5D_CHUNK_SIZE_D1 + __i]);*/}\
             }\
     __rec_ref->dataset_rec->counters[H5D_DATATYPE_SIZE] = H5Tget_size(__type_id); \
     __rec_ref->dataset_rec->file_rec_id = __file_rec_id; \
     darshan_add_record_ref(&(hdf5_dataset_runtime->hid_hash), &__ret, sizeof(hid_t), __rec_ref); \
     /* LDMS to publish runtime h5d tracing information to daemon*/ \
     if(getenv("HDF5_ENABLE_LDMS")){\
-        darshan_ldms_set_meta("N/A", __name, __rec_ref->dataset_rec->base_rec.id, __rec_ref->dataset_rec->base_rec.rank);\
+        darshan_ldms_set_meta(__rec_name, __name, __rec_ref->dataset_rec->base_rec.id, __rec_ref->dataset_rec->base_rec.rank);\
         darshan_ldms_connector_send(__rec_ref->dataset_rec->counters[H5D_OPENS], "open", -1, -1, -1, -1, __rec_ref->dataset_rec->counters[H5D_FLUSHES], __tm1, __tm2, __ts1, __ts2, __rec_ref->dataset_rec->fcounters[H5D_F_META_TIME], "H5D", "MET");\
     }\
 } while(0)
@@ -985,7 +985,7 @@ herr_t DARSHAN_DECL(H5Dclose)(hid_t dataset_id)
 #ifdef HAVE_LDMS
         /* LDMS to publish runtime h5d tracing information to daemon*/
     if(getenv("HDF5_ENABLE_LDMS"))
-        darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, rec_ref->dataset_rec->counters[H5D_FLUSHES], rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_START_TIMESTAMP], rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_END_TIMESTAMP], ts1, ts2, rec_ref->dataset_rec->fcounters[H5D_F_META_TIME], "H5D", "MET");
+        darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, rec_ref->dataset_rec->counters[H5D_FLUSHES], rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_START_TIMESTAMP], rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_END_TIMESTAMP], ts1, ts2, rec_ref->dataset_rec->fcounters[H5D_F_META_TIME], "H5D", "MOD");
 #endif
 
         }
@@ -1299,7 +1299,7 @@ static void hdf5_dataset_record_reduction_op(void* inrec_v, void* inoutrec_v,
                 &(tmp_dataset.counters[H5D_ACCESS1_COUNT]),
                 &inoutrec->counters[j], H5D_MAX_NDIMS+H5D_MAX_NDIMS+1,
                 inoutrec->counters[j2], 0);
-            fprintf(stdout, "this is j for access_accesss in hdf5: %i \n", j);
+            //fprintf(stdout, "this is j for access_accesss in hdf5: %i \n", j);
         }
 
         tmp_dataset.counters[H5D_DATASPACE_NDIMS] = inrec->counters[H5D_DATASPACE_NDIMS];
@@ -1308,7 +1308,7 @@ static void hdf5_dataset_record_reduction_op(void* inrec_v, void* inoutrec_v,
 
         for(j=H5D_CHUNK_SIZE_D1; j<=H5D_CHUNK_SIZE_D5; j++){
             tmp_dataset.counters[j] = inrec->counters[j];
-            fprintf(stdout, "this is j for H5D_CHUNK_SIZE%i: %i \n", j, tmp_dataset.counters[j]);
+            //fprintf(stdout, "this is j for H5D_CHUNK_SIZE%i: %i \n", j, tmp_dataset.counters[j]);
         }
 
         if(inoutrec->counters[H5D_USE_MPIIO_COLLECTIVE] == 1 ||
