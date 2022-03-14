@@ -2170,6 +2170,13 @@ static void posix_record_reduction_op(void* infile_v, void* inoutfile_v,
         for(j=POSIX_SIZE_READ_0_100; j<=POSIX_SIZE_WRITE_1G_PLUS; j++)
         {
             tmp_file.counters[j] = infile->counters[j] + inoutfile->counters[j];
+#ifdef HAVE_LDMS
+        /* set Darshan histogram vales to LDMS array */
+        if(getenv("ENABLE_LDMS_EXTRA")&& (getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))){
+            extern struct darshanConnector_extra dC_e;
+            dC_e.rw_histo[j-POSIX_SIZE_READ_0_100] = tmp_file.counters[j];
+        }
+#endif
         }
 
         /* first collapse any duplicates */
@@ -2247,8 +2254,8 @@ static void posix_record_reduction_op(void* infile_v, void* inoutfile_v,
         /* set Darshan count and access vales to LDMS arrays */
         if(getenv("ENABLE_LDMS_EXTRA") && (getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))){
             extern struct darshanConnector_extra dC_e;
-            dC_e.access_access[j-57] = infile->counters[j];
-            dC_e.access_count[j-57] = infile->counters[j+4]; 
+            dC_e.access_access[j-POSIX_ACCESS1_ACCESS] = infile->counters[j];
+            dC_e.access_count[j-POSIX_ACCESS1_ACCESS] = infile->counters[j+4]; 
         }
 #endif
         }
@@ -2363,19 +2370,7 @@ static void posix_record_reduction_op(void* infile_v, void* inoutfile_v,
         dC_e.slowest_rank_time = tmp_file.fcounters[POSIX_F_SLOWEST_RANK_TIME];
 
 
-        darshan_ldms_connector_send_extra("write", "POSIX", "extra",
-            POSIX_SIZE_WRITE_0_100, POSIX_SIZE_WRITE_100_1K,
-            POSIX_SIZE_WRITE_1K_10K,POSIX_SIZE_WRITE_10K_100K,
-            POSIX_SIZE_WRITE_100K_1M,POSIX_SIZE_WRITE_1M_4M,
-            POSIX_SIZE_WRITE_4M_10M,POSIX_SIZE_WRITE_10M_100M,
-            POSIX_SIZE_WRITE_100M_1G,POSIX_SIZE_WRITE_1G_PLUS);
-
-        darshan_ldms_connector_send_extra("read", "POSIX", "extra",
-            POSIX_SIZE_READ_0_100, POSIX_SIZE_READ_100_1K,
-            POSIX_SIZE_READ_1K_10K,POSIX_SIZE_READ_10K_100K,
-            POSIX_SIZE_READ_100K_1M,POSIX_SIZE_READ_1M_4M,
-            POSIX_SIZE_READ_4M_10M,POSIX_SIZE_READ_10M_100M,
-            POSIX_SIZE_READ_100M_1G,POSIX_SIZE_READ_1G_PLUS);
+        darshan_ldms_connector_send_extra("POSIX", "extra");
 
     }
 

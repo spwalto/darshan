@@ -362,6 +362,7 @@ typedef struct darshanConnector_extra {
         int64_t slowest_rank;
         double fastest_rank_time;
         double slowest_rank_time;
+	int64_t rw_histo[20];
         int64_t access_access[5];
         int64_t access_count[5];
         int64_t access_stride[5];
@@ -370,7 +371,7 @@ typedef struct darshanConnector_extra {
         int64_t length_count[5];
 } darshanConnector_extra;
 
-void darshan_ldms_connector_send_extra(char *rwo, char *mod_name, char *data_type, int64_t size_0_100, int64_t size_100_1K, int64_t size_1K_10K, int64_t size_10K_100K, int64_t size_100K_1M, int64_t size_1M_4M,int64_t size_4M_10M, int64_t size_10M_100M, int64_t size_100M_1G, int64_t size_1G_PLUS);
+void darshan_ldms_connector_send_extra(char *mod_name, char *data_type);
 
 #endif
 

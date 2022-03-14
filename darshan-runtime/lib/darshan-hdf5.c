@@ -211,7 +211,6 @@ hid_t DARSHAN_DECL(H5Fcreate)(const char *filename, unsigned flags,
         if(tmp_rank < 0)
 #ifdef HAVE_MPI
             MPI_Comm_rank(MPI_COMM_WORLD, &tmp_rank);
-            darshan_core_fprintf(stdout, "we are in the hdf5 module code line 207\n");
 #else
             tmp_rank = 0;
 #endif
@@ -1259,6 +1258,14 @@ static void hdf5_dataset_record_reduction_op(void* inrec_v, void* inoutrec_v,
         for(j=H5D_SIZE_READ_AGG_0_100; j<=H5D_SIZE_WRITE_AGG_1G_PLUS; j++)
         {
             tmp_dataset.counters[j] = inrec->counters[j] + inoutrec->counters[j];
+#ifdef HAVE_LDMS
+            /* check if DXT LDMS is enabled and intialize LDMSD if it is. Set job for ldms stream mesage.*/
+            if(getenv("ENABLE_LDMS_EXTRA") && getenv("HDF5_ENABLE_LDMS")){
+            extern struct darshanConnector_extra dC_e;
+            dC_e.rw_histo[j-H5D_SIZE_READ_AGG_0_100]=tmp_dataset.counters[j];
+    }
+
+#endif
         }
 
         /* first collapse any duplicates */
@@ -1430,19 +1437,7 @@ static void hdf5_dataset_record_reduction_op(void* inrec_v, void* inoutrec_v,
     dC_e.fastest_rank_time = tmp_dataset.fcounters[H5D_F_FASTEST_RANK_TIME];
     dC_e.slowest_rank_time = tmp_dataset.fcounters[H5D_F_SLOWEST_RANK_TIME];
     
-    darshan_ldms_connector_send_extra("write", "H5D", "extra",
-            H5D_SIZE_WRITE_AGG_0_100, H5D_SIZE_WRITE_AGG_100_1K,
-            H5D_SIZE_WRITE_AGG_1K_10K,H5D_SIZE_WRITE_AGG_10K_100K,
-            H5D_SIZE_WRITE_AGG_100K_1M,H5D_SIZE_WRITE_AGG_1M_4M,
-            H5D_SIZE_WRITE_AGG_4M_10M,H5D_SIZE_WRITE_AGG_10M_100M,
-            H5D_SIZE_WRITE_AGG_100M_1G,H5D_SIZE_WRITE_AGG_1G_PLUS);
-
-    darshan_ldms_connector_send_extra("read", "H5D", "extra",
-            H5D_SIZE_READ_AGG_0_100, H5D_SIZE_READ_AGG_100_1K,
-            H5D_SIZE_READ_AGG_1K_10K, H5D_SIZE_READ_AGG_10K_100K,
-            H5D_SIZE_READ_AGG_100K_1M, H5D_SIZE_READ_AGG_1M_4M,
-            H5D_SIZE_READ_AGG_4M_10M, H5D_SIZE_READ_AGG_10M_100M,
-            H5D_SIZE_READ_AGG_100M_1G, H5D_SIZE_READ_AGG_1G_PLUS);
+    darshan_ldms_connector_send_extra("H5D", "extra");
 
     }
 

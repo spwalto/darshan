@@ -1371,6 +1371,14 @@ static void mpiio_record_reduction_op(void* infile_v, void* inoutfile_v,
         for(j=MPIIO_SIZE_READ_AGG_0_100; j<=MPIIO_SIZE_WRITE_AGG_1G_PLUS; j++)
         {
             tmp_file.counters[j] = infile->counters[j] + inoutfile->counters[j];
+#ifdef HAVE_LDMS
+        /* set Darshan histogram vales to LDMS array */
+        if(getenv("ENABLE_LDMS_EXTRA") && (getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS"))){
+            extern struct darshanConnector_extra dC_e;
+            dC_e.rw_histo[j-MPIIO_SIZE_READ_AGG_0_100] = tmp_file.counters[j];
+        }
+#endif
+
         }
 
         /* first collapse any duplicates */
@@ -1408,9 +1416,9 @@ static void mpiio_record_reduction_op(void* infile_v, void* inoutfile_v,
         /* set Darshan count and access vales to LDMS arrays */
         if(getenv("ENABLE_LDMS_EXTRA") && (getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS"))){
             extern struct darshanConnector_extra dC_e;
-            dC_e.access_access[j-39] = infile->counters[j];
-            dC_e.access_count[j-39] = infile->counters[j+4];
-            dC_e.access_stride[j-39] = -1;
+            dC_e.access_access[j-MPIIO_ACCESS1_ACCESS] = infile->counters[j];
+            dC_e.access_count[j-MPIIO_ACCESS1_ACCESS] = infile->counters[j+4];
+            dC_e.access_stride[j-MPIIO_ACCESS1_ACCESS] = -1;
         }
 #endif
 
@@ -1525,20 +1533,7 @@ static void mpiio_record_reduction_op(void* infile_v, void* inoutfile_v,
         dC_e.fastest_rank_time = tmp_file.fcounters[MPIIO_F_FASTEST_RANK_TIME];
         dC_e.slowest_rank_time = tmp_file.fcounters[MPIIO_F_SLOWEST_RANK_TIME];
 
-        darshan_ldms_connector_send_extra("write", "MPIIO", "extra",
-            MPIIO_SIZE_WRITE_AGG_0_100, MPIIO_SIZE_WRITE_AGG_100_1K, 
-            MPIIO_SIZE_WRITE_AGG_1K_10K,MPIIO_SIZE_WRITE_AGG_10K_100K, 
-            MPIIO_SIZE_WRITE_AGG_100K_1M,MPIIO_SIZE_WRITE_AGG_1M_4M,
-            MPIIO_SIZE_WRITE_AGG_4M_10M,MPIIO_SIZE_WRITE_AGG_10M_100M,
-            MPIIO_SIZE_WRITE_AGG_100M_1G,MPIIO_SIZE_WRITE_AGG_1G_PLUS);
-            
-        darshan_ldms_connector_send_extra("read", "MPIIO", "extra",
-            MPIIO_SIZE_READ_AGG_0_100, MPIIO_SIZE_READ_AGG_100_1K,
-            MPIIO_SIZE_READ_AGG_1K_10K,MPIIO_SIZE_READ_AGG_10K_100K,
-            MPIIO_SIZE_READ_AGG_100K_1M,MPIIO_SIZE_READ_AGG_1M_4M,
-            MPIIO_SIZE_READ_AGG_4M_10M,MPIIO_SIZE_READ_AGG_10M_100M,
-            MPIIO_SIZE_READ_AGG_100M_1G,MPIIO_SIZE_READ_AGG_1G_PLUS);
-            
+        darshan_ldms_connector_send_extra("MPIIO", "extra");
     }
 
 #endif
