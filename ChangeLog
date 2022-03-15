@@ -2,7 +2,7 @@
 Darshan Release Change Log
 --------------------------
 
-Darshan-3.3.2
+Darshan-3.4
 =============
 * Add a new "heatmap" module that records histograms of I/O traffic over time
   on each process
@@ -11,6 +11,8 @@ Darshan-3.3.2
 * Replace mutex locks with atomics in core library
 * Add optional, limited support for RDTSCP-based timing, enabled via
   --enable-rdtscp at configure time
+* Remove unecessary explicit mpich binding libraries from link line when static linking
+* Graceful warnings when parsing log files with unknown module types
 
 Darshan-3.3.1
 =============
