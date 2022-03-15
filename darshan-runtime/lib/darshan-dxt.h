@@ -6,7 +6,6 @@
 
 #ifndef __DARSHAN_DXT_H
 #define __DARSHAN_DXT_H
-
 /* dxt_load_trigger_conf()
  *
  * DXT function exposed to Darshan core to read in any trace triggers
