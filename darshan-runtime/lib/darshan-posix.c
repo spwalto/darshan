@@ -2170,13 +2170,6 @@ static void posix_record_reduction_op(void* infile_v, void* inoutfile_v,
         for(j=POSIX_SIZE_READ_0_100; j<=POSIX_SIZE_WRITE_1G_PLUS; j++)
         {
             tmp_file.counters[j] = infile->counters[j] + inoutfile->counters[j];
-#ifdef HAVE_LDMS
-        /* set Darshan histogram vales to LDMS array */
-        if(getenv("ENABLE_LDMS_EXTRA")&& (getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))){
-            extern struct darshanConnector_extra dC_e;
-            dC_e.rw_histo[j-POSIX_SIZE_READ_0_100] = tmp_file.counters[j];
-        }
-#endif
         }
 
         /* first collapse any duplicates */
@@ -2208,14 +2201,6 @@ static void posix_record_reduction_op(void* infile_v, void* inoutfile_v,
                 &(tmp_file.counters[POSIX_STRIDE1_STRIDE]),
                 &(tmp_file.counters[POSIX_STRIDE1_COUNT]),
                 &inoutfile->counters[j], 1, inoutfile->counters[j+4], 1);
-#ifdef HAVE_LDMS
-        /* set Darshan count and access vales to LDMS arrays */
-        if(getenv("ENABLE_LDMS_EXTRA")&& (getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))){
-            extern struct darshanConnector_extra dC_e;
-            dC_e.access_stride[j-49] = infile->counters[j];
-            dC_e.stride_count[j-49] = infile->counters[j+4];
-        }
-#endif
         }
 
         /* same for access counts */
@@ -2249,15 +2234,6 @@ static void posix_record_reduction_op(void* infile_v, void* inoutfile_v,
                 &(tmp_file.counters[POSIX_ACCESS1_ACCESS]),
                 &(tmp_file.counters[POSIX_ACCESS1_COUNT]),
                 &inoutfile->counters[j], 1, inoutfile->counters[j+4], 1);
-
-#ifdef HAVE_LDMS
-        /* set Darshan count and access vales to LDMS arrays */
-        if(getenv("ENABLE_LDMS_EXTRA") && (getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))){
-            extern struct darshanConnector_extra dC_e;
-            dC_e.access_access[j-POSIX_ACCESS1_ACCESS] = infile->counters[j];
-            dC_e.access_count[j-POSIX_ACCESS1_ACCESS] = infile->counters[j+4]; 
-        }
-#endif
         }
 
         /* min non-zero (if available) value */
@@ -2359,22 +2335,6 @@ static void posix_record_reduction_op(void* infile_v, void* inoutfile_v,
             tmp_file.fcounters[POSIX_F_SLOWEST_RANK_TIME] =
                 inoutfile->fcounters[POSIX_F_SLOWEST_RANK_TIME];
         }
-
-#ifdef HAVE_LDMS
-    /* check if DXT LDMS is enabled and intialize LDMSD if it is. Set job for ldms stream mesage.*/
-    if(getenv("ENABLE_LDMS_EXTRA") && (getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))){
-        extern struct darshanConnector_extra dC_e;
-        dC_e.fastest_rank = tmp_file.counters[POSIX_FASTEST_RANK];
-        dC_e.slowest_rank = tmp_file.counters[POSIX_SLOWEST_RANK];
-        dC_e.fastest_rank_time = tmp_file.fcounters[POSIX_F_FASTEST_RANK_TIME];
-        dC_e.slowest_rank_time = tmp_file.fcounters[POSIX_F_SLOWEST_RANK_TIME];
-
-
-        darshan_ldms_connector_send_extra("POSIX", "extra");
-
-    }
-
-#endif
 
         /* update pointers */
         *inoutfile = tmp_file;

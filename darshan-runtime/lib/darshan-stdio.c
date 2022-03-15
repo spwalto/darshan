@@ -1258,20 +1258,6 @@ static void stdio_record_reduction_op(void* infile_v, void* inoutfile_v,
                 inoutfile->fcounters[STDIO_F_SLOWEST_RANK_TIME];
         }
 
-#ifdef HAVE_LDMS
-    /* check if DXT LDMS is enabled and intialize LDMSD if it is. Set job for ldms stream mesage.*/
-    if(getenv("ENABLE_LDMS_EXTRA") && getenv("STDIO_ENABLE_LDMS")){
-        extern struct darshanConnector_extra dC_e;
-        dC_e.fastest_rank = tmp_file.counters[STDIO_FASTEST_RANK];
-        dC_e.slowest_rank = tmp_file.counters[STDIO_SLOWEST_RANK];
-        dC_e.fastest_rank_time = tmp_file.fcounters[STDIO_F_FASTEST_RANK_TIME];
-        dC_e.slowest_rank_time = tmp_file.fcounters[STDIO_F_SLOWEST_RANK_TIME];
-
-        darshan_ldms_connector_send_extra("STDIO", "extra");
-        
-    }
-#endif
-
         /* update pointers */
         *inoutfile = tmp_file;
         inoutfile++;

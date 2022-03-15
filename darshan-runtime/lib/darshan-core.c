@@ -382,7 +382,8 @@ void darshan_core_initialize(int argc, char **argv)
 #ifdef HAVE_LDMS
     /* check if DXT LDMS is enabled and intialize LDMSD if it is. Set job for ldms stream mesage.*/
         extern struct darshanConnector dC;
-        dC.jobid = init_core->log_job_p->jobid;
+        dC.jobid = (int64_t)jobid;
+        dC.uid = getuid();
         darshan_ldms_connector_initialize();
 #endif
         /* if we are using any hints to write the log file, then record those

@@ -1258,14 +1258,6 @@ static void hdf5_dataset_record_reduction_op(void* inrec_v, void* inoutrec_v,
         for(j=H5D_SIZE_READ_AGG_0_100; j<=H5D_SIZE_WRITE_AGG_1G_PLUS; j++)
         {
             tmp_dataset.counters[j] = inrec->counters[j] + inoutrec->counters[j];
-#ifdef HAVE_LDMS
-            /* check if DXT LDMS is enabled and intialize LDMSD if it is. Set job for ldms stream mesage.*/
-            if(getenv("ENABLE_LDMS_EXTRA") && getenv("HDF5_ENABLE_LDMS")){
-            extern struct darshanConnector_extra dC_e;
-            dC_e.rw_histo[j-H5D_SIZE_READ_AGG_0_100]=tmp_dataset.counters[j];
-    }
-
-#endif
         }
 
         /* first collapse any duplicates */
@@ -1306,7 +1298,6 @@ static void hdf5_dataset_record_reduction_op(void* inrec_v, void* inoutrec_v,
                 &(tmp_dataset.counters[H5D_ACCESS1_COUNT]),
                 &inoutrec->counters[j], H5D_MAX_NDIMS+H5D_MAX_NDIMS+1,
                 inoutrec->counters[j2], 0);
-            //fprintf(stdout, "this is j for access_accesss in hdf5: %i \n", j);
         }
 
         tmp_dataset.counters[H5D_DATASPACE_NDIMS] = inrec->counters[H5D_DATASPACE_NDIMS];
@@ -1315,7 +1306,6 @@ static void hdf5_dataset_record_reduction_op(void* inrec_v, void* inoutrec_v,
 
         for(j=H5D_CHUNK_SIZE_D1; j<=H5D_CHUNK_SIZE_D5; j++){
             tmp_dataset.counters[j] = inrec->counters[j];
-            //fprintf(stdout, "this is j for H5D_CHUNK_SIZE%i: %i \n", j, tmp_dataset.counters[j]);
         }
 
         if(inoutrec->counters[H5D_USE_MPIIO_COLLECTIVE] == 1 ||
@@ -1427,21 +1417,6 @@ static void hdf5_dataset_record_reduction_op(void* inrec_v, void* inoutrec_v,
                 inoutrec->fcounters[H5D_F_SLOWEST_RANK_TIME];
         }
 
-#ifdef HAVE_LDMS
-    /* check if DXT LDMS is enabled and intialize LDMSD if it is. Set job for ldms stream mesage.*/
-    if(getenv("ENABLE_LDMS_EXTRA") && getenv("HDF5_ENABLE_LDMS")){
-    extern struct darshanConnector_extra dC_e;
-    
-    dC_e.fastest_rank = tmp_dataset.counters[H5D_FASTEST_RANK];
-    dC_e.slowest_rank = tmp_dataset.counters[H5D_SLOWEST_RANK];
-    dC_e.fastest_rank_time = tmp_dataset.fcounters[H5D_F_FASTEST_RANK_TIME];
-    dC_e.slowest_rank_time = tmp_dataset.fcounters[H5D_F_SLOWEST_RANK_TIME];
-    
-    darshan_ldms_connector_send_extra("H5D", "extra");
-
-    }
-
-#endif
 
         /* update pointers */
         *inoutrec = tmp_dataset;

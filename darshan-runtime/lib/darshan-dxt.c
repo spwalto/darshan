@@ -150,12 +150,9 @@ struct dxt_trigger_info
 };
 
 #ifdef HAVE_LDMS
-/* Initialize darshanConnector struct and set extra metrics to add to json message if LDMS is enabled. */
+/* Initialize darshanConnector struct metrics to add to json message if LDMS is enabled. */
 struct darshanConnector dC;
-struct darshanConnector_extra dC_e;
 static pthread_mutex_t ln_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t ln_extra_lock = PTHREAD_MUTEX_INITIALIZER;
-
 #endif
 
 /* internal helper routines */
@@ -601,6 +598,7 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
     jbd = jb = jbuf_new(); if (!jb) goto out_1;
     
     jb = jbuf_append_str(jb, "{ "); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "uid", "%d,", dC.uid); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "job_id", "%d,", dC.jobid); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "rank", "%d,", dC.rank); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "ProducerName", "\"%s\",", hname); if (!jb) goto out_1;
@@ -625,7 +623,7 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
     jb = jbuf_append_attr(jb, "dur", "%0.6f,", total_time); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "timestamp", "%lu.%0.6lu", tspec_end.tv_sec, micro_s); if (!jb) goto out_1;
     jb = jbuf_append_str(jb, "}]}"); if (!jb) goto out_1;
-    //printf("this is in jb %s \n", jb->buf);
+    printf("this is in jb %s \n", jb->buf);
 
     //save json to a file
     /*FILE *fp;
@@ -641,119 +639,6 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
  out_1:
         if (!jb ){
 	    jbuf_free(jbd);
-        }
-    return;
-}
-
-void darshan_ldms_connector_send_extra(char *mod_name, char *data_type)
-{
-    int rc, ret, i, size;
-
-    dC.env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM_EXTRA");
-    // set hostname
-    char hname[HOST_NAME_MAX];
-    (void)gethostname(hname, sizeof(hname));
-    pthread_mutex_lock(&ln_extra_lock);
-    if (!dC.ldms_darsh[1]){
-        darshan_ldms_connector_initialize();
-    }
-    if (!dC.ldms_darsh[1]){
-        printf("ldms_extra does not exist \n");
-        pthread_mutex_unlock(&ln_extra_lock);
-        return;
-    }
-
-    pthread_mutex_unlock(&ln_extra_lock);
-
-    size = sizeof(dC_e.access_length)/sizeof(dC_e.access_length[0]);
-     if (strcmp(mod_name, "H5D") != 0)
-         for (i=0; i < size; i++){
-             /* set all "stride" -1 for mpiio */
-             if (strcmp(mod_name, "MPIIO") == 0){
-                dC_e.access_stride[i] = -1;
-                dC_e.stride_count[i] = -1;
-                }
-            dC_e.access_length[i] = -1;
-            dC_e.length_count[i] = -1;
-         }
-
-    jbuf_t jb, jbd;
-    jbd = jb = jbuf_new(); if (!jb) goto out_1;
-    jb = jbuf_append_str(jb, "{ "); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "job_id", "%d,", dC.jobid); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "rank", "%d,", dC.rank); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "ProducerName", "\"%s\",", hname); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "file", "\"%s\",", dC.filename); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "record_id","%"PRIu64",", dC.record_id); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "module", "\"%s\",", mod_name); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "type","\"%s\",", data_type); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "fast_rank", "%d,", dC_e.fastest_rank); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "fast_rank_tm","\"%f\",", dC_e.fastest_rank_time); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "slow_rank", "%d,", dC_e.slowest_rank); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "slow_rank_tm","\"%f\",", dC_e.slowest_rank_time); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "read_seg", "[{"); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "0_100", "%d,",   dC_e.rw_histo[0]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "100_1K", "%d,",  dC_e.rw_histo[1]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "1K_10K", "%d,",  dC_e.rw_histo[2]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "10K_100K", "%d,",dC_e.rw_histo[3]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "100K_1M", "%d,", dC_e.rw_histo[4]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "1M_4M", "%d,",   dC_e.rw_histo[5]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "4M_10M", "%d,",  dC_e.rw_histo[6]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "10M_100M", "%d,",dC_e.rw_histo[7]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "100M_1G", "%d,", dC_e.rw_histo[8]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "1G_PLUS", "%d",  dC_e.rw_histo[9]); if (!jb) goto out_1;
-    jb = jbuf_append_str(jb, "}],");
-    jb = jbuf_append_attr(jb, "write_seg", "[{"); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "0_100", "%d,",   dC_e.rw_histo[10]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "100_1K", "%d,",  dC_e.rw_histo[11]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "1K_10K", "%d,",  dC_e.rw_histo[12]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "10K_100K", "%d,",dC_e.rw_histo[13]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "100K_1M", "%d,", dC_e.rw_histo[14]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "1M_4M", "%d,",   dC_e.rw_histo[15]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "4M_10M", "%d,",  dC_e.rw_histo[16]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "10M_100M", "%d,",dC_e.rw_histo[17]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "100M_1G", "%d,", dC_e.rw_histo[18]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "1G_PLUS", "%d",  dC_e.rw_histo[19]); if (!jb) goto out_1;
-    jb = jbuf_append_str(jb, "}]}");
-
-    /* add additional info from POSIX, MPIIO and H5D */
-    /*jb = jbuf_append_attr(jb, "acc_1", "%d,", dC_e.access_access[0]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "acc_2", "%d,", dC_e.access_access[1]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "acc_3", "%d,", dC_e.access_access[2]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "acc_4", "%d,", dC_e.access_access[3]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "acnt_1", "%d,", dC_e.access_count[0]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "acnt_2", "%d,", dC_e.access_count[1]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "acnt_3", "%d,", dC_e.access_count[2]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "acnt_4", "%d,", dC_e.access_count[3]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "strd_1", "%d,", dC_e.access_stride[0]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "strd_2", "%d,", dC_e.access_stride[1]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "strd_3", "%d,", dC_e.access_stride[2]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "strd_4", "%d,", dC_e.access_stride[3]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "scnt_1", "%d,", dC_e.stride_count[0]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "scnt_2", "%d,", dC_e.stride_count[1]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "scnt_3", "%d,", dC_e.stride_count[2]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "scnt_4", "%d,", dC_e.stride_count[3]); if (!jb) goto out_1;*/
-    
-    /* TODO */
-    /*jb = jbuf_append_attr(jb, "length_1", "%d,", dC_e.access_length[0]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "length_2", "%d,", dC_e.access_length[1]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "length_3", "%d,", dC_e.access_length[2]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "length_4", "%d,", dC_e.access_length[3]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "length_4", "%d,", dC_e.access_length[3]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "lcnt_1", "%d,", dC_e.length_count[0]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "lcnt_2", "%d,", dC_e.length_count[1]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "lcnt_3", "%d,", dC_e.length_count[2]); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "lcnt_4", "%d", dC_e.length_count[3]); if (!jb) goto out_1;*/
-
-    printf("this is in jb for EXTRA: %s \n", jb->buf);
-
-    rc = ldmsd_stream_publish(dC.ldms_darsh[1], dC.env_ldms_stream, LDMSD_STREAM_JSON, jb->buf, (jb->cursor) + 1);
-    if (rc)
-        printf("Error %d publishing data.\n", rc);
-
- out_1:
-        if (!jb ){
-            jbuf_free(jbd);
         }
     return;
 }

@@ -191,7 +191,6 @@ static int my_rank = -1;
 
 #define MPIIO_WTIME(__tspec) \
     __darshan_disabled ? 0 : darshan_core_wtime(__tspec); \
-    //fprintf(stdout, "this is __tspec in MPIIO_WTIME macro: %lu.%0.9lu pointer: %p \n", &(__tspec)->tv_sec, &(__tspec)->tv_nsec, (__tspec));
 
 /* note that if the break condition is triggered in this macro, then it
  * will exit the do/while loop holding a lock that will be released in
@@ -1371,14 +1370,6 @@ static void mpiio_record_reduction_op(void* infile_v, void* inoutfile_v,
         for(j=MPIIO_SIZE_READ_AGG_0_100; j<=MPIIO_SIZE_WRITE_AGG_1G_PLUS; j++)
         {
             tmp_file.counters[j] = infile->counters[j] + inoutfile->counters[j];
-#ifdef HAVE_LDMS
-        /* set Darshan histogram vales to LDMS array */
-        if(getenv("ENABLE_LDMS_EXTRA") && (getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS"))){
-            extern struct darshanConnector_extra dC_e;
-            dC_e.rw_histo[j-MPIIO_SIZE_READ_AGG_0_100] = tmp_file.counters[j];
-        }
-#endif
-
         }
 
         /* first collapse any duplicates */
@@ -1411,16 +1402,6 @@ static void mpiio_record_reduction_op(void* infile_v, void* inoutfile_v,
                 &(tmp_file.counters[MPIIO_ACCESS1_ACCESS]),
                 &(tmp_file.counters[MPIIO_ACCESS1_COUNT]),
                 &inoutfile->counters[j], 1, inoutfile->counters[j+4], 1);
-
-#ifdef HAVE_LDMS
-        /* set Darshan count and access vales to LDMS arrays */
-        if(getenv("ENABLE_LDMS_EXTRA") && (getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS"))){
-            extern struct darshanConnector_extra dC_e;
-            dC_e.access_access[j-MPIIO_ACCESS1_ACCESS] = infile->counters[j];
-            dC_e.access_count[j-MPIIO_ACCESS1_ACCESS] = infile->counters[j+4];
-            dC_e.access_stride[j-MPIIO_ACCESS1_ACCESS] = -1;
-        }
-#endif
 
         }
 
@@ -1524,19 +1505,6 @@ static void mpiio_record_reduction_op(void* infile_v, void* inoutfile_v,
                 inoutfile->fcounters[MPIIO_F_SLOWEST_RANK_TIME];
         }
 
-#ifdef HAVE_LDMS
-    /* check if DXT LDMS is enabled and intialize LDMSD if it is. Set job for ldms stream mesage.*/
-    if(getenv("ENABLE_LDMS_EXTRA") && (getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS"))){
-        extern struct darshanConnector_extra dC_e;
-        dC_e.fastest_rank = tmp_file.counters[MPIIO_FASTEST_RANK];
-        dC_e.slowest_rank = tmp_file.counters[MPIIO_SLOWEST_RANK];
-        dC_e.fastest_rank_time = tmp_file.fcounters[MPIIO_F_FASTEST_RANK_TIME];
-        dC_e.slowest_rank_time = tmp_file.fcounters[MPIIO_F_SLOWEST_RANK_TIME];
-
-        darshan_ldms_connector_send_extra("MPIIO", "extra");
-    }
-
-#endif
 
         /* update pointers */
         *inoutfile = tmp_file;

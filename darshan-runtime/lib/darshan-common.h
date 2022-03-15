@@ -318,6 +318,7 @@ typedef struct darshanConnector {
 	const char* env_ldms_stream;
 	int server_rc;
 	int64_t jobid;
+	int64_t uid;
 	struct ldms_sps *ln ;
 	ldms_t ldms_darsh[2];
 	int64_t hdf5_data[5];
@@ -350,28 +351,6 @@ void darshan_ldms_connector_initialize();
 void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset, int64_t length, int64_t max_byte, int64_t rw_switch, int64_t flushes, double start_time, double end_time, struct timespec tspec_start, struct timespec tspec_end, double total_time, char *mod_name, char *data_type);
 
 void darshan_ldms_set_meta(const char *filename, const char *data_set,  uint64_t record_id, int64_t rank);
-
-/* TODO 
- * LDMS related function to retrieve and send the finalized/calculated Darshan module data
- * to LDMSD streams (access_lenth). LDMS_SEND_EXTRA environemt variable must be set. 
- *
- * access_access/count/length still needs to be added.
- */
-typedef struct darshanConnector_extra {
-        int64_t fastest_rank;
-        int64_t slowest_rank;
-        double fastest_rank_time;
-        double slowest_rank_time;
-	int64_t rw_histo[20];
-        int64_t access_access[5];
-        int64_t access_count[5];
-        int64_t access_stride[5];
-        int64_t stride_count[5];
-        int64_t access_length[5];
-        int64_t length_count[5];
-} darshanConnector_extra;
-
-void darshan_ldms_connector_send_extra(char *mod_name, char *data_type);
 
 #endif
 
