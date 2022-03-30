@@ -379,13 +379,6 @@ void darshan_core_initialize(int argc, char **argv)
         init_core->log_job_p->nprocs = nprocs;
         init_core->log_job_p->jobid = (int64_t)jobid;
 
-#ifdef HAVE_LDMS
-    /* check if DXT LDMS is enabled and intialize LDMSD if it is. Set job for ldms stream mesage.*/
-        extern struct darshanConnector dC;
-        dC.jobid = (int64_t)jobid;
-        dC.uid = getuid();
-        darshan_ldms_connector_initialize();
-#endif
         /* if we are using any hints to write the log file, then record those
          * hints with the darshan job information
          */
@@ -442,6 +435,25 @@ void darshan_core_initialize(int argc, char **argv)
         darshan_core_fprintf(stderr, "#darshan:<op>\t<nprocs>\t<time>\n");
         darshan_core_fprintf(stderr, "darshan:init\t%d\t%f\n", nprocs, init_time);
     }
+
+#ifdef HAVE_LDMS
+        /* Check if LDMS library has been added. Initialize ldms streams */
+        //darshan_ldms_connector_initialize();
+        /* Collect job_id, user id and executable path as meta data */
+        extern struct darshanConnector dC;
+        dC.jobid = (int64_t)jobid;
+        dC.uid = getuid();
+        dC.exename = argv[0];
+        /* Pull executable name from darshans variable if no arguemments are given. */
+        if (argc==0)
+        {
+            char buff[DARSHAN_EXE_LEN];
+            int len = readlink("/proc/self/exe", buff, sizeof(buff)-1);
+            buff[len] = '\0';
+            dC.exename = buff;
+        }
+        darshan_ldms_connector_initialize();
+#endif
 
     return;
 }

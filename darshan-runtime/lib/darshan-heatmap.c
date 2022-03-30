@@ -439,6 +439,7 @@ static void heatmap_mpi_redux(
     darshan_record_id *shared_recs, int shared_rec_count)
 {
     double end_timestamp;
+    struct timespec ts1, ts2;
 
     /* NOTE: no actual record reduction here.  We are just using this as an
      * opportunity to agree on shutdown times.
@@ -450,7 +451,7 @@ static void heatmap_mpi_redux(
     HEATMAP_UNLOCK();
 
     /* check time locally */
-    end_timestamp = darshan_core_wtime();
+    end_timestamp = darshan_core_wtime(&ts2);
 
     /* reduce across all ranks, take maximum (it's Ok if this rank doesn't
      * have data out that far; it will be zeroed anyway)

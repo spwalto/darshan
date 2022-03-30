@@ -569,20 +569,12 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
     
     pthread_mutex_unlock(&ln_lock);
     
-    if (strcmp(rwo, "write") == 0){
-        dC.op_name = "writes_segment";
-    }
-    if (strcmp(rwo, "read") == 0){
-        dC.op_name = "reads_segment";
-    }
-    if (strcmp(rwo, "open") == 0){
-        dC.op_name = "opens_segment";
+    if (strcmp(rwo, "open") == 0)
         dC.open_count = record_count;
-    }
-    if (strcmp(rwo, "close") == 0){
-        dC.op_name = "closes_segment";
+    
+    // set record count to number of opens since we are closing the same file we opened.
+    if (strcmp(rwo, "close") == 0)
         record_count = dC.open_count;
-    }
 
     if (strcmp(mod_name, "H5D") == 1){
         size = sizeof(dC.hdf5_data)/sizeof(dC.hdf5_data[0]);
@@ -592,13 +584,17 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
     }
 
     if (strcmp(data_type, "MOD") == 0)
+    {
         dC.filename = "N/A";
+        dC.exename = "N/A";
+    }
 
     jbuf_t jb, jbd;
     jbd = jb = jbuf_new(); if (!jb) goto out_1;
     
     jb = jbuf_append_str(jb, "{ "); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "uid", "%d,", dC.uid); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "exe", "\"%s\",", dC.exename); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "job_id", "%d,", dC.jobid); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "rank", "%d,", dC.rank); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "ProducerName", "\"%s\",", hname); if (!jb) goto out_1;
@@ -610,7 +606,7 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
     jb = jbuf_append_attr(jb, "switches", "%d,", rw_switch);if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "flushes", "%d,", flushes);if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "cnt", "%d,", record_count); if (!jb) goto out_1;
-    jb = jbuf_append_attr(jb, "op","\"%s\",", dC.op_name); if (!jb) goto out_1;
+    jb = jbuf_append_attr(jb, "op","\"%s\",", rwo); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "seg", "[{"); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "data_set", "\"%s\",", dC.data_set); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "pt_sel", "%lld,", dC.hdf5_data[0]);if (!jb) goto out_1;
@@ -623,7 +619,7 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
     jb = jbuf_append_attr(jb, "dur", "%0.6f,", total_time); if (!jb) goto out_1;
     jb = jbuf_append_attr(jb, "timestamp", "%lu.%0.6lu", tspec_end.tv_sec, micro_s); if (!jb) goto out_1;
     jb = jbuf_append_str(jb, "}]}"); if (!jb) goto out_1;
-    printf("this is in jb %s \n", jb->buf);
+    //printf("this is in jb %s \n", jb->buf);
 
     //save json to a file
     /*FILE *fp;

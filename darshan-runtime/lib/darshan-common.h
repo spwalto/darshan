@@ -314,7 +314,7 @@ typedef struct darshanConnector {
 	int to;
 	int64_t rank;
 	uint64_t record_id;
-	char *op_name;
+	char *exename;
 	const char* env_ldms_stream;
 	int server_rc;
 	int64_t jobid;
