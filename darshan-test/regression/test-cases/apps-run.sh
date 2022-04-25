@@ -2,7 +2,7 @@
 
 # note: put the application name
 PROG=SWFFT
-#PROG=sw4lite
+#PROG=QMCPACK
 #PROG=sw4
 # set log file path; remove previous log if present
 export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.darshan
@@ -12,24 +12,14 @@ rm -f ${DARSHAN_LOGFILE}
 
 # execute the application
 # SWFFT
-$DARSHAN_RUNJOB --ntasks-per-node=32 /projects/ovis/UCF/voltrino_run/SWFFT/SWFFT 5 512
-
-# MPI_test
-#$DARSHAN_RUNJOB --ntasks-per-node=32 /projects/ovis/UCF/voltrino_run/SWFFT/mpi_test
-
-# sw4lite
-#$DARSHAN_RUNJOB --ntasks-per-node=32 /projects/ovis/UCF/voltrino_run/sw4lite/sw4lite /projects/ovis/UCF/voltrino_run/sw4lite/new_gh_1node.in
+$DARSHAN_RUNJOB --ntasks-per-node=32 /projects/ovis/UCF/voltrino_run/SWFFT/SWFFT 50 2048
 
 # sw4
 #$DARSHAN_RUNJOB --ntasks-per-node=32 /projects/ovis/UCF/voltrino_run/sw4/sw4 /projects/ovis/UCF/voltrino_run/sw4lite/new_gh_1node.in
 
-
-#$DARSHAN_RUNJOB $DARSHAN_TMP/${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
-#if [ $? -ne 0 ]; then
-#    echo "Error: failed to execute ${PROG}" 1>&2
-#    exit 1
-#fi
-#sleep 10000
+# QMCPACK
+#$DARSHAN_RUNJOB /projects/HPCMON/voltrino_apps/apps/qmcpack-3.8.0/build/bin/qmcpack /projects/darshan/QMCPack/NiO-example.in.xml
+#$DARSHAN_RUNJOB /projects/HPCMON/voltrino_apps/apps/qmcpack-3.8.0/build/bin/qmcpack /projects/HPCMON/input/QMCPack/NiO-example.in.xml
 
 # parse log
 $DARSHAN_PATH/bin/darshan-parser $DARSHAN_LOGFILE > $DARSHAN_TMP/${PROG}.darshan.txt
