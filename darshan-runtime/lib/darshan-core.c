@@ -438,7 +438,6 @@ void darshan_core_initialize(int argc, char **argv)
 
 #ifdef HAVE_LDMS
         /* Check if LDMS library has been added. Initialize ldms streams */
-        //darshan_ldms_connector_initialize();
         /* Collect job_id, user id and executable path as meta data */
         extern struct darshanConnector dC;
         dC.jobid = (int64_t)jobid;

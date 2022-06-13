@@ -467,7 +467,7 @@ int DARSHAN_DECL(fclose)(FILE *fp)
         darshan_delete_record_ref(&(stdio_runtime->stream_hash), &fp, sizeof(fp));
 
 #ifdef HAVE_LDMS
-        /* LDMS to publish runtime h5d tracing information to daemon*/
+        /* LDMS to publish runtime tracing information to daemon*/
     if(getenv("STDIO_ENABLE_LDMS"))
         darshan_ldms_connector_send(-1, "close", -1, -1, -1, -1, rec_ref->file_rec->counters[STDIO_FLUSHES], tm1, tm2, ts1, ts2, rec_ref->file_rec->fcounters[STDIO_F_META_TIME], "STDIO", "MOD");
 #endif
