@@ -255,10 +255,12 @@ static void heatmap_cleanup()
 struct heatmap_runtime* heatmap_runtime_initialize(void)
 {
     struct heatmap_runtime* tmp_runtime;
+    int ret;
     /* NOTE: this module generates one record per module that uses it, so
      * the memory requirements should be modest
      */
-    size_t heatmap_buf_size = DARSHAN_MAX_HEATMAPS * (sizeof(struct darshan_heatmap_record) + 2*DARSHAN_MAX_HEATMAP_BINS*sizeof(int64_t));
+    size_t heatmap_buf_size = sizeof(struct darshan_heatmap_record) + 2*DARSHAN_MAX_HEATMAP_BINS*sizeof(int64_t);
+    size_t heatmap_rec_count = DARSHAN_MAX_HEATMAPS;
 
     darshan_module_funcs mod_funcs = {
 #ifdef HAVE_MPI
@@ -272,12 +274,15 @@ struct heatmap_runtime* heatmap_runtime_initialize(void)
     /* note that we aren't holding a lock in this module at this point, but
      * the core will serialize internally and return if this module is
      * already registered */
-    darshan_core_register_module(
+    ret = darshan_core_register_module(
         DARSHAN_HEATMAP_MOD,
         mod_funcs,
-        &heatmap_buf_size,
+        heatmap_buf_size,
+        &heatmap_rec_count,
         &my_rank,
         NULL);
+    if(ret < 0)
+        return(NULL);
 
     tmp_runtime = malloc(sizeof(*tmp_runtime));
     if(!tmp_runtime)
@@ -368,6 +373,10 @@ void heatmap_update(darshan_record_id heatmap_id, int rw_flag,
     struct heatmap_record_ref *rec_ref;
     int bin_index = 0;
     double top_boundary, bottom_boundary, seconds_in_bin;
+    int64_t intermediate_bytes;
+
+    /* if size is zero, we have no work to do here */
+    if(size == 0) return;
 
     HEATMAP_PRE_RECORD_VOID();
 
@@ -414,13 +423,18 @@ void heatmap_update(darshan_record_id heatmap_id, int rw_flag,
             return;
         }
 
+        if(end_time > start_time)
+            intermediate_bytes = round(size * (seconds_in_bin/(end_time-start_time)));
+        else
+            intermediate_bytes = size;
+
         /* proportionally assign bytes to this bin */
         if(rw_flag == HEATMAP_WRITE)
             rec_ref->heatmap_rec->write_bins[bin_index] +=
-                round(size * (seconds_in_bin/(end_time-start_time)));
+                intermediate_bytes;
         else
             rec_ref->heatmap_rec->read_bins[bin_index] +=
-                round(size * (seconds_in_bin/(end_time-start_time)));
+                intermediate_bytes;
     }
 
     HEATMAP_POST_RECORD();

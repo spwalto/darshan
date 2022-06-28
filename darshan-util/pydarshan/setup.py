@@ -10,7 +10,11 @@ with open("README.rst") as readme_file:
     readme = readme_file.read()
 
 
-requirements = ["cffi", "numpy", "pandas", "matplotlib"]
+requirements = ["cffi", "numpy", "pandas", "matplotlib", "seaborn", "mako"]
+
+if sys.version_info == (3, 6):
+    requirements.append("importlib_resources")
+
 setup_requirements = [
     "pytest-runner",
 ]
@@ -20,11 +24,11 @@ test_requirements = ["pytest"]
 # NOTE: The Python C extension is currently only used to automate
 # the build process of binary wheels for distribution via PyPi.
 #
-# If you are building darshan yourself and make libdarshan-util.so 
-# discoverable in the environment by means of LD_LIBRARY_PATH or 
+# If you are building darshan yourself and make libdarshan-util.so
+# discoverable in the environment by means of LD_LIBRARY_PATH or
 # pkg-config there is no need to build the extension.
 ext_modules = []
-if "--with-extension" in sys.argv:
+if "PYDARSHAN_BUILD_EXT" in os.environ:
     ext_modules.append(
         Extension(
             "darshan.extension",
@@ -34,7 +38,6 @@ if "--with-extension" in sys.argv:
             libraries=["darshan-util"],
         )
     )
-    sys.argv.remove("--with-extension")
 
 #
 # Find backend python files in modules and copy them into lib
@@ -71,11 +74,16 @@ setup(
     include_package_data=True,
     keywords="darshan",
     name="darshan",
-    packages=find_packages(include=["darshan*"]),
+    packages=find_packages(include=["darshan"]),
     setup_requires=setup_requirements,
-    test_suite="tests",
     tests_require=test_requirements,
     url='https://www.mcs.anl.gov/research/projects/darshan/',
-    version='3.3.1.1',
+    version='3.4.0.0',
     zip_safe=False,
+    package_data={"": ["*.darshan"],
+                  "darshan": ["cli/style.css",
+                              "cli/base.html",
+                              "examples/example_logs/*",
+                              "examples/darshan-graph/*",
+                              "tests/input/*"]},
 )
