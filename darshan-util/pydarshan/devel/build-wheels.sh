@@ -27,17 +27,29 @@ make distclean
 cd /
 
 
-# Do not build for end-of-life python versions
-rm -f /opt/python/cp27-cp27m
-rm -f /opt/python/cp27-cp27mu
-rm -f /opt/python/cp35-cp35m
+# Uncomment any of the following lines to exclude python variant from build process
+#rm -f /opt/python/cp36-cp36m
+#rm -f /opt/python/cp37-cp37m
+#rm -f /opt/python/cp38-cp38
+#rm -f /opt/python/cp39-cp39
+#rm -f /opt/python/cp310-cp310
+#
+#rm -f /opt/python/pp37-pypy37_pp73
+#rm -f /opt/python/pp38-pypy38_pp73
+#rm -f /opt/python/pp39-pypy39_pp73
+
+
 ls /opt/python
 
+# Force setup.py to build the C extension
+export PYDARSHAN_BUILD_EXT=1
 
 # Compile wheels
 for PYBIN in /opt/python/*/bin; do
-    "${PYBIN}/pip" install -r /io/requirements_dev.txt
-    "${PYBIN}/pip" wheel /io/ --build-option "--with-extension" --no-deps -w /io/wheelhouse/${PLAT}
+    # JL: we do not really need any dependencies to build the wheel,
+    #     but requirements install needs to be renabled when testing automatically
+    #"${PYBIN}/pip" install -r /io/requirements_wheels.txt
+    "${PYBIN}/pip" wheel /io/ --no-deps -w /io/wheelhouse/${PLAT}
 done
 
 # Bundle external shared libraries into the wheels

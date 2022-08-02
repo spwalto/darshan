@@ -5,7 +5,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl You may need to use autoheader as well if changing any DEFINEs
 
 AC_PREREQ([2.69])
-AC_INIT([Darshan Runtime],[3.3.1],[darshan-users@lists.mcs.anl.gov],
+AC_INIT([Darshan Runtime],[3.4.0],[darshan-users@lists.mcs.anl.gov],
         [darshan-runtime],[https://www.mcs.anl.gov/research/projects/darshan])
 AC_CONFIG_HEADERS(darshan-runtime-config.h)
 AH_TOP([/*
@@ -98,6 +98,7 @@ if test "x$enable_darshan_runtime" = xyes ; then
    fi
 
    AC_ARG_ENABLE([cuserid],
+<<<<<<< HEAD
       [AS_HELP_STRING([--disable-cuserid],
 		      [Disables attempted use of cuserid() at run time])],
       [], [enable_cuserid=yes]
@@ -105,6 +106,15 @@ if test "x$enable_darshan_runtime" = xyes ; then
    if test "x$enable_cuserid" = "xno" ; then
       AC_DEFINE([__DARSHAN_DISABLE_CUSERID], 1,
 		[Define if cuserid() should be disabled])
+=======
+      [AS_HELP_STRING([--enable-cuserid],
+                      [Enables attempted use of cuserid() at run time])],
+      [], [enable_cuserid=no]
+   )
+   if test "x$enable_cuserid" = "xyes" ; then
+      AC_DEFINE([__DARSHAN_ENABLE_CUSERID], 1,
+                [Define if cuserid() should be enabled])
+>>>>>>> main
    fi
 
    AC_ARG_ENABLE([group-readable-logs],
@@ -129,7 +139,7 @@ if test "x$enable_darshan_runtime" = xyes ; then
    fi
 
    AC_ARG_WITH([mem-align],
-      [AS_HELP_STRING([--with-mem-aligned@<:@=NUM@:>@],
+      [AS_HELP_STRING([--with-mem-align@<:@=NUM@:>@],
                       [Memory alignment in bytes @<:@default=8@:>@])],
       [], [with_mem_align=no]
    )
@@ -210,6 +220,19 @@ if test "x$enable_darshan_runtime" = xyes ; then
    elif test "x$with_mod_mem" != xno; then
       AC_DEFINE_UNQUOTED([__DARSHAN_MOD_MEM_MAX], $with_mod_mem,
                          [Maximum runtime memory consumption per process (in MiB) across all instrumentation modules])
+   fi
+
+   AC_ARG_WITH([name-mem],
+      [AS_HELP_STRING([--with-name-mem=NUM],
+                      [Maximum runtime memory consumption per process
+                       (in MiB) for storing name records])],
+      [], [with_name_mem=no]
+   )
+   if test "x$with_name_mem" = xyes; then
+      AC_MSG_ERROR(--with-name-mem must be given a number)
+   elif test "x$with_name_mem" != xno; then
+      AC_DEFINE_UNQUOTED([__DARSHAN_NAME_MEM_MAX], $with_name_mem,
+                         [Maximum runtime memory consumption per process (in MiB) for storing name records])
    fi
 
    #

@@ -184,6 +184,7 @@ static void mpiio_cleanup(
 
 static struct mpiio_runtime *mpiio_runtime = NULL;
 static pthread_mutex_t mpiio_runtime_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+static int mpiio_runtime_init_attempted = 0;
 static int my_rank = -1;
 
 #define MPIIO_LOCK() pthread_mutex_lock(&mpiio_runtime_mutex)
@@ -200,7 +201,8 @@ static int my_rank = -1;
 #define MPIIO_PRE_RECORD() do { \
     if(!__darshan_disabled) { \
         MPIIO_LOCK(); \
-        if(!mpiio_runtime) mpiio_runtime_initialize(); \
+        if(!mpiio_runtime && !mpiio_runtime_init_attempted) \
+            mpiio_runtime_initialize(); \
         if(mpiio_runtime && !mpiio_runtime->frozen) break; \
         MPIIO_UNLOCK(); \
     } \
@@ -219,10 +221,6 @@ static int my_rank = -1;
     if(__ret != MPI_SUCCESS) break; \
     newpath = darshan_clean_file_path(__path); \
     if(!newpath) newpath = (char *)__path; \
-    if(darshan_core_excluded_path(newpath)) { \
-        if(newpath != __path) free(newpath); \
-        break; \
-    } \
     rec_id = darshan_core_gen_record_id(newpath); \
     rec_ref = darshan_lookup_record_ref(mpiio_runtime->rec_id_hash, &rec_id, sizeof(darshan_record_id)); \
     if(!rec_ref) rec_ref = mpiio_track_new_file_record(rec_id, newpath); \
@@ -274,8 +272,10 @@ static int get_byte_offset = 0;
     if(__ret != MPI_SUCCESS) break; \
     rec_ref = darshan_lookup_record_ref(mpiio_runtime->fh_hash, &(__fh), sizeof(MPI_File)); \
     if(!rec_ref) break; \
-    PMPI_Type_size(__datatype, &size);  \
-    size = size * __count; \
+    if((__count > 0) && (__datatype != MPI_DATATYPE_NULL)) { \
+        PMPI_Type_size(__datatype, &size);  \
+        size = size * __count; \
+    } \
     if(get_byte_offset) MPI_File_get_byte_offset(__fh, __offset, &displacement);\
     /* DXT to record detailed read tracing information */ \
     dxt_mpiio_read(rec_ref->file_rec->base_rec.id, displacement, size, __tm1, __tm2); \
@@ -318,10 +318,12 @@ static int get_byte_offset = 0;
     if(__ret != MPI_SUCCESS) break; \
     rec_ref = darshan_lookup_record_ref(mpiio_runtime->fh_hash, &(__fh), sizeof(MPI_File)); \
     if(!rec_ref) break; \
-    PMPI_Type_size(__datatype, &size);  \
-    size = size * __count; \
-    /* DXT to record detailed write tracing information */ \
+    if((__count > 0) && (__datatype != MPI_DATATYPE_NULL)) { \
+        PMPI_Type_size(__datatype, &size);  \
+        size = size * __count; \
+    } \
     if(get_byte_offset) MPI_File_get_byte_offset(__fh, __offset, &displacement); \
+    /* DXT to record detailed write tracing information */ \
     dxt_mpiio_write(rec_ref->file_rec->base_rec.id, displacement, size, __tm1, __tm2); \
     /* heatmap to record traffic summary */ \
     heatmap_update(mpiio_runtime->heatmap_id, HEATMAP_WRITE, size, __tm1, __tm2); \
@@ -1243,7 +1245,8 @@ DARSHAN_WRAPPER_MAP(PMPI_File_close, int, (MPI_File *fh), MPI_File_close)
 /* initialize data structures and register with darshan-core component */
 static void mpiio_runtime_initialize()
 {
-    size_t mpiio_buf_size;
+    int ret;
+    size_t mpiio_rec_count;
     darshan_module_funcs mod_funcs = {
 #ifdef HAVE_MPI
     .mod_redux_func = &mpiio_mpi_redux,
@@ -1252,16 +1255,22 @@ static void mpiio_runtime_initialize()
     .mod_cleanup_func = &mpiio_cleanup
     };
 
+    /* if this attempt at initializing fails, we won't try again */
+    mpiio_runtime_init_attempted = 1;
+
     /* try and store the default number of records for this module */
-    mpiio_buf_size = DARSHAN_DEF_MOD_REC_COUNT * sizeof(struct darshan_mpiio_file);
+    mpiio_rec_count = DARSHAN_DEF_MOD_REC_COUNT;
 
     /* register the mpiio module with darshan core */
-    darshan_core_register_module(
+    ret = darshan_core_register_module(
         DARSHAN_MPIIO_MOD,
         mod_funcs,
-        &mpiio_buf_size,
+        sizeof(struct darshan_mpiio_file),
+        &mpiio_rec_count,
         &my_rank,
         NULL);
+    if(ret < 0)
+        return;
 
     mpiio_runtime = malloc(sizeof(*mpiio_runtime));
     if(!mpiio_runtime)
