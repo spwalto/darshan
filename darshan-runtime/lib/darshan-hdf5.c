@@ -171,7 +171,7 @@ static int my_rank = -1;
     darshan_add_record_ref(&(hdf5_file_runtime->hid_hash), &__ret, sizeof(hid_t), __rec_ref); \
     if(__newpath != __path) free(__newpath); \
     /* LDMS to publish realtime read tracing information to daemon*/ \
-    if(getenv("HDF5_ENABLE_LDMS")){\
+    if(getenv("HDF5_ENABLE_LDMS") && getenv("CHECK_LDMS_ENV_VAR")){\
         darshan_ldms_set_meta(__path, "N/A", __rec_ref->file_rec->base_rec.id, __rec_ref->file_rec->base_rec.rank);\
         darshan_ldms_connector_send(__rec_ref->file_rec->counters[H5F_OPENS], "open", -1, -1, -1, -1, __rec_ref->file_rec->counters[H5F_FLUSHES], __tm1, __tm2, __ts1, __ts2, __rec_ref->file_rec->fcounters[H5F_F_META_TIME], "H5F", "MET");\
     }\
@@ -501,7 +501,7 @@ herr_t DARSHAN_DECL(H5Fclose)(hid_t file_id)
     __rec_ref->dataset_rec->file_rec_id = __file_rec_id; \
     darshan_add_record_ref(&(hdf5_dataset_runtime->hid_hash), &__ret, sizeof(hid_t), __rec_ref); \
     /* LDMS to publish runtime h5d tracing information to daemon*/ \
-    if(getenv("HDF5_ENABLE_LDMS")){\
+    if(getenv("HDF5_ENABLE_LDMS") && getenv("CHECK_LDMS_ENV_VAR")){\
         darshan_ldms_set_meta(__rec_name, __name, __rec_ref->dataset_rec->base_rec.id, __rec_ref->dataset_rec->base_rec.rank);\
         darshan_ldms_connector_send(__rec_ref->dataset_rec->counters[H5D_OPENS], "open", -1, -1, -1, -1, __rec_ref->dataset_rec->counters[H5D_FLUSHES], __tm1, __tm2, __ts1, __ts2, __rec_ref->dataset_rec->fcounters[H5D_F_META_TIME], "H5D", "MET");\
     }\

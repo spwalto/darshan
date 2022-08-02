@@ -443,6 +443,7 @@ void darshan_core_initialize(int argc, char **argv)
         dC.jobid = (int64_t)jobid;
         dC.uid = getuid();
         dC.exename = argv[0];
+        
         /* Pull executable name from darshans variable if no arguemments are given. */
         if (argc==0)
         {

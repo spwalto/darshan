@@ -249,7 +249,7 @@ static int darshan_mem_alignment = 1;
     darshan_instrument_fs_data(__rec_ref->fs_type, __newpath, __ret); \
     if(__newpath != __path) free(__newpath); \
     /* LDMS to publish realtime read tracing information to daemon*/ \
-     if(getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS")){\
+     if((getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS")) && getenv("CHECK_LDMS_ENV_VAR")){\
          darshan_ldms_set_meta((char *)__path, "N/A", __rec_ref->file_rec->base_rec.id, __rec_ref->file_rec->base_rec.rank);\
          darshan_ldms_connector_send(__rec_ref->file_rec->counters[POSIX_OPENS], "open", -1, -1, -1, -1, -1, __tm1, __tm2, __ts1, __ts2, __rec_ref->file_rec->fcounters[POSIX_F_META_TIME], "POSIX", "MET");\
      }\
@@ -342,7 +342,7 @@ static int darshan_mem_alignment = 1;
     DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->file_rec->fcounters[POSIX_F_READ_TIME], \
         __tm1, __tm2, rec_ref->last_read_end);\
     /* LDMS to publish realtime read tracing information to daemon*/ \
-    if(getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))\
+    if((getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS")) && getenv("CHECK_LDMS_ENV_VAR"))\
         darshan_ldms_connector_send(rec_ref->file_rec->counters[POSIX_READS], "read", this_offset, __ret, rec_ref->file_rec->counters[POSIX_MAX_BYTE_READ],rec_ref->file_rec->counters[POSIX_RW_SWITCHES], -1,  __tm1, __tm2, __ts1, __ts2, rec_ref->file_rec->fcounters[POSIX_F_READ_TIME], "POSIX", "MOD");\
 } while(0)
 
@@ -410,7 +410,7 @@ static int darshan_mem_alignment = 1;
     DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->file_rec->fcounters[POSIX_F_WRITE_TIME], \
         __tm1, __tm2, rec_ref->last_write_end);\
     /* LDMS to publish realtime write tracing information to daemon*/ \
-    if(getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS"))\
+    if((getenv("DXT_ENABLE_LDMS") || getenv("POSIX_ENABLE_LDMS")) && getenv("CHECK_LDMS_ENV_VAR"))\
     darshan_ldms_connector_send(rec_ref->file_rec->counters[POSIX_WRITES], "write", this_offset, __ret, rec_ref->file_rec->counters[POSIX_MAX_BYTE_WRITTEN], rec_ref->file_rec->counters[POSIX_RW_SWITCHES], -1, __tm1, __tm2, __ts1, __ts2, rec_ref->file_rec->fcounters[POSIX_F_WRITE_TIME], "POSIX", "MOD");\
 } while(0)
 

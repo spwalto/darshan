@@ -515,24 +515,23 @@ static void llog(int lvl, const char *fmt, ...) {
 
 void darshan_ldms_connector_initialize()
 {
-    int i;
-    int size;
-    size = sizeof(dC.ldms_darsh)/sizeof(dC.ldms_darsh[0]);
+    //int i;
+    //int size;
+    //size = sizeof(dC.ldms_darsh)/sizeof(dC.ldms_darsh[0]);
     const char* env_ldms_xprt    = getenv("DARSHAN_LDMS_XPRT");
     const char* env_ldms_host    = getenv("DARSHAN_LDMS_HOST");
     const char* env_ldms_port    = getenv("DARSHAN_LDMS_PORT");
     const char* env_ldms_auth    = getenv("DARSHAN_LDMS_AUTH");
 
-    for(i = 0; i < size; i++)
-    {
-        dC.ldms_darsh[i] = setup_connection(env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth);
-        //env_ldms_port = "10445";
-        if (dC.ldms_darsh[i]->disconnected){
+    //for(i = 0; i < size; i++)
+   // {
+        dC.ldms_darsh = setup_connection(env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth);
+        if (dC.ldms_darsh->disconnected){
                 printf("Error setting up connection -- exiting\n");
                 return;
         }
     
-    }
+    //}
     
     return;
 }
@@ -549,6 +548,7 @@ void darshan_ldms_set_meta(const char *filename, const char *data_set, uint64_t 
 
 void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset, int64_t length, int64_t max_byte, int64_t rw_switch, int64_t flushes,  double start_time, double end_time, struct timespec tspec_start, struct timespec tspec_end, double total_time, char *mod_name, char *data_type)
 {
+    char jb11[1024];
     int rc, ret, i, size;
     uint64_t micro_s = tspec_end.tv_nsec/1.0e3;
     dC.env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
@@ -558,10 +558,10 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
     (void)gethostname(hname, sizeof(hname));
 
     pthread_mutex_lock(&ln_lock);
-    if (!dC.ldms_darsh[0])
+    if (!dC.ldms_darsh)
         darshan_ldms_connector_initialize();
 
-    if (!dC.ldms_darsh[0]){
+    if (!dC.ldms_darsh){
         printf("ldms_mod does not exist \n");
         pthread_mutex_unlock(&ln_lock);
         return;
@@ -576,7 +576,7 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
     if (strcmp(rwo, "close") == 0)
         record_count = dC.open_count;
 
-    if (strcmp(mod_name, "H5D") == 1){
+    if (strcmp(mod_name, "H5D") != 0){
         size = sizeof(dC.hdf5_data)/sizeof(dC.hdf5_data[0]);
         dC.data_set = "N/A";
         for (i=0; i < size; i++)
@@ -589,6 +589,9 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
         dC.exename = "N/A";
     }
 
+    sprintf(jb11,"{ \"uid\":%d, \"exe\":\"%s\",\"job_id\":%d,\"rank\":%d,\"ProducerName\":\"%s\",\"file\":\"%s\",\"record_id\":%"PRIu64",\"module\":\"%s\",\"type\":\"%s\",\"max_byte\":%lld,\"switches\":%d,\"flushes\":%d,\"cnt\":%d,\"op\":\"%s\",\"seg\":[{\"data_set\":\"%s\",\"pt_sel\":%lld,\"irreg_hslab\":%lld,\"reg_hslab\":%lld,\"ndims\":%lld,\"npoints\":%lld,\"off\":%lld,\"len\":%lld,\"dur\":%0.6f,\"timestamp\":%lu.%0.6lu}]}", dC.uid, dC.exename, dC.jobid, dC.rank, hname, dC.filename, dC.record_id, mod_name, data_type, max_byte, rw_switch, flushes, record_count, rwo, dC.data_set, dC.hdf5_data[0], dC.hdf5_data[1], dC.hdf5_data[2], dC.hdf5_data[3], dC.hdf5_data[4], offset, length, total_time, tspec_end.tv_sec, micro_s);
+    printf("this is in jb11 %s \n", jb11);
+/*
     jbuf_t jb, jbd;
     jbd = jb = jbuf_new(); if (!jb) goto out_1;
     
@@ -620,22 +623,23 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
     jb = jbuf_append_attr(jb, "timestamp", "%lu.%0.6lu", tspec_end.tv_sec, micro_s); if (!jb) goto out_1;
     jb = jbuf_append_str(jb, "}]}"); if (!jb) goto out_1;
     //printf("this is in jb %s \n", jb->buf);
-
+*/
     //save json to a file
     /*FILE *fp;
     fp = fopen("/projects/darshan/logs/darshan_output_hdf5.json", "a");
     fprintf(fp, "%s\n", jb->buf);
     fclose(fp);*/
-    
+  
 
-    rc = ldmsd_stream_publish(dC.ldms_darsh[0], dC.env_ldms_stream, LDMSD_STREAM_JSON, jb->buf, (jb->cursor) + 1);
+    //rc = ldmsd_stream_publish(dC.ldms_darsh, dC.env_ldms_stream, LDMSD_STREAM_JSON, jb->buf, (jb->cursor) + 1);
+    rc = ldmsd_stream_publish(dC.ldms_darsh, dC.env_ldms_stream, LDMSD_STREAM_JSON, jb11, strlen(jb11) + 1);
     if (rc)
         printf("Error %d publishing data.\n", rc);
     
  out_1:
-        if (!jb ){
-	    jbuf_free(jbd);
-        }
+       // if (jb ){
+	//    jbuf_free(jbd);
+       // }
     return;
 }
 

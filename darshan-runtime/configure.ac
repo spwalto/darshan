@@ -85,8 +85,6 @@ if test "x$enable_darshan_runtime" = xyes ; then
    dnl runtime libraries require zlib
    CHECK_ZLIB
    
-   CHECK_LDMS
-
    dnl runtime libraries requires math library (for calculations in heatmap)
    AC_SEARCH_LIBS([round], [m])
 
@@ -394,6 +392,19 @@ if test "x$enable_darshan_runtime" = xyes ; then
    elif test "x$enable_hdf5_mod" != xno ; then
       AC_MSG_ERROR(m4_normalize([--enable-hdf5-mod does not take any argument,
                    use --with-hdf5 to provide the HDF5 install prefix, if needed.]))
+   fi
+
+   # LDMS support (disabled by default)
+   AC_ARG_WITH([ldms],
+      [AS_HELP_STRING([--with-ldms],
+                      [Include LDMS for runtme I/O monitoring])],
+      [], [with_ldms=no])
+
+   AM_CONDITIONAL([HAVE_LDMS],[test "x$with_ldms" = xyes])
+   if test "x$with_ldms" != xno ; then
+	   # check required LDMS libraries are available.	   
+	   export CHECK_LDMS_ENV_VAR=1
+	   CHECK_LDMS
    fi
 
    # PNETCDF module
@@ -765,6 +776,12 @@ if test "x$enable_darshan_runtime" = xyes ; then
          enable_apmpi_mod="yes (collective sync mode)"
       fi
    fi
+   # add ldms details
+   if test "x$with_ldms" = xno ; then
+	enable_ldms="no"
+      else
+	enable_ldms="yes"
+   fi
    echo "------------------------------------------------------------------------------
    ${PACKAGE_NAME} Version ${PACKAGE_VERSION} configured with the following features:"
    if test "x$ENABLE_MPI" = xyes ; then
@@ -789,6 +806,7 @@ if test "x$enable_darshan_runtime" = xyes ; then
            Lustre        module support  - $enable_lustre_mod
            MDHIM         module support  - $enable_mdhim_mod
            HEATMAP       module support  - $enable_heatmap_mod
+	   LDMS  Runtime I/O collection	 - $enable_ldms
            Memory alignment in bytes     - $with_mem_align
            Log file env variables        - $__log_path_by_env
            Location of Darshan log files - $__log_path

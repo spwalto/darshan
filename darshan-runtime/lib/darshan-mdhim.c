@@ -177,7 +177,7 @@ static int my_rank = -1;
     /* record which server gets this request */ \
     rec_ref->record_p->server_histogram[(__id)]++; \
     /* LDMS to publish realtime read tracing information to daemon*/ \
-    if(getenv("MDHIM_ENABLE_LDMS")){\
+    if(getenv("MDHIM_ENABLE_LDMS") && getenv("CHECK_LDMS_ENV_VAR")){\
         darshan_ldms_connector_send(rec_ref->record_p->fcounters[MDHIM_PUTS], "puts", -1, __vallen, -1, -1, -1, __tm1, __tm2, __ts1, __ts2, rec_ref->record_p->fcounters[MDHIM_F_PUT_MAX_DURATION], "MDHIM", "MET");\
     }\
 } while(0)
@@ -210,7 +210,7 @@ static int my_rank = -1;
     /* server distribution */ \
     rec_ref->record_p->server_histogram[(__id)]++; \
     /* LDMS to publish realtime read tracing information to daemon*/ \
-    if(getenv("MDHIM_ENABLE_LDMS")){\
+    if(getenv("MDHIM_ENABLE_LDMS") && getenv("CHECK_LDMS_ENV_VAR")){\
         darshan_ldms_connector_send(rec_ref->record_p->fcounters[MDHIM_GETS], "gets", -1, __keylen, -1, -1, -1, __tm1, __tm2, __ts1, __ts2, rec_ref->record_p->fcounters[MDHIM_F_GET_MAX_DURATION], "MDHIM", "MET");\
     }\
 } while(0)
