@@ -246,7 +246,6 @@ static int my_rank = -1;
     if(newpath != __path) free(newpath);\
     /* LDMS to publish realtime read tracing information to daemon*/ \
     if((getenv("DXT_ENABLE_LDMS") || getenv("MPIIO_ENABLE_LDMS")) && getenv("CHECK_LDMS_ENV_VAR")){\
-        printf("WE ARE IN THE MPIIO STUFF \n");\
         darshan_ldms_set_meta(__path, "N/A", rec_ref->file_rec->base_rec.id, rec_ref->file_rec->base_rec.rank);\
         darshan_ldms_connector_send(rec_ref->file_rec->counters[MPIIO_COLL_OPENS] + rec_ref->file_rec->counters[MPIIO_INDEP_OPENS], "open", -1, -1, -1, -1, -1, __tm1, __tm2, __ts1, __ts2, rec_ref->file_rec->fcounters[MPIIO_F_META_TIME], "MPIIO", "MET");\
     }\
