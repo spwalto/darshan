@@ -203,75 +203,7 @@ void darshan_core_initialize(int argc, char **argv)
     /* setup darshan runtime if darshan is enabled and hasn't been initialized already */
     if (__darshan_core != NULL || getenv("DARSHAN_DISABLE"))
         return;
-
-<<<<<<< HEAD
     init_start = darshan_core_wtime_absolute(&tspec);
-    if(getenv("DARSHAN_INTERNAL_TIMING"))
-    {
-        internal_timing_flag = 1;
-    }
-
-    #if (__DARSHAN_MEM_ALIGNMENT < 1)
-        #error Darshan must be configured with a positive value for --with-mem-align
-    #endif
-    envstr = getenv(DARSHAN_MEM_ALIGNMENT_OVERRIDE);
-    if(envstr)
-    {
-        ret = sscanf(envstr, "%d", &tmpval);
-        /* silently ignore if the env variable is set poorly */
-        if(ret == 1 && tmpval > 0)
-        {
-            darshan_mem_alignment = tmpval;
-        }
-    }
-    else
-    {
-        darshan_mem_alignment = __DARSHAN_MEM_ALIGNMENT;
-    }
-
-    /* avoid floating point errors on faulty input */
-    if(darshan_mem_alignment < 1)
-    {
-        darshan_mem_alignment = 1;
-    }
-
-    /* Use DARSHAN_JOBID_OVERRIDE for the env var for __DARSHAN_JOBID */
-    envstr = getenv(DARSHAN_JOBID_OVERRIDE);
-    if(!envstr)
-    {
-        envstr = __DARSHAN_JOBID;
-    }
-
-    /* find a job id */
-    jobid_str = getenv(envstr);
-    if(jobid_str)
-    {
-        /* in cobalt we can find it in env var */
-        ret = sscanf(jobid_str, "%d", &jobid);
-    }
-    if(!jobid_str || ret != 1)
-    {
-        /* use pid as fall back */
-        if(!orig_parent_pid)
-            jobid = init_pid;
-        else
-            jobid = orig_parent_pid;
-    }
-    
-    /* set the memory quota for darshan modules' records */
-    envstr = getenv(DARSHAN_MOD_MEM_OVERRIDE);
-    if(envstr)
-    {
-        ret = sscanf(envstr, "%lf", &tmpfloat);
-        /* silently ignore if the env variable is set poorly */
-        if(ret == 1 && tmpfloat > 0)
-        {
-            darshan_mod_mem_quota = tmpfloat * 1024 * 1024; /* convert from MiB */
-        }
-    }
-=======
-    init_start = darshan_core_wtime_absolute();
->>>>>>> main
 
     /* allocate structure to track darshan core runtime information */
     init_core = malloc(sizeof(*init_core));
