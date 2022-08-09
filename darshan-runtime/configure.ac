@@ -416,7 +416,6 @@ if test "x$enable_darshan_runtime" = xyes ; then
    AM_CONDITIONAL([HAVE_LDMS],[test "x$with_ldms" = xyes])
    if test "x$with_ldms" != xno ; then
 	   # check required LDMS libraries are available.	   
-	   export CHECK_LDMS_ENV_VAR=1
 	   CHECK_LDMS
    fi
 
