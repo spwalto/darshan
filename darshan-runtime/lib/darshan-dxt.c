@@ -280,26 +280,6 @@ static void event_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
 }
 
 #define SLURM_NOTIFY_TIMEOUT 5
-
-static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
-static int log_level = 0;
-static void llog(int lvl, const char *fmt, ...) {
-        if (lvl < log_level)
-                return;
-        pthread_mutex_lock(&log_lock);
-        switch (lvl) {
-        case 3:
-                printf("ERR: ");
-        default:
-                printf("Level-%d: ", lvl);
-        }
-        va_list ap;
-        va_start(ap, fmt);
-        vprintf(fmt, ap);
-        va_end(ap);
-        pthread_mutex_unlock(&log_lock);
-}
-
 int test_gaia(int argc, char *argv[])
 {
    int i, ret;
@@ -401,8 +381,7 @@ ldms_t setup_connection(const char *xprt, const char *host,
 
 void darshan_ldms_connector_initialize()
 {
-    sleep(10);
-    //pthread_mutex_lock(&ln_lock);
+    pthread_mutex_lock(&ln_lock);
     const char* env_ldms_xprt    = getenv("DARSHAN_LDMS_XPRT");
     const char* env_ldms_host    = getenv("DARSHAN_LDMS_HOST");
     const char* env_ldms_port    = getenv("DARSHAN_LDMS_PORT");
@@ -411,10 +390,10 @@ void darshan_ldms_connector_initialize()
     dC.ldms_darsh = setup_connection(env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth);
         if (dC.ldms_darsh->disconnected){
                 printf("Error setting up connection -- exiting\n");
-     //           pthread_mutex_unlock(&ln_lock);
+                pthread_mutex_unlock(&ln_lock);
                 return;
         }
-   // pthread_mutex_unlock(&ln_lock);
+    pthread_mutex_unlock(&ln_lock);
     return;
 }
 
@@ -462,13 +441,6 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
             dC.hdf5_data[i] = -1;
     }
 
-    /* differentiate from number of writes and number of flushes.*/
-    //if ((strcmp(mod_name, "H5D") != 0 || strcmp(mod_name, "STDIO") != 0) && (flushes == -1 || flushes == 0))
-    //    dC.write_count = record_count;
-   // else if ((strcmp(mod_name, "H5D") == 0 || strcmp(mod_name, "STDIO") == 0) && (flushes != -1 || flushes != 0))
-    //    record_count = dC.write_count;
-            
-            
     if (strcmp(data_type, "MOD") == 0)
     {
         dC.filename = "N/A";
