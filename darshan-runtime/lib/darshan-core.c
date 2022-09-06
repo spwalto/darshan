@@ -75,6 +75,11 @@ static int mnt_data_count = 0;
 extern void bgq_runtime_initialize();
 #endif
 
+#ifdef HAVE_LDMS
+extern struct darshanConnector dC;
+extern void darshan_ldms_connector_initialize();
+#endif
+
 #ifdef DARSHAN_USE_APXC
 extern void apxc_runtime_initialize();
 #endif
@@ -89,6 +94,9 @@ void (*mod_static_init_fns[])(void) =
 #endif
 #ifdef DARSHAN_USE_APXC
     &apxc_runtime_initialize,
+#endif
+#ifdef HAVE_LDMS 
+   &darshan_ldms_connector_initialize,
 #endif
     NULL
 };
@@ -199,7 +207,7 @@ void darshan_core_initialize(int argc, char **argv)
     int jobid;
     int ret;
     int i;
-
+    
     /* setup darshan runtime if darshan is enabled and hasn't been initialized already */
     if (__darshan_core != NULL || getenv("DARSHAN_DISABLE"))
         return;
@@ -385,9 +393,8 @@ void darshan_core_initialize(int argc, char **argv)
     }
 
 #ifdef HAVE_LDMS
-        /* Check if LDMS library has been added. Initialize ldms streams */
         /* Collect job_id, user id and executable path as meta data */
-        extern struct darshanConnector dC;
+        //extern struct darshanConnector dC;
         dC.jobid = (int64_t)jobid;
         dC.uid = getuid();
         dC.exename = argv[0];
@@ -400,7 +407,6 @@ void darshan_core_initialize(int argc, char **argv)
             buff[len] = '\0';
             dC.exename = buff;
         }
-        darshan_ldms_connector_initialize();
 #endif
 
     return;

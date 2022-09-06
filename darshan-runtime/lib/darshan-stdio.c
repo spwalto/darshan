@@ -234,7 +234,7 @@ extern int __real_fileno(FILE *stream);
     darshan_instrument_fs_data(__rec_ref->fs_type, __newpath, __fd); \
     if(__newpath != (char*)__path) free(__newpath);\
     /* LDMS to publish realtime read tracing information to daemon*/ \
-    if(getenv("STDIO_ENABLE_LDMS") ){\
+    if(getenv("STDIO_ENABLE_LDMS")){\
         darshan_ldms_set_meta(__path, "N/A",  __rec_ref->file_rec->base_rec.id, __rec_ref->file_rec->base_rec.rank);\
         darshan_ldms_connector_send(__rec_ref->file_rec->counters[STDIO_OPENS], "open", -1, -1, -1, -1, -1, __tm1, __tm2, __ts1, __ts2, __rec_ref->file_rec->fcounters[STDIO_F_META_TIME], "STDIO", "MET");\
     }\
