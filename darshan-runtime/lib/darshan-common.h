@@ -322,6 +322,7 @@ typedef struct darshanConnector {
 	ldms_t ldms_darsh;
 	int64_t hdf5_data[5];
 	int64_t open_count;
+	int64_t write_count;
 	const char *filename;
 	const char *data_set;
 	sem_t conn_sem;
@@ -330,7 +331,6 @@ typedef struct darshanConnector {
 	struct timespec ts;
 } darshanConnector;
 
-#endif
 /* darshan_ldms_connector_initialize(), darshan_ldms_connector_send()
  *
  * LDMS related function to intialize LDMSD streams plugin for realtime data
@@ -351,5 +351,6 @@ void darshan_ldms_connector_initialize();
 void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset, int64_t length, int64_t max_byte, int64_t rw_switch, int64_t flushes, double start_time, double end_time, struct timespec tspec_start, struct timespec tspec_end, double total_time, char *mod_name, char *data_type);
 
 void darshan_ldms_set_meta(const char *filename, const char *data_set,  uint64_t record_id, int64_t rank);
+#endif
 
 #endif /* __DARSHAN_COMMON_H */
