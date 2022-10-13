@@ -42,10 +42,20 @@ DARSHAN_FORWARD_DECL(H5Dopen1, hid_t, (hid_t loc_id, const char *name));
 DARSHAN_FORWARD_DECL(H5Dopen2, hid_t, (hid_t loc_id, const char *name, hid_t dapl_id));
 DARSHAN_FORWARD_DECL(H5Dread, herr_t, (hid_t dataset_id, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id, hid_t xfer_plist_id, void * buf));
 DARSHAN_FORWARD_DECL(H5Dwrite, herr_t, (hid_t dataset_id, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id, hid_t xfer_plist_id, const void * buf));
-#ifdef DARSHAN_HDF5_VERS_1_10_PLUS
+#ifdef HAVE_H5DFLUSH
 DARSHAN_FORWARD_DECL(H5Dflush, herr_t, (hid_t dataset_id));
 #endif
 DARSHAN_FORWARD_DECL(H5Dclose, herr_t, (hid_t dataset_id));
+
+/* H5Oopen prototype -- can be used as an indirect way of opening a dataset */
+DARSHAN_FORWARD_DECL(H5Oopen, hid_t, (hid_t loc_id, const char *name, hid_t lapl_id));
+DARSHAN_FORWARD_DECL(H5Oopen_by_addr, hid_t, (hid_t loc_id, haddr_t addr));
+DARSHAN_FORWARD_DECL(H5Oopen_by_idx, hid_t, (hid_t loc_id, const char * group_name,
+    H5_index_t idx_type, H5_iter_order_t order, hsize_t n, hid_t lapl_id));
+#ifdef HAVE_H5OOPEN_BY_TOKEN
+DARSHAN_FORWARD_DECL(H5Oopen_by_token, hid_t, (hid_t loc_id, H5O_token_t token));
+#endif
+DARSHAN_FORWARD_DECL(H5Oclose, herr_t, (hid_t object_id));
 
 /* structure that can track i/o stats for a given HDF5 file record at runtime */
 struct hdf5_file_record_ref
@@ -597,7 +607,7 @@ hid_t DARSHAN_DECL(H5Dopen2)(hid_t loc_id, const char *name, hid_t dapl_id)
         }
         dcpl_id = H5Dget_create_plist(ret);
         if(dcpl_id < 0)
-        {   
+        {
             H5Tclose(dtype_id);
             H5Sclose(space_id);
             return(ret);
@@ -623,10 +633,6 @@ herr_t DARSHAN_DECL(H5Dread)(hid_t dataset_id, hid_t mem_type_id, hid_t mem_spac
     size_t type_size;
     ssize_t file_sel_npoints;
     H5S_sel_type file_sel_type;
-    hsize_t start_dims[H5D_MAX_NDIMS] = {0};
-    hsize_t stride_dims[H5D_MAX_NDIMS] = {0};
-    hsize_t count_dims[H5D_MAX_NDIMS] = {0};
-    hsize_t block_dims[H5D_MAX_NDIMS] = {0};
     int64_t common_access_vals[H5D_MAX_NDIMS+H5D_MAX_NDIMS+1] = {0};
     struct darshan_common_val_counter *cvc;
     int i;
@@ -661,15 +667,17 @@ herr_t DARSHAN_DECL(H5Dread)(hid_t dataset_id, hid_t mem_type_id, hid_t mem_spac
                 file_sel_npoints = H5Sget_select_npoints(file_space_id);
                 file_sel_type = H5Sget_select_type(file_space_id);
             }
-#ifdef DARSHAN_HDF5_VERS_1_10_PLUS
-            if(file_sel_type == H5S_SEL_ALL)
-                rec_ref->dataset_rec->counters[H5D_REGULAR_HYPERSLAB_SELECTS] += 1;
-            else if(file_sel_type == H5S_SEL_POINTS)
+            if(file_sel_type == H5S_SEL_POINTS)
                 rec_ref->dataset_rec->counters[H5D_POINT_SELECTS] += 1;
             else if (file_sel_type == H5S_SEL_HYPERSLABS)
             {
+#ifdef HAVE_H5SGET_REGULAR_HYPERSLAB
                 if(H5Sis_regular_hyperslab(file_space_id))
                 {
+                    hsize_t start_dims[H5D_MAX_NDIMS] = {0};
+                    hsize_t stride_dims[H5D_MAX_NDIMS] = {0};
+                    hsize_t count_dims[H5D_MAX_NDIMS] = {0};
+                    hsize_t block_dims[H5D_MAX_NDIMS] = {0};
                     rec_ref->dataset_rec->counters[H5D_REGULAR_HYPERSLAB_SELECTS] += 1;
                     H5Sget_regular_hyperslab(file_space_id,
                         start_dims, stride_dims, count_dims, block_dims);
@@ -683,17 +691,14 @@ herr_t DARSHAN_DECL(H5Dread)(hid_t dataset_id, hid_t mem_type_id, hid_t mem_spac
                 }
                 else
                     rec_ref->dataset_rec->counters[H5D_IRREGULAR_HYPERSLAB_SELECTS] += 1;
-            }
 #else
-            rec_ref->dataset_rec->counters[H5D_POINT_SELECTS] = -1;
-            rec_ref->dataset_rec->counters[H5D_REGULAR_HYPERSLAB_SELECTS] = -1;
-            rec_ref->dataset_rec->counters[H5D_IRREGULAR_HYPERSLAB_SELECTS] = -1;
-            for(i = 0; i < H5D_MAX_NDIMS; i++)
-            {
-                common_access_vals[1+i] = -1;
-                common_access_vals[1+i+H5D_MAX_NDIMS] = -1;
-            }
+                for(i = 0; i < H5D_MAX_NDIMS; i++)
+                {
+                    common_access_vals[1+i] = -1;
+                    common_access_vals[1+i+H5D_MAX_NDIMS] = -1;
+                }
 #endif
+            }
             type_size = rec_ref->dataset_rec->counters[H5D_DATATYPE_SIZE];
             access_size = file_sel_npoints * type_size;
             rec_ref->dataset_rec->counters[H5D_BYTES_READ] += access_size;
@@ -744,10 +749,6 @@ herr_t DARSHAN_DECL(H5Dwrite)(hid_t dataset_id, hid_t mem_type_id, hid_t mem_spa
     size_t type_size;
     ssize_t file_sel_npoints;
     H5S_sel_type file_sel_type;
-    hsize_t start_dims[H5D_MAX_NDIMS] = {0};
-    hsize_t stride_dims[H5D_MAX_NDIMS] = {0};
-    hsize_t count_dims[H5D_MAX_NDIMS] = {0};
-    hsize_t block_dims[H5D_MAX_NDIMS] = {0};
     int64_t common_access_vals[H5D_MAX_NDIMS+H5D_MAX_NDIMS+1] = {0};
     struct darshan_common_val_counter *cvc;
     int i;
@@ -782,15 +783,17 @@ herr_t DARSHAN_DECL(H5Dwrite)(hid_t dataset_id, hid_t mem_type_id, hid_t mem_spa
                 file_sel_npoints = H5Sget_select_npoints(file_space_id);
                 file_sel_type = H5Sget_select_type(file_space_id);
             }
-#ifdef DARSHAN_HDF5_VERS_1_10_PLUS
-            if(file_sel_type == H5S_SEL_ALL)
-                rec_ref->dataset_rec->counters[H5D_REGULAR_HYPERSLAB_SELECTS] += 1;
-            else if(file_sel_type == H5S_SEL_POINTS)
+            if(file_sel_type == H5S_SEL_POINTS)
                 rec_ref->dataset_rec->counters[H5D_POINT_SELECTS] += 1;
             else if (file_sel_type == H5S_SEL_HYPERSLABS)
             {
+#ifdef HAVE_H5SGET_REGULAR_HYPERSLAB
                 if(H5Sis_regular_hyperslab(file_space_id))
                 {
+                    hsize_t start_dims[H5D_MAX_NDIMS] = {0};
+                    hsize_t stride_dims[H5D_MAX_NDIMS] = {0};
+                    hsize_t count_dims[H5D_MAX_NDIMS] = {0};
+                    hsize_t block_dims[H5D_MAX_NDIMS] = {0};
                     rec_ref->dataset_rec->counters[H5D_REGULAR_HYPERSLAB_SELECTS] += 1;
                     H5Sget_regular_hyperslab(file_space_id,
                         start_dims, stride_dims, count_dims, block_dims);
@@ -804,17 +807,14 @@ herr_t DARSHAN_DECL(H5Dwrite)(hid_t dataset_id, hid_t mem_type_id, hid_t mem_spa
                 }
                 else
                     rec_ref->dataset_rec->counters[H5D_IRREGULAR_HYPERSLAB_SELECTS] += 1;
-            }
 #else
-            rec_ref->dataset_rec->counters[H5D_POINT_SELECTS] = -1;
-            rec_ref->dataset_rec->counters[H5D_REGULAR_HYPERSLAB_SELECTS] = -1;
-            rec_ref->dataset_rec->counters[H5D_IRREGULAR_HYPERSLAB_SELECTS] = -1;
-            for(i = 0; i < H5D_MAX_NDIMS; i++)
-            {
-                common_access_vals[1+i] = -1;
-                common_access_vals[1+i+H5D_MAX_NDIMS] = -1;
-            }
+                for(i = 0; i < H5D_MAX_NDIMS; i++)
+                {
+                    common_access_vals[1+i] = -1;
+                    common_access_vals[1+i+H5D_MAX_NDIMS] = -1;
+                }
 #endif
+            }
             type_size = rec_ref->dataset_rec->counters[H5D_DATATYPE_SIZE];
             access_size = file_sel_npoints * type_size;
             rec_ref->dataset_rec->counters[H5D_BYTES_WRITTEN] += access_size;
@@ -857,7 +857,7 @@ herr_t DARSHAN_DECL(H5Dwrite)(hid_t dataset_id, hid_t mem_type_id, hid_t mem_spa
     return(ret);
 }
 
-#ifdef DARSHAN_HDF5_VERS_1_10_PLUS
+#ifdef HAVE_H5DFLUSH
 herr_t DARSHAN_DECL(H5Dflush)(hid_t dataset_id)
 {
     struct hdf5_dataset_record_ref *rec_ref;
@@ -915,6 +915,284 @@ herr_t DARSHAN_DECL(H5Dclose)(hid_t dataset_id)
             DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->dataset_rec->fcounters[H5D_F_META_TIME],
                 tm1, tm2, rec_ref->last_meta_end);
             darshan_delete_record_ref(&(hdf5_dataset_runtime->hid_hash), &dataset_id, sizeof(hid_t));
+        }
+        H5D_POST_RECORD();
+    }
+
+    return(ret);
+}
+
+/* NOTE: we have to intercept this generic H5Oopen call, since it allows
+ *       for the opening of HDF5 datasets we would typically track in H5D
+ */
+hid_t DARSHAN_DECL(H5Oopen)(hid_t loc_id, const char *name, hid_t lapl_id)
+{
+    hid_t dtype_id;
+    hid_t space_id;
+    hid_t dcpl_id;
+    double tm1, tm2;
+    hid_t ret;
+
+    MAP_OR_FAIL(H5Oopen);
+
+    tm1 = HDF5_WTIME();
+    ret = __real_H5Oopen(loc_id, name, lapl_id);
+    tm2 = HDF5_WTIME();
+
+    if(ret >= 0)
+    {
+        /* bail out if the object is not a dataset */
+        if(H5Iget_type(ret) != H5I_DATASET)
+            return(ret);
+
+        /* query dataset datatype, dataspace, and creation property list */
+        dtype_id = H5Dget_type(ret);
+        if(dtype_id < 0)
+            return(ret);
+        space_id = H5Dget_space(ret);
+        if(space_id < 0)
+        {
+            H5Tclose(dtype_id);
+            return(ret);
+        }
+        dcpl_id = H5Dget_create_plist(ret);
+        if(dcpl_id < 0)
+        {
+            H5Tclose(dtype_id);
+            H5Sclose(space_id);
+            return(ret);
+        }
+
+        H5D_PRE_RECORD();
+        H5D_RECORD_OPEN(ret, loc_id, name, dtype_id, space_id, dcpl_id, 0, tm1, tm2);
+        H5D_POST_RECORD();
+
+        H5Tclose(dtype_id);
+        H5Sclose(space_id);
+        H5Pclose(dcpl_id);
+    }
+
+    return(ret);
+}
+
+hid_t DARSHAN_DECL(H5Oopen_by_addr)(hid_t loc_id, haddr_t addr)
+{
+    hid_t dtype_id;
+    hid_t space_id;
+    hid_t dcpl_id;
+    char ds_name[DARSHAN_HDF5_MAX_NAME_LEN] = {0};
+    double tm1, tm2;
+    size_t sz;
+    hid_t ret;
+
+    MAP_OR_FAIL(H5Oopen_by_addr);
+
+    tm1 = HDF5_WTIME();
+    ret = __real_H5Oopen_by_addr(loc_id, addr);
+    tm2 = HDF5_WTIME();
+
+    if(ret >= 0)
+    {
+        /* bail out if the object is not a dataset */
+        if(H5Iget_type(ret) != H5I_DATASET)
+            return(ret);
+
+        /* query dataset datatype, dataspace, and creation property list */
+        dtype_id = H5Dget_type(ret);
+        if(dtype_id < 0)
+            return(ret);
+        space_id = H5Dget_space(ret);
+        if(space_id < 0)
+        {
+            H5Tclose(dtype_id);
+            return(ret);
+        }
+        dcpl_id = H5Dget_create_plist(ret);
+        if(dcpl_id < 0)
+        {
+            H5Tclose(dtype_id);
+            H5Sclose(space_id);
+            return(ret);
+        }
+
+        /* need to query dataset name since it's not given in args */
+        sz = H5Iget_name(ret, ds_name, DARSHAN_HDF5_MAX_NAME_LEN);
+        if(sz == 0)
+        {
+            H5Tclose(dtype_id);
+            H5Sclose(space_id);
+            H5Pclose(dcpl_id);
+            return(ret);
+        }
+
+        H5D_PRE_RECORD();
+        H5D_RECORD_OPEN(ret, loc_id, ds_name, dtype_id, space_id, dcpl_id, 0, tm1, tm2);
+        H5D_POST_RECORD();
+
+        H5Tclose(dtype_id);
+        H5Sclose(space_id);
+        H5Pclose(dcpl_id);
+    }
+
+    return(ret);
+}
+
+hid_t DARSHAN_DECL(H5Oopen_by_idx)(hid_t loc_id, const char * group_name,
+    H5_index_t idx_type, H5_iter_order_t order, hsize_t n, hid_t lapl_id)
+{
+    hid_t dtype_id;
+    hid_t space_id;
+    hid_t dcpl_id;
+    char ds_name[DARSHAN_HDF5_MAX_NAME_LEN] = {0};
+    double tm1, tm2;
+    size_t sz;
+    hid_t ret;
+
+    MAP_OR_FAIL(H5Oopen_by_idx);
+
+    tm1 = HDF5_WTIME();
+    ret = __real_H5Oopen_by_idx(loc_id, group_name, idx_type, order, n, lapl_id);
+    tm2 = HDF5_WTIME();
+
+    if(ret >= 0)
+    {
+        /* bail out if the object is not a dataset */
+        if(H5Iget_type(ret) != H5I_DATASET)
+            return(ret);
+
+        /* query dataset datatype, dataspace, and creation property list */
+        dtype_id = H5Dget_type(ret);
+        if(dtype_id < 0)
+            return(ret);
+        space_id = H5Dget_space(ret);
+        if(space_id < 0)
+        {
+            H5Tclose(dtype_id);
+            return(ret);
+        }
+        dcpl_id = H5Dget_create_plist(ret);
+        if(dcpl_id < 0)
+        {
+            H5Tclose(dtype_id);
+            H5Sclose(space_id);
+            return(ret);
+        }
+
+        /* need to query dataset name since it's not given in args */
+        sz = H5Iget_name(ret, ds_name, DARSHAN_HDF5_MAX_NAME_LEN);
+        if(sz == 0)
+        {
+            H5Tclose(dtype_id);
+            H5Sclose(space_id);
+            H5Pclose(dcpl_id);
+            return(ret);
+        }
+
+        H5D_PRE_RECORD();
+        H5D_RECORD_OPEN(ret, loc_id, ds_name, dtype_id, space_id, dcpl_id, 0, tm1, tm2);
+        H5D_POST_RECORD();
+
+        H5Tclose(dtype_id);
+        H5Sclose(space_id);
+        H5Pclose(dcpl_id);
+    }
+
+    return(ret);
+}
+
+#ifdef HAVE_H5OOPEN_BY_TOKEN
+hid_t DARSHAN_DECL(H5Oopen_by_token)(hid_t loc_id, H5O_token_t token)
+{
+    hid_t dtype_id;
+    hid_t space_id;
+    hid_t dcpl_id;
+    char ds_name[DARSHAN_HDF5_MAX_NAME_LEN] = {0};
+    double tm1, tm2;
+    size_t sz;
+    hid_t ret;
+
+    MAP_OR_FAIL(H5Oopen_by_token);
+
+    tm1 = HDF5_WTIME();
+    ret = __real_H5Oopen_by_token(loc_id, token);
+    tm2 = HDF5_WTIME();
+
+    if(ret >= 0)
+    {
+        /* bail out if the object is not a dataset */
+        if(H5Iget_type(ret) != H5I_DATASET)
+            return(ret);
+
+        /* query dataset datatype, dataspace, and creation property list */
+        dtype_id = H5Dget_type(ret);
+        if(dtype_id < 0)
+            return(ret);
+        space_id = H5Dget_space(ret);
+        if(space_id < 0)
+        {
+            H5Tclose(dtype_id);
+            return(ret);
+        }
+        dcpl_id = H5Dget_create_plist(ret);
+        if(dcpl_id < 0)
+        {
+            H5Tclose(dtype_id);
+            H5Sclose(space_id);
+            return(ret);
+        }
+
+        /* need to query dataset name since it's not given in args */
+        sz = H5Iget_name(ret, ds_name, DARSHAN_HDF5_MAX_NAME_LEN);
+        if(sz == 0)
+        {
+            H5Tclose(dtype_id);
+            H5Sclose(space_id);
+            H5Pclose(dcpl_id);
+            return(ret);
+        }
+
+        H5D_PRE_RECORD();
+        H5D_RECORD_OPEN(ret, loc_id, ds_name, dtype_id, space_id, dcpl_id, 0, tm1, tm2);
+        H5D_POST_RECORD();
+
+        H5Tclose(dtype_id);
+        H5Sclose(space_id);
+        H5Pclose(dcpl_id);
+    }
+
+    return(ret);
+}
+#endif
+
+herr_t DARSHAN_DECL(H5Oclose)(hid_t object_id)
+{
+    struct hdf5_dataset_record_ref *rec_ref;
+    double tm1, tm2;
+    herr_t ret;
+
+    MAP_OR_FAIL(H5Oclose);
+
+    tm1 = HDF5_WTIME();
+    ret = __real_H5Oclose(object_id);
+    tm2 = HDF5_WTIME();
+
+    if(ret >= 0)
+    {
+        H5D_PRE_RECORD();
+        /* no need to check if object is a dataset, we just look for it
+         * in our hash of open dataset IDs
+         */
+        rec_ref = darshan_lookup_record_ref(hdf5_dataset_runtime->hid_hash,
+            &object_id, sizeof(hid_t));
+        if(rec_ref)
+        {
+            if(rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_START_TIMESTAMP] == 0 ||
+             rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_START_TIMESTAMP] > tm1)
+               rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_START_TIMESTAMP] = tm1;
+            rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_END_TIMESTAMP] = tm2;
+            DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->dataset_rec->fcounters[H5D_F_META_TIME],
+                tm1, tm2, rec_ref->last_meta_end);
+            darshan_delete_record_ref(&(hdf5_dataset_runtime->hid_hash), &object_id, sizeof(hid_t));
         }
         H5D_POST_RECORD();
     }
@@ -1100,9 +1378,12 @@ static struct hdf5_dataset_record_ref *hdf5_track_new_dataset_record(
     rec_ref->dataset_rec = dataset_rec;
     hdf5_dataset_runtime->rec_count++;
 
-#ifndef DARSHAN_HDF5_VERS_1_10_PLUS
-    /* flushes weren't introduced until H5 version 1.10+ */
+#ifndef HAVE_H5DFLUSH
     rec_ref->dataset_rec->counters[H5D_FLUSHES] = -1;
+#endif
+#ifndef HAVE_H5SGET_REGULAR_HYPERSLAB
+    rec_ref->dataset_rec->counters[H5D_REGULAR_HYPERSLAB_SELECTS] = -1;
+    rec_ref->dataset_rec->counters[H5D_IRREGULAR_HYPERSLAB_SELECTS] = -1;
 #endif
 
     return(rec_ref);
@@ -1706,6 +1987,7 @@ static void hdf5_file_cleanup()
 
     free(hdf5_file_runtime);
     hdf5_file_runtime = NULL;
+    h5f_runtime_init_attempted = 0;
 
     HDF5_UNLOCK();
     return;
@@ -1724,6 +2006,7 @@ static void hdf5_dataset_cleanup()
 
     free(hdf5_dataset_runtime);
     hdf5_dataset_runtime = NULL;
+    h5d_runtime_init_attempted = 0;
 
     HDF5_UNLOCK();
     return;
