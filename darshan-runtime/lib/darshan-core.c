@@ -95,9 +95,6 @@ void (*mod_static_init_fns[])(void) =
 #ifdef DARSHAN_USE_APXC
     &apxc_runtime_initialize,
 #endif
-#ifdef HAVE_LDMS 
-   &darshan_ldms_connector_initialize,
-#endif
     NULL
 };
 
@@ -350,6 +347,11 @@ void darshan_core_initialize(int argc, char **argv)
             init_core->config.mod_disabled = ~(init_core->config.mod_disabled & 0);
         }
 
+    
+#ifdef HAVE_LDMS
+        darshan_ldms_connector_initialize();
+#endif
+
         /* if darshan was successfully initialized, set the global pointer
          * and record absolute start time so that we can later generate
          * relative times with this as a reference point.
@@ -358,6 +360,7 @@ void darshan_core_initialize(int argc, char **argv)
         __darshan_core = init_core;
         __darshan_core_wtime_offset = init_start;
         __DARSHAN_CORE_UNLOCK();
+
 
         /* bootstrap any modules with static initialization routines */
         i = 0;
@@ -392,9 +395,15 @@ void darshan_core_initialize(int argc, char **argv)
         darshan_core_fprintf(stderr, "darshan:init\t%d\t%f\n", nprocs, init_time);
     }
 
+    
 #ifdef HAVE_LDMS
-        /* Collect job_id, user id and executable path as meta data */
-        //extern struct darshanConnector dC;
+        //if(getenv("DARSHAN_LDMS_REINIT"))
+        //    dC.env_ldms_reinit = getenv("DARSHAN_LDMS_REINIT");
+        //else
+        //    dC.env_ldms_reinit = "1";
+        
+        /* Set meta data for LDMS message sending */
+        (void)gethostname(dC.hname, sizeof(dC.hname));
         dC.jobid = (int64_t)jobid;
         dC.uid = getuid();
         dC.exename = argv[0];

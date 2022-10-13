@@ -415,8 +415,8 @@ if test "x$enable_darshan_runtime" = xyes ; then
 
    AM_CONDITIONAL([HAVE_LDMS],[test "x$with_ldms" = xyes])
    if test "x$with_ldms" != xno ; then
-	   # check required LDMS libraries are available.	   
-	   CHECK_LDMS
+	# check required LDMS libraries are available.
+	CHECK_LDMS
    fi
 
    # PNETCDF module
