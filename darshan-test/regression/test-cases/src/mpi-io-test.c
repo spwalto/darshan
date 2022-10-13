@@ -56,6 +56,10 @@ static void handle_error(int errcode, char *str);
 /* global vars */
 static int mynod = 0;
 static int nprocs = 1;
+static int open_count = 0;
+static int close_count = 0;
+static int write_count = 0;
+static int read_count = 0;
 
 int main(int argc, char **argv)
 {
@@ -90,7 +94,7 @@ int main(int argc, char **argv)
    /* parse the command line arguments */
    parse_args(argc, argv);
 
-   if (opt_verbose) fprintf(stdout,"Process %d of %d is on %s\n",
+   if (opt_verbose) fprintf(stdout,"Process %d of rank %d is on %s\n",
 									 mynod, nprocs, processor_name);
 
    if (mynod == 0) printf("# Using mpi-io calls.\n");
@@ -129,10 +133,13 @@ int main(int argc, char **argv)
 	}
    err = MPI_File_open(comm, opt_file, 
 							  MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &fh);
-   if (err != MPI_SUCCESS) {
+	if (err != MPI_SUCCESS) {
       handle_error(err, "MPI_File_open");
       goto die_jar_jar_die;
-   } 
+   }
+	else 
+		open_count = open_count +1;
+	 
 	
 	nchars = (int) (opt_block/sizeof(char));
 	if (!opt_rdonly) {
@@ -172,7 +179,8 @@ int main(int argc, char **argv)
          fprintf(stderr, "node %d, write error: %s\n", mynod, 
          strerror(errno));
       }
-      if (opt_sync) sync_err = MPI_File_sync(fh);
+      
+		if (opt_sync) sync_err = MPI_File_sync(fh);
       if (sync_err) {
          fprintf(stderr, "node %d, sync error: %s\n", mynod, 
 					  strerror(errno));
@@ -191,6 +199,9 @@ int main(int argc, char **argv)
    if(err){
       fprintf(stderr, "node %d, close error after write\n", mynod);
    }
+	 else 
+		close_count = close_count +1;
+
     
    /* wait for everyone to synchronize at this point */
    MPI_Barrier(MPI_COMM_WORLD);
@@ -198,7 +209,8 @@ int main(int argc, char **argv)
    /* reopen the file to read the data back out */
    err = MPI_File_open(comm, opt_file, 
 			   MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &fh);
-   if (err < 0) {
+	
+	if (err < 0) {
       fprintf(stderr, "node %d, open error: %s\n", mynod, strerror(errno));
       goto die_jar_jar_die;
    }
@@ -274,8 +286,8 @@ int main(int argc, char **argv)
    if (err) {
       fprintf(stderr, "node %d, close error after write\n", mynod);
    }
-
-   /* compute the read and write times */
+   
+	/* compute the read and write times */
    MPI_Allreduce(&read_tim, &max_read_tim, 1, MPI_DOUBLE, MPI_MAX,
       MPI_COMM_WORLD);
    MPI_Allreduce(&read_tim, &min_read_tim, 1, MPI_DOUBLE, MPI_MIN,
@@ -319,7 +331,9 @@ int main(int argc, char **argv)
    
    /* print out the results on one node */
    if (mynod == 0) {
-      read_bw = (opt_block*nprocs*opt_iter)/(max_read_tim*1.0e6);
+      printf("# total closes: %d\n", close_count*nprocs);
+		printf("# total opens: %d\n", open_count*nprocs);
+		read_bw = (opt_block*nprocs*opt_iter)/(max_read_tim*1.0e6);
       write_bw = (opt_block*nprocs*opt_iter)/(max_write_tim*1.0e6);
       
 		printf("nr_procs = %d, nr_iter = %d, blk_sz = %lld, coll = %d\n",
