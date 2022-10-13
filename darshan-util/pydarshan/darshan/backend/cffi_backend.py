@@ -178,6 +178,7 @@ def log_get_mounts(log):
     for i in range(0, cnt[0]):
         mntlst.append((ffi.string(mnts[0][i].mnt_path).decode("utf-8"),
             ffi.string(mnts[0][i].mnt_type).decode("utf-8")))
+    libdutil.darshan_free(mnts[0])
 
     return mntlst
 
@@ -211,6 +212,7 @@ def log_get_modules(log):
 
     # add to cache
     log['modules'] = modules
+    libdutil.darshan_free(mods[0])
 
     return modules
 
@@ -240,7 +242,8 @@ def log_get_name_records(log):
 
     for i in range(0, cnt[0]):
         name_records[nrecs[0][i].id] = ffi.string(nrecs[0][i].name).decode("utf-8")
-
+        libdutil.darshan_free(nrecs[0][i].name)
+    libdutil.darshan_free(nrecs[0])
 
     # add to cache
     log['name_records'] = name_records
@@ -275,6 +278,8 @@ def log_lookup_name_records(log, ids=[]):
 
     for i in range(0, cnt[0]):
         name_records[nrecs[0][i].id] = ffi.string(nrecs[0][i].name).decode("utf-8")
+        libdutil.darshan_free(nrecs[0][i].name)
+    libdutil.darshan_free(nrecs[0])
 
     # add to cache
     log['name_records'] = name_records
@@ -348,8 +353,9 @@ def log_get_generic_record(log, mod_name, dtype='numpy'):
     if mod_name == 'H5D':
         rec['file_rec_id'] = rbuf[0].file_rec_id
 
-    clst = np.frombuffer(ffi.buffer(rbuf[0].counters), dtype=np.int64)
-    flst = np.frombuffer(ffi.buffer(rbuf[0].fcounters), dtype=np.float64)
+    clst = np.copy(np.frombuffer(ffi.buffer(rbuf[0].counters), dtype=np.int64))
+    flst = np.copy(np.frombuffer(ffi.buffer(rbuf[0].fcounters), dtype=np.float64))
+    libdutil.darshan_free(buf[0])
 
     c_cols = counter_names(mod_name)
     fc_cols = fcounter_names(mod_name)
@@ -469,7 +475,8 @@ def _log_get_lustre_record(log, dtype='numpy'):
     clst = []
     for i in range(0, len(rbuf[0].counters)):
         clst.append(rbuf[0].counters[i])
-    rec['counters'] = np.array(clst, dtype=np.int64)
+    rec['counters'] = np.array(clst, dtype=np.int64, copy=True)
+    libdutil.darshan_free(buf[0])
    
     # counters
     cdict = dict(zip(counter_names('LUSTRE'), rec['counters']))
@@ -592,6 +599,7 @@ def log_get_dxt_record(log, mod_name, reads=True, writes=True, dtype='dict'):
         rec['read_segments'] = pd.DataFrame(rec['read_segments'])
         rec['write_segments'] = pd.DataFrame(rec['write_segments'])
 
+    libdutil.darshan_free(buf[0])
     return rec
 
 
@@ -634,10 +642,11 @@ def _log_get_heatmap_record(log):
     # write/read bins
     sizeof_64 = ffi.sizeof("int64_t")
     
-    write_bins = np.frombuffer(ffi.buffer(filerec[0].write_bins, sizeof_64*nbins), dtype = np.int64)
+    write_bins = np.copy(np.frombuffer(ffi.buffer(filerec[0].write_bins, sizeof_64*nbins), dtype = np.int64))
     rec['write_bins'] = write_bins
 
-    read_bins = np.frombuffer(ffi.buffer(filerec[0].read_bins, sizeof_64*nbins), dtype = np.int64)
+    read_bins = np.copy(np.frombuffer(ffi.buffer(filerec[0].read_bins, sizeof_64*nbins), dtype = np.int64))
     rec['read_bins'] = read_bins
+    libdutil.darshan_free(buf[0])
     
     return rec
