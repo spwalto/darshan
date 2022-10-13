@@ -328,12 +328,7 @@ ldms_t setup_connection(const char *xprt, const char *host,
 
 void darshan_ldms_connector_initialize()
 {
-    /* Check/set LDMS stream name and transport type */
-    if (getenv("DARSHAN_LDMS_STREAM"))
-        dC.env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
-    else
-        dC.env_ldms_stream = "darshanConnector";
-    
+    /* Check/set LDMS transport type */
     if (getenv("DARSHAN_LDMS_XPRT"))
         dC.env_ldms_stream  = getenv("DARSHAN_LDMS_XPRT");
     else
