@@ -51,7 +51,7 @@
  * int      fsetpos64(FILE *, const fpos_t *);              DONE
  * void     rewind(FILE *);                                 DONE
  *
- * Omissions: 
+ * Omissions:
  *   - _unlocked() variants of the various flush, read, and write
  *     functions.  There are many of these, but they are not available on all
  *     systems and the man page advises not to use them.
@@ -139,7 +139,7 @@ struct stdio_file_record_ref
 };
 
 /* The stdio_runtime structure maintains necessary state for storing
- * STDIO file records and for coordinating with darshan-core at 
+ * STDIO file records and for coordinating with darshan-core at
  * shutdown time.
  */
 struct stdio_runtime
@@ -1192,7 +1192,7 @@ static void stdio_record_reduction_op(void* infile_v, void* inoutfile_v,
         {
             tmp_file.counters[j] = infile->counters[j] + inoutfile->counters[j];
         }
-        
+
         /* max */
         for(j=STDIO_MAX_BYTE_READ; j<=STDIO_MAX_BYTE_WRITTEN; j++)
         {
@@ -1212,7 +1212,7 @@ static void stdio_record_reduction_op(void* infile_v, void* inoutfile_v,
         for(j=STDIO_F_OPEN_START_TIMESTAMP; j<=STDIO_F_READ_START_TIMESTAMP; j++)
         {
             if((infile->fcounters[j] < inoutfile->fcounters[j] &&
-               infile->fcounters[j] > 0) || inoutfile->fcounters[j] == 0) 
+               infile->fcounters[j] > 0) || inoutfile->fcounters[j] == 0)
                 tmp_file.fcounters[j] = infile->fcounters[j];
             else
                 tmp_file.fcounters[j] = inoutfile->fcounters[j];
@@ -1297,7 +1297,7 @@ static void stdio_shared_record_variance(MPI_Comm mod_comm,
     var_send_buf = malloc(shared_rec_count * sizeof(struct darshan_variance_dt));
     if(!var_send_buf)
         return;
-    
+
     if(my_rank == 0)
     {
         var_recv_buf = malloc(shared_rec_count * sizeof(struct darshan_variance_dt));
@@ -1440,8 +1440,8 @@ static void stdio_mpi_redux(
         rec_ref->file_rec->base_rec.rank = -1;
     }
 
-    /* sort the array of files descending by rank so that we get all of the 
-     * shared files (marked by rank -1) in a contiguous portion at end 
+    /* sort the array of files descending by rank so that we get all of the
+     * shared files (marked by rank -1) in a contiguous portion at end
      * of the array
      */
     darshan_record_sort(stdio_rec_buf, stdio_rec_count, sizeof(struct darshan_stdio_file));

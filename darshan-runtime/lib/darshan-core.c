@@ -204,7 +204,7 @@ void darshan_core_initialize(int argc, char **argv)
     int jobid;
     int ret;
     int i;
-    
+
     /* setup darshan runtime if darshan is enabled and hasn't been initialized already */
     if (__darshan_core != NULL || getenv("DARSHAN_DISABLE"))
         return;
@@ -347,7 +347,7 @@ void darshan_core_initialize(int argc, char **argv)
             init_core->config.mod_disabled = ~(init_core->config.mod_disabled & 0);
         }
 
-    
+
 #ifdef HAVE_LDMS
         darshan_ldms_connector_initialize();
 #endif
@@ -395,19 +395,20 @@ void darshan_core_initialize(int argc, char **argv)
         darshan_core_fprintf(stderr, "darshan:init\t%d\t%f\n", nprocs, init_time);
     }
 
-    
+
 #ifdef HAVE_LDMS
-        //if(getenv("DARSHAN_LDMS_REINIT"))
-        //    dC.env_ldms_reinit = getenv("DARSHAN_LDMS_REINIT");
-        //else
-        //    dC.env_ldms_reinit = "1";
-        
+        /*TODO: Create environment variable to re-connect to ldms every x seconds
+        if(getenv("DARSHAN_LDMS_REINIT"))
+            dC.env_ldms_reinit = getenv("DARSHAN_LDMS_REINIT");
+        else
+            dC.env_ldms_reinit = "1";
+        */
         /* Set meta data for LDMS message sending */
         (void)gethostname(dC.hname, sizeof(dC.hname));
         dC.jobid = (int64_t)jobid;
         dC.uid = getuid();
         dC.exename = argv[0];
-        
+
         /* Pull executable name from darshans variable if no arguemments are given. */
         if (argc==0)
         {
@@ -448,7 +449,7 @@ void darshan_core_shutdown(int write_log)
     darshan_record_id *mod_shared_recs = NULL;
     int shared_rec_cnt = 0;
 #endif
-    
+
     /* disable darhan-core while we shutdown */
     __DARSHAN_CORE_LOCK();
     if(!__darshan_core)
@@ -2121,7 +2122,7 @@ static int darshan_deflate_buffer(void **pointers, int *lengths, int count,
             {
                 /* We ran out of buffer space for compression.  In theory,
                  * we could start using some of the file_array buffer space
-                 * without having to malloc again.  In practice, this case 
+                 * without having to malloc again.  In practice, this case
                  * is going to be practically impossible to hit.
                  */
                 deflateEnd(&tmp_stream);

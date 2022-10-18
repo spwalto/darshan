@@ -303,7 +303,7 @@ ldms_t setup_connection(const char *xprt, const char *host,
 		ts.tv_sec = time(NULL) + to;
 		ts.tv_nsec = 0;
 	}
-	
+
         ldms_g = ldms_xprt_new_with_auth(xprt, NULL, auth, NULL);
         if (!ldms_g) {
 		printf("Error %d creating the '%s' transport\n",
@@ -361,7 +361,7 @@ void darshan_ldms_connector_initialize()
         dC.mdhim_enable_ldms = 0;
     else
         dC.mdhim_enable_ldms = 1;
-    
+
     const char* env_ldms_xprt    = getenv("DARSHAN_LDMS_XPRT");
     const char* env_ldms_host    = getenv("DARSHAN_LDMS_HOST");
     const char* env_ldms_port    = getenv("DARSHAN_LDMS_PORT");
@@ -414,13 +414,13 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
 
     if (!exists){
         printf("ldms_darsh does not exist. Retry initialization every x seconds\n");
-        return;  
+        return;
     }
-    
-    
+
+
     if (strcmp(rwo, "open") == 0)
         dC.open_count = record_count;
-    
+
     /* set record count to number of opens since we are closing the same file we opened.*/
     if (strcmp(rwo, "close") == 0)
         record_count = dC.open_count;
@@ -437,16 +437,14 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
         dC.filename = "N/A";
         dC.exename = "N/A";
     }
-    
-//    sprintf(jb11,"{ \"uid\":%d, \"exe\":\"%s\",\"job_id\":%d,\"rank\":%d,\"ProducerName\":\"%s\",\"file\":\"%s\",\"record_id\":%"PRIu64",\"module\":\"%s\",\"type\":\"%s\",\"max_byte\":%lld,\"switches\":%d,\"flushes\":%d,\"cnt\":%d,\"op\":\"%s\",\"seg\":[{\"data_set\":\"%s\",\"pt_sel\":%lld,\"irreg_hslab\":%lld,\"reg_hslab\":%lld,\"ndims\":%lld,\"npoints\":%lld,\"off\":%lld,\"len\":%lld,\"dur\":%0.6f,\"timestamp\":%lu.%0.6lu}]}", dC.uid, dC.exename, dC.jobid, dC.rank, dC.hname, dC.filename, dC.record_id, mod_name, data_type, max_byte, rw_switch, flushes, record_count, rwo, dC.data_set, dC.hdf5_data[0], dC.hdf5_data[1], dC.hdf5_data[2], dC.hdf5_data[3], dC.hdf5_data[4], offset, length, end_time-start_time, tspec_end.tv_sec, micro_s);
 
-    sprintf(jb11,"{ \"uid\":%d, \"exe\":\"%s\",\"job_id\":%d,\"rank\":%d,\"ProducerName\":\"%s\",\"file\":\"%s\",\"record_id\":%"PRIu64",\"module\":\"%s\",\"type\":\"%s\",\"max_byte\":%lld,\"switches\":%d,\"flushes\":%d,\"cnt\":%d,\"op\":\"%s\",\"seg\":[{\"data_set\":\"%s\",\"pt_sel\":%lld,\"irreg_hslab\":%lld,\"reg_hslab\":%lld,\"ndims\":%lld,\"npoints\":%lld,\"off\":%lld,\"len\":%lld,\"start\":%0.6f,\"end\":%0.6f,\"dur\":%0.6f,\"total\":%0.6f,\"timestamp\":%lu.%0.6lu}]}", dC.uid, dC.exename, dC.jobid, dC.rank, dC.hname, dC.filename, dC.record_id, mod_name, data_type, max_byte, rw_switch, flushes, record_count, rwo, dC.data_set, dC.hdf5_data[0], dC.hdf5_data[1], dC.hdf5_data[2], dC.hdf5_data[3], dC.hdf5_data[4], offset, length, start_time, end_time, end_time-start_time, total_time, tspec_end.tv_sec, micro_s);
+    sprintf(jb11,"{ \"uid\":%d, \"exe\":\"%s\",\"job_id\":%d,\"rank\":%d,\"ProducerName\":\"%s\",\"file\":\"%s\",\"record_id\":%"PRIu64",\"module\":\"%s\",\"type\":\"%s\",\"max_byte\":%lld,\"switches\":%d,\"flushes\":%d,\"cnt\":%d,\"op\":\"%s\",\"seg\":[{\"data_set\":\"%s\",\"pt_sel\":%lld,\"irreg_hslab\":%lld,\"reg_hslab\":%lld,\"ndims\":%lld,\"npoints\":%lld,\"off\":%lld,\"len\":%lld,\"start\":%0.6f,\"dur\":%0.6f,\"total\":%0.6f,\"timestamp\":%lu.%0.6lu}]}", dC.uid, dC.exename, dC.jobid, dC.rank, dC.hname, dC.filename, dC.record_id, mod_name, data_type, max_byte, rw_switch, flushes, record_count, rwo, dC.data_set, dC.hdf5_data[0], dC.hdf5_data[1], dC.hdf5_data[2], dC.hdf5_data[3], dC.hdf5_data[4], offset, length, start_time, end_time-start_time, total_time, tspec_end.tv_sec, micro_s);
     //printf("this is in jb11 %s \n", jb11);
-    
+
     rc = ldmsd_stream_publish(dC.ldms_darsh, dC.env_ldms_stream, LDMSD_STREAM_JSON, jb11, strlen(jb11) + 1);
     if (rc)
         printf("Error %d publishing data.\n", rc);
-    
+
  out_1:
     return;
 }
@@ -1175,7 +1173,7 @@ static void dxt_mpiio_output(
     darshan_iter_record_refs(dxt_mpiio_runtime->rec_id_hash,
         dxt_serialize_mpiio_records, NULL);
 
-    /* set output */ 
+    /* set output */
     *dxt_mpiio_buf = dxt_mpiio_runtime->record_buf;
     *dxt_mpiio_buf_sz = dxt_mpiio_runtime->record_buf_size;
 

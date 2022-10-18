@@ -120,8 +120,8 @@ DARSHAN_FORWARD_DECL(PMPI_File_write_shared, int, (MPI_File fh, void *buf, int c
  * darshan-mpiio-log-format.h) pointed to by 'file_rec'. This metadata
  * assists with the instrumenting of specific statistics in the file record.
  *
- * RATIONALE: the MPIIO module needs to track some stateful, volatile 
- * information about each open file (like the current file offset, most recent 
+ * RATIONALE: the MPIIO module needs to track some stateful, volatile
+ * information about each open file (like the current file offset, most recent
  * access time, etc.) to aid in instrumentation, but this information can't be
  * stored in the darshan_mpiio_file struct because we don't want it to appear in
  * the final darshan log file.  We therefore associate a mpiio_file_record_ref
@@ -149,7 +149,7 @@ struct mpiio_file_record_ref
 };
 
 /* The mpiio_runtime structure maintains necessary state for storing
- * MPI-IO file records and for coordinating with darshan-core at 
+ * MPI-IO file records and for coordinating with darshan-core at
  * shutdown time.
  */
 struct mpiio_runtime
@@ -360,13 +360,13 @@ static int get_byte_offset = 0;
 } while(0)
 
 /**********************************************************
- *        Wrappers for MPI-IO functions of interest       * 
+ *        Wrappers for MPI-IO functions of interest       *
  **********************************************************/
 
 #ifdef HAVE_MPI_CONST
-int DARSHAN_DECL(MPI_File_open)(MPI_Comm comm, const char *filename, int amode, MPI_Info info, MPI_File *fh) 
+int DARSHAN_DECL(MPI_File_open)(MPI_Comm comm, const char *filename, int amode, MPI_Info info, MPI_File *fh)
 #else
-int DARSHAN_DECL(MPI_File_open)(MPI_Comm comm, char *filename, int amode, MPI_Info info, MPI_File *fh) 
+int DARSHAN_DECL(MPI_File_open)(MPI_Comm comm, char *filename, int amode, MPI_Info info, MPI_File *fh)
 #endif
 {
     int ret;
@@ -383,7 +383,7 @@ int DARSHAN_DECL(MPI_File_open)(MPI_Comm comm, char *filename, int amode, MPI_In
     /* use ROMIO approach to strip prefix if present */
     /* strip off prefix if there is one, but only skip prefixes
      * if they are greater than length one to allow for windows
-     * drive specifications (e.g. c:\...) 
+     * drive specifications (e.g. c:\...)
      */
     tmp = strchr(filename, ':');
     if (tmp > filename + 1) {
@@ -448,7 +448,7 @@ int DARSHAN_DECL(MPI_File_write)(MPI_File fh, void *buf, int count,
     tm1 = MPIIO_WTIME(&ts1);
     ret = __real_PMPI_File_write(fh, buf, count, datatype, status);
     tm2 = MPIIO_WTIME(&ts2);
-    
+
     MPIIO_PRE_RECORD();
     MPIIO_RECORD_WRITE(ret, fh, count, datatype, offset, MPIIO_INDEP_WRITES, tm1, tm2, ts1, ts2);
     MPIIO_POST_RECORD();
@@ -833,7 +833,7 @@ int DARSHAN_DECL(MPI_File_read_at_all_begin)(MPI_File fh, MPI_Offset offset, voi
     ret = __real_PMPI_File_read_at_all_begin(fh, offset, buf,
         count, datatype);
     tm2 = MPIIO_WTIME(&ts2);
-    
+
     MPIIO_PRE_RECORD();
     MPIIO_RECORD_READ(ret, fh, count, datatype, offset, MPIIO_SPLIT_READS, tm1, tm2, ts1, ts2);
     MPIIO_POST_RECORD();

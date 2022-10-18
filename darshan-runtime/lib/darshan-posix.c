@@ -113,8 +113,8 @@ DARSHAN_FORWARD_DECL(rename, int, (const char *oldpath, const char *newpath));
  * darshan-posix-log-format.h) pointed to by 'file_rec'. This metadata
  * assists with the instrumenting of specific statistics in the file record.
  *
- * RATIONALE: the POSIX module needs to track some stateful, volatile 
- * information about each open file (like the current file offset, most recent 
+ * RATIONALE: the POSIX module needs to track some stateful, volatile
+ * information about each open file (like the current file offset, most recent
  * access time, etc.) to aid in instrumentation, but this information can't be
  * stored in the darshan_posix_file struct because we don't want it to appear in
  * the final darshan log file.  We therefore associate a posix_file_record_ref
@@ -149,7 +149,7 @@ struct posix_file_record_ref
 };
 
 /* The posix_runtime structure maintains necessary state for storing
- * POSIX file records and for coordinating with darshan-core at 
+ * POSIX file records and for coordinating with darshan-core at
  * shutdown time.
  */
 struct posix_runtime
@@ -440,7 +440,7 @@ static int darshan_mem_alignment = 1;
 
 
 /**********************************************************
- *      Wrappers for POSIX I/O functions of interest      * 
+ *      Wrappers for POSIX I/O functions of interest      *
  **********************************************************/
 
 int DARSHAN_DECL(open)(const char *path, int flags, ...)
@@ -452,7 +452,7 @@ int DARSHAN_DECL(open)(const char *path, int flags, ...)
 
     MAP_OR_FAIL(open);
 
-    if(flags & O_CREAT) 
+    if(flags & O_CREAT)
     {
         va_list arg;
         va_start(arg, flags);
@@ -1679,7 +1679,7 @@ int DARSHAN_DECL(close)(int fd)
             rec_ref->file_rec->fcounters[POSIX_F_META_TIME],
             tm1, tm2, rec_ref->last_meta_end);
         darshan_delete_record_ref(&(posix_runtime->fd_hash), &fd, sizeof(int));
-    
+
 #ifdef HAVE_LDMS
     /* publish close information for posix */
     struct darshanConnector dC;
@@ -2058,7 +2058,7 @@ static struct posix_file_record_ref *posix_track_new_file_record(
 }
 
 /* finds the tracker structure for a given aio operation, removes it from
- * the associated linked list for this file record, and returns a pointer.  
+ * the associated linked list for this file record, and returns a pointer.
  *
  * returns NULL if aio operation not found
  */
@@ -2494,7 +2494,7 @@ void darshan_posix_shutdown_bench_setup(int test_case)
     {
         case 1: /* single file-per-process */
             snprintf(filepath, 256, "fpp-0_rank-%d", my_rank);
-            
+
             POSIX_RECORD_OPEN(fd_array[0], filepath, 777, 0, 1, ts1, ts2);
             POSIX_RECORD_WRITE(size_array[0], fd_array[0], 0, 0, 1, 1, 2, ts1, ts2);
 

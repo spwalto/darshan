@@ -109,10 +109,10 @@ typedef struct darshanConnector {
 } darshanConnector;
 #endif
 /* darshan_ldms_connector_initialize(), darshan_ldms_connector_send()
- *  
+ *
  * LDMS related function to intialize LDMSD streams plugin for realtime data
  * output of the Darshan modules.
- * 
+ *
  * LDMS related function to retrieve and send the realitme data output of the Darshan
  * specified module from the set environment variables (i.e. *MODULENAME*_ENABLE_LDMS)
  * to LDMSD streams plugin.
