@@ -107,6 +107,18 @@ typedef struct darshanConnector {
         sem_t conn_sem;
         sem_t recv_sem;
 } darshanConnector;
+#else
+
+typedef struct darshanConnector {
+        int to;
+        int ldms_lib;
+        int dxt_enable_ldms;
+        int posix_enable_ldms;
+        int mpiio_enable_ldms;
+        int stdio_enable_ldms;
+        int hdf5_enable_ldms;
+        int mdhim_enable_ldms;
+} darshanConnector;
 #endif
 /* darshan_ldms_connector_initialize(), darshan_ldms_connector_send()
  *

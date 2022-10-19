@@ -368,8 +368,10 @@ void darshan_ldms_connector_initialize()
     const char* env_ldms_auth    = getenv("DARSHAN_LDMS_AUTH");
 
     /* Check/set LDMS transport type */
-    if (!env_ldms_xprt)
-        env_ldms_xprt = "sock";
+    if (!env_ldms_xprt || !env_ldms_host || !env_ldms_port || !env_ldms_auth){
+        printf("Either the transport, host, port or authentication is not given\n");
+        return;
+    }
 
     pthread_mutex_lock(&dC.ln_lock);
     dC.ldms_darsh = setup_connection(env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth);
@@ -413,7 +415,6 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
     pthread_mutex_unlock(&dC.ln_lock);
 
     if (!exists){
-        printf("ldms_darsh does not exist. Retry initialization every x seconds\n");
         return;
     }
 
