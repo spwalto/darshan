@@ -35,8 +35,8 @@
 
 /* DEFAULT VALUES FOR OPTIONS */
 //static int64_t opt_block     = 16*1024*1024;
-static int64_t opt_block     = 16*1024*1024;
-static int     opt_iter      = 10;
+static int64_t opt_block     = 16*5120*2048;
+static int     opt_iter      = 20;
 static int     opt_coll      = 0;
 static int     opt_correct   = 0;
 static int     opt_sync      = 0;
