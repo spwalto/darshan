@@ -1,0 +1,286 @@
+# Test overview:
+#    1 sampler (v4.3.3, named samp-4.3.3)
+#       |
+#       V
+#    L1 agg (v4.3.3, named agg-4.3.3)
+#       |
+#       V
+#    L2 agg (OVIS-4, named agg-4)
+#
+# Scenario
+# - samp-4.3.3 started (1 set: meminfo)
+# - agg-4.3.3 started, collecting sets from samp-4.3.3
+# - agg-4 started, collecting sets from agg-4.3.3
+# - ldms_ls to agg-4.3.3 & verify that it is not empty
+# - ldms_ls to agg-4 & verify that it is the same as agg-4.3.3
+# - kill samp-4.3.3
+# - ldms_ls to agg-4.3.3 & verify that dir result is empty
+# - ldms_ls to agg-4 & verify that dir result is empty
+
+name: Compatibility test with OVIS-4.3.3
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest]
+        python-version: ["3.10"]
+    runs-on: ${{ matrix.platform }}
+    container:
+        image: ovishpc/ovis-compat-centos7
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set Up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade pytest mpi4py
+          # we need to build h5py with the system HDF5 lib backend
+          export HDF5_MPI="ON"
+          CC=mpicc python -m pip install --no-binary=h5py h5py
+    - name: Install darshan-runtime
+        run: |
+          export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
+          mkdir darshan_install
+          export DARSHAN_INSTALL_PATH=$PWD/darshan_install
+          git submodule update --init
+          ./prepare.sh
+          cd darshan-runtime
+          mkdir build
+          cd build
+          CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-jobid-env=NONE --enable-hdf5-mod
+          make
+          make install
+      - name: Install darshan-util
+        run: |
+          export DARSHAN_INSTALL_PATH=$PWD/darshan_install
+          cd darshan-util
+          mkdir build
+          cd build
+          ../configure --prefix=$DARSHAN_INSTALL_PATH --enable-apxc-mod --enable-apmpi-mod
+          make
+          make install
+      - name: Install pydarshan
+        run: |
+          cd darshan-util/pydarshan
+          python -m pip install .
+      - name: Test with pytest
+        run: |
+          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/darshan_install/lib
+          export DARSHAN_INSTALL_PATH=$PWD/darshan_install
+          export DARSHAN_ROOT_PATH=$PWD
+          export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so
+          python -m pytest darshan-test/python_runtime_tests.py
+    - name: Install LDMS 
+      uses: actions/checkout@v3
+      with:
+        repository: ovis-hpc/ovis
+        path: ovis
+        ref: OVIS-4
+    - run: sh autogen.sh
+    - name: build and install
+      run: |
+        set -e
+        mkdir -p build
+        pushd build
+        ../configure --prefix=/opt/ovis-4 --enable-etc --enable-munge 
+        make
+        make install
+    - name: test preparation
+      run: |
+        set -e
+        mkdir -p /test/logs
+        SRCDIR=${PWD}
+        pushd /test/
+        ln -s ${SRCDIR}/.github/compat/list_samp.py
+        ln -s ${SRCDIR}/.github/compat/list_samp.sh
+        ln -s /opt/ovis-4.3.3/sbin/ldmsd ldmsd-4.3.3
+        ln -s /opt/ovis-4/sbin/ldmsd ldmsd-4
+        cat > ldmsd-4.3.3.sh << EOF
+        . /opt/ovis-4.3.3/etc/profile.d/set-ovis-variables.sh
+        ./ldmsd-4.3.3 \$@
+        EOF
+        chmod 755 ldmsd-4.3.3.sh
+        cat > ldmsd-4.sh << EOF
+        . /opt/ovis-4/etc/profile.d/set-ovis-variables.sh
+        ./ldmsd-4 \$@
+        EOF
+        chmod 755 ldmsd-4.sh
+        cat > ldms_ls.sh << EOF
+        . /opt/ovis-4/etc/profile.d/set-ovis-variables.sh
+        ldms_ls \$@
+        EOF
+        chmod 755 ldms_ls.sh
+        cat > ldms_ls-4.3.3.sh << EOF
+        . /opt/ovis-4.3.3/etc/profile.d/set-ovis-variables.sh
+        ldms_ls \$@
+        EOF
+        chmod 755 ldms_ls-4.3.3.sh
+        cat > samp-4.3.3.conf << EOF
+        load name=meminfo
+        config name=meminfo producer=ovis-4.3.3 instance=ovis-4.3.3/meminfo
+        start name=meminfo interval=1000000 offset=0
+        EOF
+        cat > agg-4.3.3.conf << EOF
+        prdcr_add name=samp type=active host=localhost port=10000 xprt=sock interval=1000000
+        prdcr_start name=samp
+        updtr_add name=updtr interval=1000000 offset=100000
+        updtr_prdcr_add name=updtr regex=.*
+        updtr_start name=updtr
+        EOF
+        cat > agg-4.conf << EOF
+        prdcr_add name=samp type=active host=localhost port=10001 xprt=sock interval=1000000
+        prdcr_start name=samp
+        updtr_add name=updtr interval=1000000 offset=200000
+        updtr_prdcr_add name=updtr regex=.*
+        updtr_start name=updtr
+        EOF
+    - name: compatibility test
+      if: ${{ success() }} # all previous steps are good
+      run: |
+        error() {
+          echo "ERROR:" $@
+          exit -1
+        }
+        ps_state() {
+          _PID=$1
+          if [[ -d /proc/${_PID} ]]; then
+            _STATE=$(cat /proc/${_PID}/stat | cut -f 3 -d ' ')
+            [[ ${_STATE} = "Z" ]] && echo "zombie" || echo "alive"
+          else
+            echo "dead"
+          fi
+        }
+        ps_check() {
+          local _NAME=$1
+          local _PID=$2
+          echo -n "Checking $_NAME ($_PID) ..."
+          local _S=$(ps_state $_PID)
+          echo "$_S"
+          [[ "$_S" = "alive" ]] || error "process $_NAME ($_PID) is not alive"
+        }
+        cd /test
+        # samp
+        echo "starting samp-4.3.3"
+        ./ldmsd-4.3.3.sh -c samp-4.3.3.conf -l logs/samp-4.3.3.log -v INFO -x sock:10000
+        echo "starting Python-based ovis-4 sampler with ldms_list"
+        ./list_samp.sh &
+        sleep 10
+        # agg1
+        echo "starting agg-4.3.3"
+        ./ldmsd-4.3.3.sh -c agg-4.3.3.conf -l logs/agg-4.3.3.log -v INFO -x sock:10001
+        sleep 10
+        # agg2
+        echo "starting agg-4"
+        ./ldmsd-4.sh -c agg-4.conf -l logs/agg-4.log -v INFO -x sock:10002
+        sleep 10
+        # check that they're running
+        SAMP_433_PID=$(pgrep -f samp-4.3.3.conf)
+        AGG_433_PID=$(pgrep -f agg-4.3.3.conf)
+        AGG_4_PID=$(pgrep -f agg-4.conf)
+        LIST_SAMP_4_PID=$(pgrep -f list_samp.py)
+        echo "--- ldmsd's ---"
+        pgrep -a ldmsd
+        echo "---------------"
+        [[ -n "${SAMP_433_PID}" ]] || error "samp-4.3.3 is not running"
+        [[ -n "${AGG_433_PID}" ]] || error "agg-4.3.3 is not running"
+        [[ -n "${AGG_4_PID}" ]] || error "agg-4 is not running"
+        [[ -n "${LIST_SAMP_4_PID}" ]] || error "list_samp.py is not running"
+        # ldms_ls-4 to agg-4.3.3
+        echo -n "ldms_ls agg-4.3.3 ... "
+        D0=$( ./ldms_ls.sh -x sock -p 10001 )
+        echo "result: ${D0}"
+        # ldms_ls-4 to agg-4
+        echo -n "ldms_ls agg-4 ... "
+        D1=$( ./ldms_ls.sh -x sock -p 10002 )
+        echo "result: ${D1}"
+        [[ "${D0}" = "ovis-4.3.3/meminfo" ]] || error "unexpected ldms_ls agg-4.3.3 result"
+        [[ "${D1}" = "ovis-4.3.3/meminfo" ]] || error "unexpected ldms_ls agg-4 result"
+        # ldms_ls-4.3.3 to agg-4
+        echo -n "ldms_ls(4.3.3) agg-4 ... "
+        D2=$( ./ldms_ls-4.3.3.sh -x sock -p 10002 )
+        echo "result: ${D2}"
+        [[ "${D2}" = "ovis-4.3.3/meminfo" ]] || error "unexpected ldms_ls(4.3.3) agg-4 result"
+        # ldms_ls-4 to agg-4.3.3 -l
+        echo -n "ldms_ls -l agg-4.3.3 ... "
+        D0=$( ./ldms_ls.sh -l -x sock -p 10001 | grep MemTotal )
+        echo "${D0}"
+        [[ -n "${D0}" ]] || error "cannot get MemTotal from ldms_ls -l"
+        # ldms_ls-4 to agg-4 -l
+        echo -n "ldms_ls -l agg-4 ... "
+        D1=$( ./ldms_ls.sh -l -x sock -p 10002 | grep MemTotal )
+        echo "${D1}"
+        [[ -n "${D1}" ]] || error "cannot get MemTotal from ldms_ls -l"
+        # ldms_ls-4.3.3 to agg-4 -l
+        echo -n "ldms_ls-4.3.3 -l agg-4 ... "
+        D2=$( ./ldms_ls-4.3.3.sh -l -x sock -p 10002 | grep MemTotal )
+        echo "${D2}"
+        [[ -n "${D2}" ]] || error "cannot get MemTotal from ldms_ls -l"
+        # check if they're the same
+        [[ "${D0}" == "${D1}" ]] || error "agg-4.3.3 MemTotal != agg-4 MemTotal"
+        [[ "${D1}" == "${D2}" ]] || error "ldms_ls-4 MemTotal != ldms_ls-4.3.3 MemTotal"
+        # ldms_ls-4.3.3 to list_samp.py
+        echo -n "ldms_ls-4.3.3 -l ..."
+        ./ldms_ls-4.3.3.sh -x sock -p 10003 -l | tee list.txt
+        RC=$?
+        echo "Checking results ..."
+        [[ ${RC} == 0 ]] || error "ldms_ls-4.3.3 crashed"
+        D3=$( grep "ovis4/list: consistent" list.txt )
+        [[ -n "${D3}" ]] || error "bad ldms_ls result"
+        echo "OK"
+        # kill samp-4.3.3 so that the set disappeared from agg-4.3.3
+        echo "Killing samp-4.3.3"
+        kill ${SAMP_433_PID}
+        sleep 4
+        echo "--- ldmsd's ---"
+        pgrep -a ldmsd
+        echo "---------------"
+        echo "--- ldmsd's ---"
+        ps ax | grep ldmsd
+        echo "---------------"
+        # ldms_ls to agg-4.3.3
+        echo -n "ldms_ls ... "
+        D0=$(./ldms_ls.sh -x sock -p 10001)
+        [[ -z "${D0}" ]] && echo "dir(agg-4.3.3) is empty (good)" || error "ERROR: dir(agg-4.3.3) is not empty"
+        # check aggregators
+        ps_check agg-4.3.3 ${AGG_433_PID}
+        ps_check agg-4 ${AGG_4_PID}
+        # ldms_ls to agg-4
+        echo -n "ldms_ls ... "
+        D1=$(./ldms_ls.sh -x sock -p 10002)
+        [[ -z "${D1}" ]] && echo "dir(agg-4) is empty (good)" || error "ERROR: dir(agg-4) is not empty"
+        kill ${AGG_433_PID}
+        kill ${AGG_4_PID}
+        kill ${LIST_SAMP_4_PID}
+        echo "DONE!"
+       - name: enum compatibility check
+      if: ${{ success() }} # all previous steps are good
+      run: |
+        set -e
+        pushd .github/enum-check
+        for V in 4.3.{3..6}; do
+          ./enumsym.py /root/ovis-ldms-${V}/ -e ovis-${V}-enum.list > /test/${V}.enum
+          ./enumsym.py ../../ -e ovis-${V}-enum.list > /test/HEAD-${V}.enum
+        done
+        for V in 4.3.{3..6}; do
+          diff -u /test/${V}.enum /test/HEAD-${V}.enum > /test/enum-${V}.diff
+        done
+    - uses: actions/upload-artifact@v2
+      if: ${{ always() }}
+      with:
+        path: /test/
