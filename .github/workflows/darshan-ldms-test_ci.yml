@@ -50,7 +50,7 @@ jobs:
           export HDF5_MPI="ON"
           CC=mpicc python -m pip install --no-binary=h5py h5py
     - name: Install darshan-runtime
-        run: |
+      run: |
           export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
           mkdir darshan_install
           export DARSHAN_INSTALL_PATH=$PWD/darshan_install
@@ -62,8 +62,8 @@ jobs:
           CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-jobid-env=NONE --enable-hdf5-mod
           make
           make install
-      - name: Install darshan-util
-        run: |
+    - name: Install darshan-util
+      run: |
           export DARSHAN_INSTALL_PATH=$PWD/darshan_install
           cd darshan-util
           mkdir build
@@ -71,12 +71,12 @@ jobs:
           ../configure --prefix=$DARSHAN_INSTALL_PATH --enable-apxc-mod --enable-apmpi-mod
           make
           make install
-      - name: Install pydarshan
-        run: |
+    - name: Install pydarshan
+      run: |
           cd darshan-util/pydarshan
           python -m pip install .
-      - name: Test with pytest
-        run: |
+    - name: Test with pytest
+      run: |
           export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/darshan_install/lib
           export DARSHAN_INSTALL_PATH=$PWD/darshan_install
           export DARSHAN_ROOT_PATH=$PWD
