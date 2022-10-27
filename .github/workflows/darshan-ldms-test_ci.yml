@@ -22,10 +22,10 @@ name: Compatibility test with OVIS-4.3.3
 on:
   push:
     branches: 
-      - main 
+      - darshan_ldms_Connector
   pull_request:
     branches:
-      - main 
+      - darshan_ldms_Connector
 
 jobs:
   test:
@@ -34,8 +34,9 @@ jobs:
         platform: [ubuntu-latest]
         python-version: ["3.10"]
     runs-on: ${{ matrix.platform }}
+    container:
+        image: ovishpc/ovis-compat-centos7
     steps:
-    - uses: actions/checkout@v3
     - name: Set Up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
@@ -49,40 +50,7 @@ jobs:
           # we need to build h5py with the system HDF5 lib backend
           export HDF5_MPI="ON"
           CC=mpicc python -m pip install --no-binary=h5py h5py
-    - name: Install darshan-runtime
-      run: |
-          export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
-          mkdir darshan_install
-          export DARSHAN_INSTALL_PATH=$PWD/darshan_install
-          git submodule update --init
-          ./prepare.sh
-          cd darshan-runtime
-          mkdir build
-          cd build
-          CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-jobid-env=NONE --enable-hdf5-mod
-          make
-          make install
-    - name: Install darshan-util
-      run: |
-          export DARSHAN_INSTALL_PATH=$PWD/darshan_install
-          cd darshan-util
-          mkdir build
-          cd build
-          ../configure --prefix=$DARSHAN_INSTALL_PATH --enable-apxc-mod --enable-apmpi-mod
-          make
-          make install
-    - name: Install pydarshan
-      run: |
-          cd darshan-util/pydarshan
-          python -m pip install .
-    - name: Test with pytest
-      run: |
-          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/darshan_install/lib
-          export DARSHAN_INSTALL_PATH=$PWD/darshan_install
-          export DARSHAN_ROOT_PATH=$PWD
-          export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so
-          python -m pytest darshan-test/python_runtime_tests.py
-    - name: Install LDMS 
+    - name: Install LDMS
       uses: actions/checkout@v3
       with:
         repository: ovis-hpc/ovis
@@ -94,7 +62,79 @@ jobs:
         set -e
         mkdir -p build
         pushd build
-        ../configure --prefix=/opt/ovis-4 --enable-etc --enable-munge 
+        ../configure --prefix=/opt/ovis-4 --enable-etc --enable-munge
         make
         make install
+    - name: Install darshan-runtime
+      uses: actions/checkout@v3
+      with:
+        repository: Snell1224/darshan
+        path: darshan
+        ref: darshan_ldms_Connector
+      run: |
+          export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
+          mkdir darshan_install
+          export DARSHAN_INSTALL_PATH=$PWD/darshan_install
+          git submodule update --init
+          ./prepare.sh
+          cd darshan-runtime
+          mkdir build
+          cd build
+          CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-4 --with-jobid-env=NONE --enable-hdf5-mod
+          make
+          make install
+    - name: Install darshan-util
+      run: |
+          export DARSHAN_INSTALL_PATH=$PWD/darshan_install
+          cd darshan-util
+          mkdir build
+          cd build
+          ../configure --prefix=$DARSHAN_INSTALL_PATH --enable-apxc-mod --enable-apmpi-mod
+          make
+          make install
+          echo "Checking library location"
+          ls -ltr /opt/ovis-4/
+    - name: Install pydarshan
+      run: |
+          cd darshan-util/pydarshan
+          python -m pip install .
+          #python -m pytest darshan-test/python_runtime_tests.py
+    - name: Test Preparation
+      run : |
+        echo "---setting Darshan environment---"
+        export LD_PRELOAD=/projects/ovis/darshanConnector/stria/darshan/build/install/lib/libdarshan.so
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/darshan_install/lib
+        export DARSHAN_INSTALL_PATH=$PWD/darshan_install
+        export DARSHAN_ROOT_PATH=$PWD
+        export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so
+        export DXT_ENABLE_IO_TRACE=1
+        echo "---setting LDMS environment---"
+        TOP=/opt/ovis-4
+        export LD_LIBRARY_PATH=$TOP/lib/:$TOP/lib:$LD_LIBRARY_PATH
+        export LDMSD_PLUGIN_LIBPATH=$TOP/lib/ovis-ldms
+        export ZAP_LIBPATH=$TOP/lib/ovis-ldms
+        export PATH=$TOP/sbin:$TOP/bin:$PATH
+        export PYTHONPATH=$TOP/lib/python3.6/site-packages
+        echo "---setting Darshan-LDMS environment---"
+        export DARSHAN_LDMS_STREAM=darshanConnector
+        export DARSHAN_LDMS_PORT=10444
+        export DARSHAN_LDMS_HOST=localhost
+        export DARSHAN_LDMS_XPRT=sock
+        export DARSHAN_LDMS_AUTH=none
+        export DXT_ENABLE_LDMS=
+        export STDIO_ENABLE_LDMS=
+        export HDF5_ENABLE_LDMS=
+        echo "---generating configuration file---"
+        cat > stream-samp-4.3.3.conf << EOF
+        load name=hello_sampler
+        config name=hello_sampler producer=host1 instance=host1/hello_sampler stream=darshanConnector component_id=1
+        start name=hello_sampler interval=1000000 offset=0
+        load name=stream_csv_store
+        config name=stream_csv_store path=./streams/store container=csv stream=darshanConnector rolltype=3 rollover=500000
+        EOF
+        echo "---starting ldmsd---"
+        ldmsd -x sock:10444 -c stream-samp-4.3.3.conf -l /tmp/stream-samp-4.3.3.log -v DEBUG
+        ldms_ls -p 10444 -l
+        echo "DONE!"
+       
    
