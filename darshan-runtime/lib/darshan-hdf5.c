@@ -768,7 +768,7 @@ herr_t DARSHAN_DECL(H5Dread)(hid_t dataset_id, hid_t mem_type_id, hid_t mem_spac
                 rec_ref->dataset_rec->fcounters[H5D_F_READ_TIME],
                 tm1, tm2, rec_ref->last_read_end);
 #ifdef HAVE_LDMS
-extern struct darshanConnector dC;
+    extern struct darshanConnector dC;
     /* LDMS to publish runtime h5d tracing information to daemon*/
     if(!dC.hdf5_enable_ldms){
         dC.hdf5_data[0] = rec_ref->dataset_rec->counters[H5D_POINT_SELECTS];
