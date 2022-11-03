@@ -50,27 +50,28 @@ jobs:
           # we need to build h5py with the system HDF5 lib backend
           export HDF5_MPI="ON"
           CC=mpicc python -m pip install --no-binary=h5py h5py
-    - name: Install LDMS
+    - name: Clone LDMS
       uses: actions/checkout@v3
       with:
         repository: ovis-hpc/ovis
         path: ovis
         ref: OVIS-4
-      run: sh autogen.sh
-    - name: build and install
+    - name: Install LDMS
       run: |
+        sh autogen.sh
         set -e
         mkdir -p build
         pushd build
         ../configure --prefix=/opt/ovis-4 --enable-etc --enable-munge
         make
         make install
-    - name: Install darshan-runtime
+    - name: Clone Darshan Repo
       uses: actions/checkout@v3
       with:
         repository: Snell1224/darshan
         path: darshan
         ref: darshan_ldms_Connector
+    - name: Install darshan-runtime
       run: |
           export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
           mkdir darshan_install
