@@ -56,7 +56,7 @@ jobs:
         repository: ovis-hpc/ovis
         path: ovis
         ref: OVIS-4
-    - run: sh autogen.sh
+      run: sh autogen.sh
     - name: build and install
       run: |
         set -e
