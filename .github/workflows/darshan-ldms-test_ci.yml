@@ -63,7 +63,8 @@ jobs:
         set -e
         mkdir -p build
         pushd build
-        ../configure --prefix=/opt/ovis-4 --enable-etc --enable-munge
+        export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native
+        ../configure --prefix=/opt/ovis-4 
         make
         make install
     - name: Clone Darshan Repo
