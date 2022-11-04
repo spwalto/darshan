@@ -85,7 +85,7 @@ jobs:
           cd darshan-runtime
           mkdir build
           cd build
-          CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-4 --with-jobid-env=NONE --enable-hdf5-mod
+          CC=cc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-4 --with-jobid-env=NONE --enable-hdf5-mod
           make
           make install
     - name: Install darshan-util
