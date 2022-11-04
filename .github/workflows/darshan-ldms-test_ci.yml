@@ -77,7 +77,9 @@ jobs:
     - name: Install darshan-runtime
       run: |
           cd darshan
+          git branch -v
           export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
+          ls -ltr /usr/include/hdf5/openmpi/
           mkdir darshan_install
           export DARSHAN_INSTALL_PATH=$PWD/darshan_install
           git submodule update --init
