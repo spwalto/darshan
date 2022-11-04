@@ -56,24 +56,24 @@ jobs:
         repository: ovis-hpc/ovis
         path: ovis
         ref: OVIS-4
-    - name: Install LDMS
-      run: |
-        cd ovis
-        sh autogen.sh
-        set -e
-        mkdir -p build
-        pushd build
-        export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
-        ../configure --prefix=/opt/ovis-4 
-        make
-        make install
-        cd ../
     - name: Clone Darshan Repo
       uses: actions/checkout@v3
       with:
         repository: Snell1224/darshan
         path: darshan
         ref: darshan_ldms_Connector
+    #- name: Install LDMS
+    #  run: |
+    #    cd ovis
+    #    sh autogen.sh
+    #    set -e
+    #    mkdir -p build
+    #    pushd build
+    #    export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
+    #    ../configure --prefix=/opt/ovis-4 
+    #    make
+    #    make install
+    #    cd ../
     - name: Install darshan-runtime
       run: |
           cd darshan
@@ -85,7 +85,7 @@ jobs:
           cd darshan-runtime
           mkdir build
           cd build
-          CC=cc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-4 --with-jobid-env=NONE --enable-hdf5-mod
+          CC=cc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-4 --with-jobid-env=NONE --enable-hdf5-mod --with-hdf5=/usr/include/hdf5/openmpi/
           make
           make install
     - name: Install darshan-util
