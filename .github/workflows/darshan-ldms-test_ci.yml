@@ -58,7 +58,7 @@ jobs:
         ref: OVIS-4
     - name: Install LDMS
       run: |
-        ls -ltr
+        cd ovis
         sh autogen.sh
         set -e
         mkdir -p build
