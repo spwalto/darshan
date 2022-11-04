@@ -34,24 +34,22 @@ jobs:
         platform: [ubuntu-latest]
         python-version: ["3.10"]
     runs-on: ${{ matrix.platform }}
-    container:
-        image: ovishpc/ovis-compat-centos7
+    #container:
+    #    image: ovishpc/ovis-compat-centos7
     steps:
     - name: Set Up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-          ldmsd -x sock:10444 -l /tmp/output.log -v DEBUG
-          ldms_ls -h localhost -p 10444 -v
-          sudo apt-get update -y
-          sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade pytest mpi4py
-          # we need to build h5py with the system HDF5 lib backend
-          export HDF5_MPI="ON"
-          CC=mpicc python -m pip install --no-binary=h5py h5py
+    #- name: Install dependencies
+     # run: |
+     #     sudo apt-get update -y
+     #     sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
+     #     python -m pip install --upgrade pip
+     #     python -m pip install --upgrade pytest mpi4py
+     #     # we need to build h5py with the system HDF5 lib backend
+     #     export HDF5_MPI="ON"
+     #     CC=mpicc python -m pip install --no-binary=h5py h5py
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
@@ -60,6 +58,7 @@ jobs:
         ref: OVIS-4
     - name: Install LDMS
       run: |
+        ls -ltr
         sh autogen.sh
         set -e
         mkdir -p build
