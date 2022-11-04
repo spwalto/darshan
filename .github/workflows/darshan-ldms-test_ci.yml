@@ -79,7 +79,6 @@ jobs:
           cd darshan
           git branch -v
           export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
-          ls -ltr /usr/include/hdf5/openmpi/
           mkdir darshan_install
           export DARSHAN_INSTALL_PATH=$PWD/darshan_install
           git submodule update --init
@@ -88,6 +87,7 @@ jobs:
           mkdir build
           cd build
           CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-4 --with-jobid-env=NONE --enable-hdf5-mod
+          ls -ltr /opt/ovis-4/
           make
           make install
     - name: Install darshan-util
