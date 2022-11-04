@@ -62,19 +62,19 @@ jobs:
         repository: Snell1224/darshan
         path: darshan
         ref: darshan_ldms_Connector
-    #- name: Install LDMS
-    #  run: |
-    #    cd ovis
-    #    sh autogen.sh
-    #    set -e
-    #    mkdir -p build
-    #    pushd build
-    #    export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
-    #    ../configure --prefix=/opt/ovis-4 
-    #    make
-    #    make install
-    #    cd ../
-    - name: Install darshan-runtime
+    - name: Install LDMS
+      run: |
+        cd ovis
+        sh autogen.sh
+        set -e
+        mkdir -p build
+        pushd build
+        export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
+        ../configure --prefix=/opt/ovis-4 
+        make
+        make install
+        cd ../
+    - name: Install darshan-runtime with LDMS
       run: |
           cd darshan
           git branch -v
