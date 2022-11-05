@@ -70,7 +70,7 @@ jobs:
         mkdir -p build
         pushd build
         export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
-        ../configure  
+        sudo ../configure  
         make
         make install
         ls -ltr /opt/ovis
