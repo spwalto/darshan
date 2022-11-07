@@ -54,13 +54,11 @@ jobs:
       uses: actions/checkout@v3
       with:
         repository: ovis-hpc/ovis
-        path: ovis
         ref: OVIS-4
     - name: Clone Darshan Repo
       uses: actions/checkout@v3
       with:
         repository: Snell1224/darshan
-        path: darshan
         ref: darshan_ldms_Connector
     - name: Install LDMS
       run: |
