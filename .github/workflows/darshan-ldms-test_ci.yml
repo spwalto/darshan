@@ -19,13 +19,13 @@
 
 name: Compatibility test with OVIS-4.3.3
 
-#on:
-#  push:
-#    branches: 
-#      - darshan_ldms_Connector
-#  pull_request:
-#    branches:
-#      - darshan_ldms_Connector
+on:
+  push:
+    branches: 
+      - darshan_ldms_Connector
+  pull_request:
+    branches:
+      - darshan_ldms_Connector
 
 jobs:
   test:
@@ -64,6 +64,7 @@ jobs:
     #    ref: darshan_ldms_Connector
     - name: Install LDMS
       run: |
+        export HOME=/home/
         pwd
         cd ovis
         sh autogen.sh
