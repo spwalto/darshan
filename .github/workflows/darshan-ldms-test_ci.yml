@@ -19,13 +19,13 @@
 
 name: Compatibility test with OVIS-4.3.3
 
-on:
-  push:
-    branches: 
-      - darshan_ldms_Connector
-  pull_request:
-    branches:
-      - darshan_ldms_Connector
+#on:
+#  push:
+#    branches: 
+#      - darshan_ldms_Connector
+#  pull_request:
+#    branches:
+#      - darshan_ldms_Connector
 
 jobs:
   test:
@@ -70,7 +70,7 @@ jobs:
         set -e
         mkdir -p build
         pushd build
-        export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
+        #export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
         sudo ../configure --prefix=/opt/ovis-4/  
         make
         make install
