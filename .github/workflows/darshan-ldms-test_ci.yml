@@ -64,15 +64,14 @@ jobs:
     #    ref: darshan_ldms_Connector
     - name: Install LDMS
       run: |
-        export HOME=/home/
         pwd
         cd ovis
         sh autogen.sh
         set -e
         mkdir -p build
         pushd build
-        #export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
-        sudo ../configure --prefix=/opt/ovis-4/  
+        export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
+        ../configure --prefix=/opt/ovis-4/  
         make
         make install
         ls -ltr /opt/ovis-4
