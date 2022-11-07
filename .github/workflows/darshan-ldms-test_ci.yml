@@ -41,31 +41,30 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-    #- name: Install dependencies
-    #  run: |
-    #      sudo apt-get update -y
-    #      sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
-    #      python -m pip install --upgrade pip
-    #      python -m pip install --upgrade pytest mpi4py
-    #      # we need to build h5py with the system HDF5 lib backend
-    #      export HDF5_MPI="ON"
-    #      CC=mpicc python -m pip install --no-binary=h5py h5py
+    - name: Install dependencies
+      run: |
+          sudo apt-get update -y
+          sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade pytest mpi4py
+          # we need to build h5py with the system HDF5 lib backend
+          export HDF5_MPI="ON"
+          CC=mpicc python -m pip install --no-binary=h5py h5py
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
         repository: ovis-hpc/ovis
-        path: ovis
+        path: /home/ovis
         ref: OVIS-4
-    #- name: Clone Darshan Repo
-    #  uses: actions/checkout@v3
-    #  with:
-    #    repository: Snell1224/darshan
-    #    path: darshan
-    #    ref: darshan_ldms_Connector
+    - name: Clone Darshan Repo
+      uses: actions/checkout@v3
+      with:
+        repository: Snell1224/darshan
+        path: /home/darshan
+        ref: darshan_ldms_Connector
     - name: Install LDMS
       run: |
-        pwd
-        cd ovis
+        cd /home/ovis
         sh autogen.sh
         set -e
         mkdir -p build
@@ -92,6 +91,7 @@ jobs:
         CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-4 --with-jobid-env=NONE --enable-hdf5-mod
         make
         make install
+        cd ../
     - name: Install darshan-util
       run: |
         export DARSHAN_INSTALL_PATH=$PWD/darshan_install
@@ -144,6 +144,11 @@ jobs:
         echo "---starting ldmsd---"
         ldmsd -x sock:10444 -c stream-samp-4.3.3.conf -l /tmp/stream-samp-4.3.3.log -v DEBUG
         ldms_ls -p 10444 -l
+        echo "---Running Darshan Test Case---"
+        pwd
+        sh darshan/darshan-test/regression/run-all.sh $DARSHAN_INSTALL_PATH /tmp/darshan-ldms-test ws
+        echo "---Checking Output---"
+        ls -ltr /tmp/stream-samp-4.3.3.log
         echo "DONE!"
        
    
