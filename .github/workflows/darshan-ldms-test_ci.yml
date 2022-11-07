@@ -97,6 +97,7 @@ jobs:
         cd ../
     - name: Install darshan-util
       run: |
+        pwd
         export DARSHAN_INSTALL_PATH=$PWD/darshan_install
         cd darshan-util
         mkdir build
@@ -104,8 +105,7 @@ jobs:
         ../configure --prefix=$DARSHAN_INSTALL_PATH --enable-apxc-mod --enable-apmpi-mod
         make
         make install
-        echo "Checking library location"
-        ls -ltr /opt/ovis-4/
+        pwd
     - name: Install pydarshan
       run: |
         cd darshan-util/pydarshan
