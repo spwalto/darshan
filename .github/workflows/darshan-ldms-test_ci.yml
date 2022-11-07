@@ -97,6 +97,7 @@ jobs:
     - name: Install darshan-util
       run: |
         pwd
+        ls -ltr
         export DARSHAN_INSTALL_PATH=$PWD/darshan_install
         cd darshan-util
         mkdir build
