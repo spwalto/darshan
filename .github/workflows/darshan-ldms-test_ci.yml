@@ -108,7 +108,9 @@ jobs:
         pwd
     - name: Install pydarshan
       run: |
-        cd darshan-util/pydarshan
+        ls -ltr
+        pwd
+        cd darshan/darshan-util/pydarshan
         python -m pip install .
         #python -m pytest darshan-test/python_runtime_tests.py
     - name: Test Preparation
