@@ -99,7 +99,7 @@ jobs:
         pwd
         ls -ltr
         export DARSHAN_INSTALL_PATH=$PWD/darshan_install
-        cd darshan-util
+        cd darshan/darshan-util
         mkdir build
         cd build
         ../configure --prefix=$DARSHAN_INSTALL_PATH --enable-apxc-mod --enable-apmpi-mod
