@@ -159,7 +159,7 @@ jobs:
         mkdir $DARSHAN_TMP
         ls -ltr $DARSHAN_TMP
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
-        srun $DARSHAN_TMP/${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
+        sh $DARSHAN_TMP/${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
         $DARSHAN_INSTALL_PATH/bin/darshan-parser $DARSHAN_LOGFILE > $DARSHAN_TMP/${PROG}.darshan.txt
     - name: Check Results
       run: |
