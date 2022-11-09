@@ -151,12 +151,13 @@ jobs:
     - name: Run Test Case 
       run: |  
         pwd
-        export DARSHAN_TMP=/tmp/darshan-ldms-test
+        export DARSHAN_TMP=tmp/darshan-ldms-test
         export DARSHAN_PLATFORM=cray-module-stria
         export DARSHAN_TESTDIR=$PWD/darshan/darshan-test/regression
         export PROG=mpi-io-test
         export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.darshan
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
+        ls -ltr $DARHSNA_TMP
         srun $DARSHAN_TMP/${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
         $DARSHAN_INSTALL_PATH/bin/darshan-parser $DARSHAN_LOGFILE > $DARSHAN_TMP/${PROG}.darshan.txt
     - name: Check Results
