@@ -151,7 +151,8 @@ jobs:
     - name: Run Test Case 
       run: |  
         pwd
-        sh darshan/darshan-test/regression/run-all.sh $DARSHAN_INSTALL_PATH /tmp/darshan-ldms-test cray-module-nersc
+        cd darshan/darshan-test/regression
+        ./run-all.sh $DARSHAN_INSTALL_PATH /tmp/darshan-ldms-test cray-module-nersc
         echo "---Checking Output---"
         ls -ltr /tmp/stream-samp-4.3.3.log
         echo "DONE!"
