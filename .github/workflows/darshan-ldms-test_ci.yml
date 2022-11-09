@@ -145,8 +145,8 @@ jobs:
         EOF
         echo "---starting ldmsd---"
         ldmsd -x sock:10444 -c stream-samp-4.3.3.conf -l /tmp/stream-samp-4.3.3.log -v DEBUG
-        ldms_ls -p 10444 -v
         cat /tmp/stream-samp-4.3.3.log
+        ldms_ls -p 10444 -h localhost -v
     - name: Run Test Case 
       run: |  
         pwd
