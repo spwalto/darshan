@@ -151,10 +151,21 @@ jobs:
     - name: Run Test Case 
       run: |  
         pwd
-        cd darshan/darshan-test/regression
-        ./run-all.sh $DARSHAN_INSTALL_PATH /tmp/darshan-ldms-test cray-module-nersc
+        export DARSHAN_TMP=/tmp/darshan-ldms-test
+        export DARSHAN_PLATFORM=cray-module-stria
+        export DARSHAN_TESTDIR=$PWD/darshan/darshan-test/regression
+        export PROG=mpi-io-test
+        export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.darshan
+        cc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
+        srun $DARSHAN_TMP/${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
+        $DARSHAN_INSTALL_PATH/bin/darshan-parser $DARSHAN_LOGFILE > $DARSHAN_TMP/${PROG}.darshan.txt
+    - name: Check Results
+      run: |
         echo "---Checking Output---"
         ls -ltr /tmp/stream-samp-4.3.3.log
+        cat -ltr /tmp/stream-samp-4.3.3.log
+        ls -ltr streams/store/
+        ls -ltr $DARSHAN_TMP
         echo "DONE!"
        
    
