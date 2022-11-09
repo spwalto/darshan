@@ -149,6 +149,7 @@ jobs:
         ldmsd -x sock:10444 -c stream-samp-4.3.3.conf -l /tmp/stream-samp-4.3.3.log -v DEBUG
         ldms_ls -p 10444 -l
     - name: Run Test Case 
+      run: |  
         pwd
         sh darshan/darshan-test/regression/run-all.sh $DARSHAN_INSTALL_PATH /tmp/darshan-ldms-test cray-module-nersc
         echo "---Checking Output---"
