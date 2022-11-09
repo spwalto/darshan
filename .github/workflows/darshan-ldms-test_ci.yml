@@ -64,8 +64,6 @@ jobs:
         ref: darshan_ldms_Connector
     - name: Install LDMS
       run: |
-        pwd
-        ls -ltr
         cd ovis
         sh autogen.sh
         set -e
@@ -75,8 +73,8 @@ jobs:
         ../configure --prefix=/opt/ovis-4/  
         make
         make install
-        ls -ltr /opt/ovis-4
-        cd ../
+        #ls -ltr /opt/ovis-4
+        #cd ../
     - name: Install darshan-runtime
       run: |
         cd darshan
@@ -153,13 +151,14 @@ jobs:
       run: |  
         pwd
         export DARSHAN_INSTALL_PATH=/opt/darshan_install
-        export DARSHAN_TMP=tmp/darshan-ldms-test
+        export DARSHAN_TMP=/tmp/darshan-ldms-test
         export DARSHAN_PLATFORM=cray-module-stria
         export DARSHAN_TESTDIR=$PWD/darshan/darshan-test/regression
         export PROG=mpi-io-test
         export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.darshan
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
-        ls -ltr $DARHSNA_TMP
+        mkdir $DARSHAN_TMP
+        ls -ltr $DARSHAN_TMP
         srun $DARSHAN_TMP/${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
         $DARSHAN_INSTALL_PATH/bin/darshan-parser $DARSHAN_LOGFILE > $DARSHAN_TMP/${PROG}.darshan.txt
     - name: Check Results
