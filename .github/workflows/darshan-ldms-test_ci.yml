@@ -116,6 +116,7 @@ jobs:
       run : |
         echo "---setting Darshan environment---"
         export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
+        ls -ltr $DARSHAN_INSTALL_PATH/lib/
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
         export DARSHAN_INSTALL_PATH=$DARSHAN_INSTALL_PATH
         export DARSHAN_ROOT_PATH=$PWD
@@ -147,11 +148,12 @@ jobs:
         EOF
         echo "---starting ldmsd---"
         ldmsd -x sock:10444 -c stream-samp-4.3.3.conf -l /tmp/stream-samp-4.3.3.log -v DEBUG
-        ldms_ls -p 10444 -l
+        ldms_ls -p 10444 -v
+        cat /tmp/stream-samp-4.3.3.log
     - name: Run Test Case 
       run: |  
         pwd
-        export DARSHAN_TMP=tmp/darshan-ldms-test
+        export DARSHAN_TMP=/tmp/darshan-ldms-test
         export DARSHAN_PLATFORM=cray-module-stria
         export DARSHAN_TESTDIR=$PWD/darshan/darshan-test/regression
         export PROG=mpi-io-test
