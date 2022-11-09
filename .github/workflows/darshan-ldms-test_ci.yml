@@ -148,9 +148,9 @@ jobs:
         echo "---starting ldmsd---"
         ldmsd -x sock:10444 -c stream-samp-4.3.3.conf -l /tmp/stream-samp-4.3.3.log -v DEBUG
         ldms_ls -p 10444 -l
-        echo "---Running Darshan Test Case---"
+    - name: Run Test Case 
         pwd
-        sh darshan/darshan-test/regression/run-all.sh $DARSHAN_INSTALL_PATH /tmp/darshan-ldms-test ws
+        sh darshan/darshan-test/regression/run-all.sh $DARSHAN_INSTALL_PATH /tmp/darshan-ldms-test cray-module-nersc
         echo "---Checking Output---"
         ls -ltr /tmp/stream-samp-4.3.3.log
         echo "DONE!"
