@@ -83,7 +83,7 @@ jobs:
         git branch -v
         export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
         mkdir darshan_install
-        export DARSHAN_INSTALL_PATH=$PWD/darshan_install
+        export DARSHAN_INSTALL_PATH=/opt/darshan_install
         git submodule update --init
         ./prepare.sh
         cd darshan-runtime
@@ -95,7 +95,7 @@ jobs:
         make install
     - name: Install darshan-util
       run: |
-        export DARSHAN_INSTALL_PATH=$PWD/darshan_install
+        export DARSHAN_INSTALL_PATH=/opt/darshan_install
         cd darshan/darshan-util
         mkdir build
         cd build
@@ -110,6 +110,8 @@ jobs:
     - name: Test Preparation
       run : |
         echo "---setting Darshan environment---"
+        echo $DARSHAN_INSTALL_PATH
+        export DARSHAN_INSTALL_PATH=/opt/darshan_install
         echo $DARSHAN_INSTALL_PATH
         ls -ltr $DARSHAN_INSTALL_PATH
         ls -ltr $DARSHAN_INSTALL_PATH/lib/
@@ -150,7 +152,8 @@ jobs:
     - name: Run Test Case 
       run: |  
         pwd
-        export DARSHAN_TMP=/tmp/darshan-ldms-test
+        export DARSHAN_INSTALL_PATH=/opt/darshan_install
+        export DARSHAN_TMP=tmp/darshan-ldms-test
         export DARSHAN_PLATFORM=cray-module-stria
         export DARSHAN_TESTDIR=$PWD/darshan/darshan-test/regression
         export PROG=mpi-io-test
