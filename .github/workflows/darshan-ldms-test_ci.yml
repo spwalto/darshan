@@ -157,9 +157,10 @@ jobs:
         export PROG=mpi-io-test
         export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.darshan
         mkdir $DARSHAN_TMP
-        ls -ltr $DARSHAN_TMP
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
-        sh $DARSHAN_TMP/${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
+        ls -ltr $DARSHAN_TMP
+        cd $DARSHAN_TMP
+        ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
         $DARSHAN_INSTALL_PATH/bin/darshan-parser $DARSHAN_LOGFILE > $DARSHAN_TMP/${PROG}.darshan.txt
     - name: Check Results
       run: |
