@@ -77,7 +77,7 @@ jobs:
         make install
         ls -ltr /opt/ovis-4
         cd ../
-    - name: Install darshan-runtime with LDMS
+    - name: Install darshan-runtime
       run: |
         cd darshan
         git branch -v
@@ -95,8 +95,6 @@ jobs:
         make install
     - name: Install darshan-util
       run: |
-        pwd
-        ls -ltr
         export DARSHAN_INSTALL_PATH=$PWD/darshan_install
         cd darshan/darshan-util
         mkdir build
@@ -104,19 +102,18 @@ jobs:
         ../configure --prefix=$DARSHAN_INSTALL_PATH --enable-apxc-mod --enable-apmpi-mod
         make
         make install
-        pwd
-    - name: Install pydarshan
-      run: |
-        ls -ltr
-        pwd
-        cd darshan/darshan-util/pydarshan
-        python -m pip install .
+    #- name: Install pydarshan
+    #  run: |
+    #    cd darshan/darshan-util/pydarshan
+    #    python -m pip install .
         #python -m pytest darshan-test/python_runtime_tests.py
     - name: Test Preparation
       run : |
         echo "---setting Darshan environment---"
-        export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
+        echo $DARSHAN_INSTALL_PATH
+        ls -ltr $DARSHAN_INSTALL_PATH
         ls -ltr $DARSHAN_INSTALL_PATH/lib/
+        export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
         export DARSHAN_INSTALL_PATH=$DARSHAN_INSTALL_PATH
         export DARSHAN_ROOT_PATH=$PWD
