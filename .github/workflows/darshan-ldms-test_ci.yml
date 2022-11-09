@@ -64,7 +64,6 @@ jobs:
         ref: darshan_ldms_Connector
     - name: Install LDMS
       run: |
-        echo $GITHUB_WORKSPACE
         pwd
         ls -ltr
         cd ovis
@@ -116,9 +115,9 @@ jobs:
     - name: Test Preparation
       run : |
         echo "---setting Darshan environment---"
-        export LD_PRELOAD=/projects/ovis/darshanConnector/stria/darshan/build/install/lib/libdarshan.so
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/darshan_install/lib
-        export DARSHAN_INSTALL_PATH=$PWD/darshan_install
+        export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
+        export DARSHAN_INSTALL_PATH=$DARSHAN_INSTALL_PATH
         export DARSHAN_ROOT_PATH=$PWD
         export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so
         export DXT_ENABLE_IO_TRACE=1
