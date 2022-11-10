@@ -1,22 +1,11 @@
 # Test overview:
-#    1 sampler (v4.3.3, named samp-4.3.3)
-#       |
-#       V
-#    L1 agg (v4.3.3, named agg-4.3.3)
-#       |
-#       V
-#    L2 agg (OVIS-4, named agg-4)
+# Test the Darshan LDMS Integrated code (e.g. darshanConnector). 
+# Build and Compile lastest LDMS release
+# Build and Compile Darshan against the latest LDMS library
+# Run an MPI-IO Test from Darshan's test suites
+# Check that the test completes normally and LDMS is collecting runtime timeseries data
+# Check that the test completes with Darshan when LDMS variables are not set
 #
-# Scenario
-# - samp-4.3.3 started (1 set: meminfo)
-# - agg-4.3.3 started, collecting sets from samp-4.3.3
-# - agg-4 started, collecting sets from agg-4.3.3
-# - ldms_ls to agg-4.3.3 & verify that it is not empty
-# - ldms_ls to agg-4 & verify that it is the same as agg-4.3.3
-# - kill samp-4.3.3
-# - ldms_ls to agg-4.3.3 & verify that dir result is empty
-# - ldms_ls to agg-4 & verify that dir result is empty
-
 name: Compatibility test with OVIS-4.3.3
 
 on:
@@ -98,7 +87,7 @@ jobs:
       run : |
         echo "---setting Darshan environment---"
         export DARSHAN_INSTALL_PATH=/opt/darshan_install
-        export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
+        export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so:/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
         export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so
         export DXT_ENABLE_IO_TRACE=1
@@ -118,7 +107,7 @@ jobs:
         export DXT_ENABLE_LDMS=
         export STDIO_ENABLE_LDMS=
         export HDF5_ENABLE_LDMS=
-        echo "---Setting Test Case Variables---"
+        echo "---setting Test Case Variables---"
         export PROG=hdf5-test
         export DARSHAN_TMP=/tmp/darshan-ldms-test
         export DARSHAN_PLATFORM=cray-module-stria
@@ -132,11 +121,10 @@ jobs:
         load name=stream_csv_store
         config name=stream_csv_store path=./streams/store container=csv stream=darshanConnector rolltype=3 rollover=500000
         EOF
-        echo "---Starting ldmsd---"
+        echo "---starting ldmsd---"
         ldmsd -x sock:10444 -c stream-samp-4.3.3.conf -l /tmp/stream-samp-4.3.3.log -v DEBUG
-        cat /tmp/stream-samp-4.3.3.log
         ldms_ls -p 10444 -h localhost -v
-        echo "---Checking TMP Path---"
+        echo "---checking TMP Path---"
         if [ ! -d $DARSHAN_TMP ]; then
                 mkdir -p $DARSHAN_TMP
         fi
