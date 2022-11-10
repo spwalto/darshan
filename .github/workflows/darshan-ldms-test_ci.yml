@@ -85,7 +85,6 @@ jobs:
         git submodule update --init
         ./prepare.sh
         cd darshan-runtime
-        pwd
         mkdir build
         cd build
         CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-4 --with-jobid-env=NONE --enable-hdf5-mod
@@ -164,7 +163,7 @@ jobs:
       run: |
         echo "---Checking Output---"
         ls -ltr /tmp/stream-samp-4.3.3.log
-        cat -ltr /tmp/stream-samp-4.3.3.log
+        cat /tmp/stream-samp-4.3.3.log
         ls -ltr streams/store/
         ls -ltr $DARSHAN_TMP
         echo "DONE!"
