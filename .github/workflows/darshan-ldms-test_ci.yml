@@ -147,9 +147,7 @@ jobs:
         ldmsd -x sock:10444 -c stream-samp-4.3.3.conf -l /tmp/stream-samp-4.3.3.log -v DEBUG
         cat /tmp/stream-samp-4.3.3.log
         ldms_ls -p 10444 -h localhost -v
-    - name: Run Test Case 
-      run: |  
-        pwd
+        echo "---Running Test Case---" 
         export DARSHAN_INSTALL_PATH=/opt/darshan_install
         export DARSHAN_TMP=/tmp/darshan-ldms-test
         export DARSHAN_PLATFORM=cray-module-stria
