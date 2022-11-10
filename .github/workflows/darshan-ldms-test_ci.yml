@@ -46,7 +46,7 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
           python -m pip install --upgrade pip
-          python -m pip install --upgrade pytest mpi4py
+          #python -m pip install --upgrade pytest mpi4py
           # we need to build h5py with the system HDF5 lib backend
           export HDF5_MPI="ON"
           CC=mpicc python -m pip install --no-binary=h5py h5py
@@ -71,15 +71,14 @@ jobs:
         pushd build
         export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
         ../configure --prefix=/opt/ovis-4/  
-        make
+        make 
         make install
-        #ls -ltr /opt/ovis-4
-        #cd ../
     - name: Install darshan-runtime
       run: |
         cd darshan
         git branch -v
         export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
+        ls -ltr /usr/include/hdf5/openmpi/
         mkdir darshan_install
         export DARSHAN_INSTALL_PATH=/opt/darshan_install
         git submodule update --init
@@ -99,11 +98,6 @@ jobs:
         ../configure --prefix=$DARSHAN_INSTALL_PATH --enable-apxc-mod --enable-apmpi-mod
         make
         make install
-    #- name: Install pydarshan
-    #  run: |
-    #    cd darshan/darshan-util/pydarshan
-    #    python -m pip install .
-        #python -m pytest darshan-test/python_runtime_tests.py
     - name: Test Preparation and Run
       run : |
         echo "---setting Darshan environment---"
