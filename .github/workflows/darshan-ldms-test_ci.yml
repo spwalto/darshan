@@ -100,7 +100,7 @@ jobs:
         export DARSHAN_INSTALL_PATH=/opt/darshan_install
         export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
-        #export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so
+        export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so
         export DXT_ENABLE_IO_TRACE=1
         echo "---setting LDMS environment---"
         TOP=/opt/ovis-4
