@@ -46,7 +46,6 @@ jobs:
           #sudo apt-get update -y
           sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
           #python -m pip install --upgrade pip
-          #python -m pip install --upgrade pytest mpi4py
           # we need to build h5py with the system HDF5 lib backend
           export HDF5_MPI="ON"
           CC=mpicc python -m pip install --no-binary=h5py h5py
@@ -76,10 +75,7 @@ jobs:
     - name: Install darshan-runtime
       run: |
         cd darshan
-        git branch -v
         export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
-        ls -ltr /usr/include/hdf5/openmpi/
-        #mkdir darshan_install
         export DARSHAN_INSTALL_PATH=/opt/darshan_install
         git submodule update --init
         ./prepare.sh
@@ -104,7 +100,6 @@ jobs:
         export DARSHAN_INSTALL_PATH=/opt/darshan_install
         export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
-        export DARSHAN_INSTALL_PATH=$DARSHAN_INSTALL_PATH
         #export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so
         export DXT_ENABLE_IO_TRACE=1
         echo "---setting LDMS environment---"
@@ -123,6 +118,12 @@ jobs:
         export DXT_ENABLE_LDMS=
         export STDIO_ENABLE_LDMS=
         export HDF5_ENABLE_LDMS=
+        echo "---Setting Test Case Variables---"
+        export PROG=hdf5-test
+        export DARSHAN_TMP=/tmp/darshan-ldms-test
+        export DARSHAN_PLATFORM=cray-module-stria
+        export DARSHAN_TESTDIR=$PWD/darshan/darshan-test/regression
+        export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.darshan
         echo "---generating ldmsd configuration file---"
         cat > stream-samp-4.3.3.conf << EOF
         load name=hello_sampler
@@ -135,18 +136,7 @@ jobs:
         ldmsd -x sock:10444 -c stream-samp-4.3.3.conf -l /tmp/stream-samp-4.3.3.log -v DEBUG
         cat /tmp/stream-samp-4.3.3.log
         ldms_ls -p 10444 -h localhost -v
-        echo "---Setting Test Case Variables---" 
-        export PROG=mpi-io-test
-        export DARSHAN_INSTALL_PATH=/opt/darshan_install
-        export DARSHAN_TMP=/tmp/darshan-ldms-test
-        export DARSHAN_PLATFORM=cray-module-stria
-        export DARSHAN_TESTDIR=$PWD/darshan/darshan-test/regression
-        export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.darshan
         echo "---Checking TMP Path---"
-        if [ ! -x $DARSHAN_INSTALL_PATH/bin/darshan-dxt-parser ]; then
-                echo "Error: $DARSHAN_PATH doesn't contain a valid Darshan install." 1>&2
-                exit 1
-        fi
         if [ ! -d $DARSHAN_TMP ]; then
                 mkdir -p $DARSHAN_TMP
         fi
@@ -158,10 +148,15 @@ jobs:
                 echo "Error: unable to write to $DARSHAN_TMP" 1>&2
                 exit 1
         fi
+        echo "---Running Test Case---"
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         cd $DARSHAN_TMP
         ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
-        echo "---Parse Darshan file---"
+        echo "---Generate Darshan Log Files---"
+        if [ ! -x $DARSHAN_INSTALL_PATH/bin/darshan-dxt-parser ]; then
+                echo "Error: $DARSHAN_PATH doesn't contain a valid Darshan install." 1>&2
+                exit 1
+        fi
         $DARSHAN_INSTALL_PATH/bin/darshan-parser --all $DARSHAN_LOGFILE > $DARSHAN_TMP/${PROG}.darshan.txt
         if [ $? -ne 0 ]; then
                 echo "Error: failed to parse ${DARSHAN_LOGFILE}" 1>&2
@@ -177,16 +172,16 @@ jobs:
         echo "---Checking Results---"
         export DARSHAN_TMP=/tmp/darshan-ldms-test
         export PROG=mpi-io-test
-        ls -ltr /tmp/stream-samp-4.3.3.log
-        ls -ltr streams/store/csv/
-        cat /tmp/stream-samp-4.3.3.log
-        ls -ltr csv/
         if [[ ! -f "$DARSHAN_TMP/${PROG}.darshan.txt" || ! -f "$DARSHAN_TMP/${PROG}-dxt.darshan.txt" ]]; then
                 echo "One of the darshan log files do not exist."
                 exit 1
         fi
-        if [[ ! -f "streams/store/csv/darshanConnector*" ]]; then
+        if [[ ! -f "streams/store/csv/darshanConnector.*" ]]; then
                 echo "CSV file does not exist."
+                cat /tmp/stream-samp-4.3.3.log
                 exit 1
+        else
+                ls -ltr streams/store/csv/
+                cat streams/store/csv/darshanConnector.*
         fi        
         echo "DONE!"
