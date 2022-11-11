@@ -34,7 +34,6 @@ jobs:
       run: |
           #sudo apt-get update -y
           sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
-          #python -m pip install --upgrade pip
           # we need to build h5py with the system HDF5 lib backend
           export HDF5_MPI="ON"
           CC=mpicc python -m pip install --no-binary=h5py h5py
@@ -124,7 +123,11 @@ jobs:
         EOF
         echo "---starting ldmsd---"
         ldmsd -x sock:10444 -c stream-samp-4.3.3.conf -l /tmp/stream-samp-4.3.3.log -v DEBUG
-        ldms_ls -p 10444 -h localhost -v
+        # check it is running
+        STREAM_SAMP_433_PID=$(pgrep -f stream-samp-4.3.3.conf)
+        pgrep -a ldmsd
+        echo "--------------"
+        [[ -n "${STREAM_SAMP_433_PID}" ]] || error "stream-samp-4.3.3.log is not running"
         echo "---checking TMP Path---"
         if [ ! -d $DARSHAN_TMP ]; then
                 mkdir -p $DARSHAN_TMP
@@ -178,10 +181,11 @@ jobs:
         export STDIO_ENABLE_LDMS=
         export HDF5_ENABLE_LDMS=
         export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}-no-ldms-daemon.darshan
-        killall ldmsd
+        echo "killing the daemon"
+        kill ${STREAM_SAMP_433_PID}
         ps auwx | grep ldmsd | grep -v grep
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
-        #./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
+        ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
     - name: Check Results
       run: |
         export DARSHAN_TMP=/tmp/darshan-ldms-test
