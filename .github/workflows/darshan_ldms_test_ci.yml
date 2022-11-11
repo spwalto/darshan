@@ -32,7 +32,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-          #sudo apt-get update -y
           sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
           # we need to build h5py with the system HDF5 lib backend
           export HDF5_MPI="ON"
@@ -89,7 +88,7 @@ jobs:
         export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
         export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
-        export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so
+        #export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so
         export DXT_ENABLE_IO_TRACE=1
         echo "---setting LDMS environment---"
         TOP=/opt/ovis-4
@@ -113,6 +112,18 @@ jobs:
         export DARSHAN_PLATFORM=cray-module-stria
         export DARSHAN_TESTDIR=$PWD/darshan/darshan-test/regression
         export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.darshan
+        echo "---checking TMP Path---"
+        if [ ! -d $DARSHAN_TMP ]; then
+                mkdir -p $DARSHAN_TMP
+        fi
+        if [ ! -d $DARSHAN_TMP ]; then
+                echo "Error: unable to find or create $DARSHAN_TMP" 1>&2
+                exit 1
+        fi
+        if [ ! -w $DARSHAN_TMP ]; then
+                echo "Error: unable to write to $DARSHAN_TMP" 1>&2
+                exit 1
+        fi
         echo "---generating ldmsd configuration file---"
         cat > stream-samp-4.3.3.conf << EOF
         load name=hello_sampler
@@ -126,25 +137,39 @@ jobs:
         # check it is running
         STREAM_SAMP_433_PID=$(pgrep -f stream-samp-4.3.3.conf)
         pgrep -a ldmsd
-        echo "--------------"
         [[ -n "${STREAM_SAMP_433_PID}" ]] || error "stream-samp-4.3.3.log is not running"
-        echo "---checking TMP Path---"
-        if [ ! -d $DARSHAN_TMP ]; then
-                mkdir -p $DARSHAN_TMP
-        fi
-        if [ ! -d $DARSHAN_TMP ]; then
-                echo "Error: unable to find or create $DARSHAN_TMP" 1>&2
-                exit 1
-        fi
-        if [ ! -w $DARSHAN_TMP ]; then
-                echo "Error: unable to write to $DARSHAN_TMP" 1>&2
-                exit 1
-        fi
         echo "---Running Test Case---"
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         cd $DARSHAN_TMP
         ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
-        echo "---Generate Darshan Log Files---"
+        echo "---Running Test Case Without LDMS---"
+        unset DARSHAN_LDMS_STREAM
+        unset DARSHAN_LDMS_PORT
+        unset DARSHAN_LDMS_HOST
+        unset DARSHAN_LDMS_XPRT
+        unset DARSHAN_LDMS_AUTH
+        unset DXT_ENABLE_LDMS
+        unset STDIO_ENABLE_LDMS
+        unset HDF5_ENABLE_LDMS
+        export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}-no-ldms-env.darshan
+        mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
+        ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
+        echo "---Running Test Case Without LDMS Streams daemon---"
+        export DARSHAN_LDMS_STREAM=darshanConnector
+        export DARSHAN_LDMS_PORT=10444
+        export DARSHAN_LDMS_HOST=localhost
+        export DARSHAN_LDMS_XPRT=sock
+        export DARSHAN_LDMS_AUTH=none
+        export DXT_ENABLE_LDMS=
+        export STDIO_ENABLE_LDMS=
+        export HDF5_ENABLE_LDMS=
+        export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}-no-ldms-daemon.darshan
+        echo "killing the daemon"
+        kill ${STREAM_SAMP_433_PID}
+        mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
+        ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
+        echo "---Parse Darshan log file from darshanConnector Run---"
+        export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.darshan
         if [ ! -x $DARSHAN_INSTALL_PATH/bin/darshan-dxt-parser ]; then
                 echo "Error: $DARSHAN_PATH doesn't contain a valid Darshan install." 1>&2
                 exit 1
@@ -159,33 +184,6 @@ jobs:
                 echo "Error: failed to parse ${DARSHAN_LOGFILE} for dxt tracing" 1>&2
         exit 1
         fi
-        echo "---Running Test Case Without LDMS---"
-        unset DARSHAN_LDMS_STREAM
-        unset DARSHAN_LDMS_PORT
-        unset DARSHAN_LDMS_HOST
-        unset DARSHAN_LDMS_XPRT
-        unset DARSHAN_LDMS_AUTH
-        unset DXT_ENABLE_LDMS
-        unset STDIO_ENABLE_LDMS
-        unset HDF5_ENABLE_LDMS
-        export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}-no-ldms-env.darshan
-        mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
-        ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
-        echo "---Running Test Case Without LDMS daemon---"
-        export DARSHAN_LDMS_STREAM=darshanConnector
-        export DARSHAN_LDMS_PORT=10444
-        export DARSHAN_LDMS_HOST=localhost
-        export DARSHAN_LDMS_XPRT=sock
-        export DARSHAN_LDMS_AUTH=none
-        export DXT_ENABLE_LDMS=
-        export STDIO_ENABLE_LDMS=
-        export HDF5_ENABLE_LDMS=
-        export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}-no-ldms-daemon.darshan
-        echo "killing the daemon"
-        echo ${STREAM_SAMP_433_PID}
-        kill ${STREAM_SAMP_433_PID}
-        mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
-        ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
     - name: Check Results
       run: |
         export DARSHAN_TMP=/tmp/darshan-ldms-test
@@ -200,6 +198,7 @@ jobs:
                 cat /tmp/stream-samp-4.3.3.log
                 exit 1
         else
+                ls -ltr streams/store/csv/
                 cat streams/store/csv/darshanConnector.*
         fi        
         echo "DONE!"
