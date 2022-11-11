@@ -181,7 +181,7 @@ jobs:
         killall ldmsd
         ps auwx | grep ldmsd | grep -v grep
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
-        ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
+        #./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
     - name: Check Results
       run: |
         export DARSHAN_TMP=/tmp/darshan-ldms-test
