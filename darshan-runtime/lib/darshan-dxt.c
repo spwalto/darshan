@@ -375,12 +375,12 @@ void darshan_ldms_connector_initialize()
     pthread_mutex_lock(&dC.ln_lock);
     dC.ldms_darsh = setup_connection(env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth);
         if (dC.conn_status != 0) {
-            printf("Error setting up connection: %i -- exiting\n", dC.conn_status);
+            printf("Error setting up connection to LDMS streams daemon: %i -- exiting\n", dC.conn_status);
             pthread_mutex_unlock(&dC.ln_lock);
             return;
         }
         else if (dC.ldms_darsh->disconnected){
-            printf("Error setting up connection -- exiting\n");
+            printf("Disconnected from LDMS streams daemon -- exiting\n");
             pthread_mutex_unlock(&dC.ln_lock);
             return;
         }

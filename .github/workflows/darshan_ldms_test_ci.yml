@@ -6,7 +6,7 @@
 # Check that the test completes normally and LDMS is collecting runtime timeseries data
 # Check that the test completes with Darshan when LDMS variables are not set
 #
-name: Compatibility test with OVIS-4.3.3
+name: Darshan-LDMS Compatibility Test - Latest
 
 on:
   push:
