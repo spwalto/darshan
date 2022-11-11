@@ -109,7 +109,7 @@ jobs:
         export STDIO_ENABLE_LDMS=
         export HDF5_ENABLE_LDMS=
         echo "---setting Test Case Variables---"
-        export PROG=hdf5-test
+        export PROG=mpi-io-test
         export DARSHAN_TMP=/tmp/darshan-ldms-test
         export DARSHAN_PLATFORM=cray-module-stria
         export DARSHAN_TESTDIR=$PWD/darshan/darshan-test/regression
@@ -160,7 +160,7 @@ jobs:
       run: |
         echo "---Checking Results---"
         export DARSHAN_TMP=/tmp/darshan-ldms-test
-        export PROG=hdf5-test
+        export PROG=mpi-io-test
         if [[ ! -f "$DARSHAN_TMP/${PROG}.darshan.txt" || ! -f "$DARSHAN_TMP/${PROG}-dxt.darshan.txt" ]]; then
                 echo "One of the darshan log files do not exist."
                 exit 1
