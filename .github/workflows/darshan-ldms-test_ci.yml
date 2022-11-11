@@ -87,7 +87,8 @@ jobs:
       run : |
         echo "---setting Darshan environment---"
         export DARSHAN_INSTALL_PATH=/opt/darshan_install
-        export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so:/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so
+        export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
+        export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
         export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so
         export DXT_ENABLE_IO_TRACE=1
@@ -159,7 +160,7 @@ jobs:
       run: |
         echo "---Checking Results---"
         export DARSHAN_TMP=/tmp/darshan-ldms-test
-        export PROG=mpi-io-test
+        export PROG=hdf5-test
         if [[ ! -f "$DARSHAN_TMP/${PROG}.darshan.txt" || ! -f "$DARSHAN_TMP/${PROG}-dxt.darshan.txt" ]]; then
                 echo "One of the darshan log files do not exist."
                 exit 1
