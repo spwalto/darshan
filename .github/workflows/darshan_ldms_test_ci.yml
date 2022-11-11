@@ -182,8 +182,8 @@ jobs:
         export HDF5_ENABLE_LDMS=
         export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}-no-ldms-daemon.darshan
         echo "killing the daemon"
+        echo ${STREAM_SAMP_433_PID}
         kill ${STREAM_SAMP_433_PID}
-        ps auwx | grep ldmsd | grep -v grep
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
     - name: Check Results
