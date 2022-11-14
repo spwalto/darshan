@@ -44,7 +44,7 @@ jobs:
         echo "ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi"
         ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi
         pip list
-        pip show hdf5
+        pip show h5py
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
