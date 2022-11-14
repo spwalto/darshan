@@ -152,7 +152,7 @@ jobs:
         pgrep -a ldmsd
         [[ -n "${STREAM_SAMP_433_PID}" ]] || error "stream-samp-4.3.3.log is not running"
         echo "---Running Test Case---"
-        cc -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi/lib -I/usr/lib/x86_64-linux-gnu/hdf5/openmpi/include $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
+        mpicc -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi/lib -I/usr/lib/x86_64-linux-gnu/hdf5/openmpi/include $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         cd $DARSHAN_TMP
         ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
         echo "---Running Test Case Wihout Darshan-LDMS Env Set---"
