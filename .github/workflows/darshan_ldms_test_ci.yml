@@ -38,8 +38,8 @@ jobs:
         export HDF5_MPI="ON"
         sudo apt install python3-pip
         sudo apt-get install -y pkg-config
-        CC=mpicc python -m pip install --no-binary=h5py h5py
         export HDF5_DIR="/usr/include/hdf5/parallel"
+        CC=mpicc python -m pip install --no-binary=h5py h5py
         echo "ls -ltr /usr/include/hdf5/parallel"
         ls -ltr /usr/include/hdf5/parallel
         echo "ls -ltr /usr/include/hdf5/openmpi"
