@@ -99,9 +99,9 @@ jobs:
         export PATH=$PATH:/usr/include/hdf5/openmpi
         export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
         export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
-        export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$HDF5_LIB/lib/pkgconfig
-        export CMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH:/usr/include/hdf5/openmpi/lib
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib:$HDF5_lib/lib
+        export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$HDF5_LIB:/usr/include/hdf5/openmpi
+        export CMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH:/usr/include/hdf5/openmpi
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib:$HDF5_lib:/usr/include/hdf5/openmpi
         export DXT_ENABLE_IO_TRACE=1
         echo "---setting LDMS environment---"
         export LDMS_INSTALL_PATH=/opt/ovis-latest
