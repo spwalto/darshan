@@ -43,8 +43,7 @@ jobs:
         ls -ltr /usr/include/hdf5/openmpi
         echo "ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi"
         ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi
-        ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi/lib
-        ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi/include
+        pip show hdf5
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
