@@ -39,7 +39,11 @@ jobs:
         sudo apt install python3-pip
         sudo apt-get install -y pkg-config
         #CC=mpicc python -m pip install --no-binary=h5py h5py
-        CC=mpicc pip install --no-binary=h5py h5py --enable-shared --enable-parallel
+        h5cc -showconfig
+        export HDF5_DIR="/usr/include/hdf5/parallel"
+        CC=mpicc pip install --no-binary=h5py h5py 
+        echo "ls -ltr /usr/include/hdf5/parallel"
+        ls -ltr /usr/include/hdf5/parallel
         echo "ls -ltr /usr/include/hdf5/openmpi"
         ls -ltr /usr/include/hdf5/openmpi
         ls -ltr /usr/include/hdf5
