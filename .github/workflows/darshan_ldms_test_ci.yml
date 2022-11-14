@@ -36,6 +36,9 @@ jobs:
           # we need to build h5py with the system HDF5 lib backend
           export HDF5_MPI="ON"
           CC=mpicc python -m pip install --no-binary=h5py h5py
+          ls -ltr /usr/include/hdf5/
+          ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi/
+          exit 1
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
@@ -69,6 +72,7 @@ jobs:
         cd darshan-runtime
         mkdir build
         cd build
+        # build darshan against LDMS library
         CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-4 --with-jobid-env=NONE --enable-hdf5-mod
         make
         make install
@@ -107,7 +111,7 @@ jobs:
         export STDIO_ENABLE_LDMS=
         export HDF5_ENABLE_LDMS=
         echo "---setting Test Case Variables---"
-        export PROG=mpi-io-test
+        export PROG=hdf5-test
         export DARSHAN_TMP=/tmp/darshan-ldms-test
         export DARSHAN_PLATFORM=cray-module-stria
         export DARSHAN_TESTDIR=$PWD/darshan/darshan-test/regression
@@ -142,12 +146,13 @@ jobs:
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         cd $DARSHAN_TMP
         ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
-        echo "---Running Test Case Without LDMS---"
+        echo "---Running Test Case Wihout Darshan-LDMS Env Set---"
         unset DARSHAN_LDMS_STREAM
         unset DARSHAN_LDMS_PORT
         unset DARSHAN_LDMS_HOST
         unset DARSHAN_LDMS_XPRT
         unset DARSHAN_LDMS_AUTH
+        # Collect both MPIIO and POSIX
         unset DXT_ENABLE_LDMS
         unset STDIO_ENABLE_LDMS
         unset HDF5_ENABLE_LDMS
