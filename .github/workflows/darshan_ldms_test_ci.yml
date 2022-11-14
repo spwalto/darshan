@@ -36,9 +36,6 @@ jobs:
           # we need to build h5py with the system HDF5 lib backend
           export HDF5_MPI="ON"
           CC=mpicc python -m pip install --no-binary=h5py h5py
-          ls -ltr /usr/include/hdf5/openmpi/
-          ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi/
-          exit 1
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
@@ -91,8 +88,8 @@ jobs:
         export DARSHAN_INSTALL_PATH=/opt/darshan_install
         export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
         export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
-        #export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so
+        export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib:$HDF5_lib
         export DXT_ENABLE_IO_TRACE=1
         echo "---setting LDMS environment---"
         TOP=/opt/ovis-4
@@ -187,7 +184,7 @@ jobs:
         $DARSHAN_INSTALL_PATH/bin/darshan-dxt-parser --show-incomplete $DARSHAN_LOGFILE > $DARSHAN_TMP/${PROG}-dxt.darshan.txt
         if [ $? -ne 0 ]; then
                 echo "Error: failed to parse ${DARSHAN_LOGFILE} for dxt tracing" 1>&2
-        exit 1
+                exit 1
         fi
     - name: Check Results
       run: |
