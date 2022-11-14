@@ -32,10 +32,16 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-          sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
-          # we need to build h5py with the system HDF5 lib backend
-          export HDF5_MPI="ON"
-          CC=mpicc python -m pip install --no-binary=h5py h5py
+        sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
+        # we need to build h5py with the system HDF5 lib backend
+        export HDF5_MPI="ON"
+        CC=mpicc python -m pip install --no-binary=h5py h5py
+        echo "ls -ltr /usr/include/hdf5/openmpi"
+        ls -ltr /usr/include/hdf5/openmpi
+        ls -ltr /usr/include/hdf5
+        echo "ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi"
+        ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi
+        ls -ltr /usr/lib/x86_64-linux-gnu/hdf5
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
@@ -56,26 +62,26 @@ jobs:
         mkdir -p build
         pushd build
         export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
-        ../configure --prefix=/opt/ovis-4/  
+        ../configure --prefix=/opt/ovis-latest  
         make 
         make install
     - name: Install darshan-runtime
       run: |
         cd darshan
         export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
-        export DARSHAN_INSTALL_PATH=/opt/darshan_install
+        export DARSHAN_INSTALL_PATH=/opt/darshan-latest
         git submodule update --init
         ./prepare.sh
         cd darshan-runtime
         mkdir build
         cd build
         # build darshan against LDMS library
-        CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-4 --with-jobid-env=NONE --enable-hdf5-mod
+        CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-latest --with-jobid-env=NONE --enable-hdf5-mod
         make
         make install
     - name: Install darshan-util
       run: |
-        export DARSHAN_INSTALL_PATH=/opt/darshan_install
+        export DARSHAN_INSTALL_PATH=/opt/darshan-latest
         cd darshan/darshan-util
         mkdir build
         cd build
@@ -85,19 +91,20 @@ jobs:
     - name: Test Preparation and Run
       run : |
         echo "---setting Darshan environment---"
-        export DARSHAN_INSTALL_PATH=/opt/darshan_install
+        export DARSHAN_INSTALL_PATH=/opt/darshan-latest
         export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
+        export PATH=$PATH:/usr/include/hdf5/openmpi
         export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
-        export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so
+        export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib:$HDF5_lib
         export DXT_ENABLE_IO_TRACE=1
         echo "---setting LDMS environment---"
-        TOP=/opt/ovis-4
-        export LD_LIBRARY_PATH=$TOP/lib/:$TOP/lib:$LD_LIBRARY_PATH
-        export LDMSD_PLUGIN_LIBPATH=$TOP/lib/ovis-ldms
-        export ZAP_LIBPATH=$TOP/lib/ovis-ldms
-        export PATH=$TOP/sbin:$TOP/bin:$PATH
-        export PYTHONPATH=$TOP/lib/python3.6/site-packages
+        export LDMS_INSTALL_PATH=/opt/ovis-latest
+        export LD_LIBRARY_PATH=$LDMS_INSTALL_PATH/lib/:$LDMS_INSTALL_PATH/lib:$LD_LIBRARY_PATH
+        export LDMSD_PLUGIN_LIBPATH=$LDMS_INSTALL_PATH/lib/ovis-ldms
+        export ZAP_LIBPATH=$LDMS_INSTALL_PATH/lib/ovis-ldms
+        export PATH=$LDMS_INSTALL_PATH/sbin:$LDMS_INSTALL_PATH/bin:$PATH
+        export PYTHONPATH=$LDMS_INSTALL_PATH/lib/python3.6/site-packages
         echo "---setting Darshan-LDMS environment---"
         export DARSHAN_LDMS_STREAM=darshanConnector
         export DARSHAN_LDMS_PORT=10444
