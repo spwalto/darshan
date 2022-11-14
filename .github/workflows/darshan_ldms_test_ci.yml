@@ -36,7 +36,7 @@ jobs:
           # we need to build h5py with the system HDF5 lib backend
           export HDF5_MPI="ON"
           CC=mpicc python -m pip install --no-binary=h5py h5py
-          ls -ltr /usr/include/hdf5/
+          ls -ltr /usr/include/hdf5/openmpi/
           ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi/
           exit 1
     - name: Clone LDMS
