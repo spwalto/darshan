@@ -32,6 +32,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
+        sudo apt-get update
         sudo apt-get install libtool
         sudo apt-get install m4
         sudo apt-get install automake
