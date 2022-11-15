@@ -33,6 +33,9 @@ jobs:
     - name: Install dependencies
       run: |
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        echo '# Set PATH, MANPATH, etc., for Homebrew.' >> /home/runner/.bash_profile
+        echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/runner/.bash_profile
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
         brew install autoconf
         brew install automake
         brew install libtool
