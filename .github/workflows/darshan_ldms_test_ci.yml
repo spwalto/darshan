@@ -47,6 +47,10 @@ jobs:
         pip show h5py
         echo "ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages"
         ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages
+        echo "ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages/h5py"
+        ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages/h5py
+        echo "ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages/h5py/openmpi"
+        ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages/h5py/openmpi
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
