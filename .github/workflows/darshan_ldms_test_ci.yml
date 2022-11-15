@@ -65,6 +65,7 @@ jobs:
     - name: Install HDF5
       run: |
         cd hdf5
+        sed -i 's/.\/libtoolize/libtoolize/g' autogen.sh
         sh autogen.sh
         set -e
         mkdir -p build
