@@ -100,7 +100,7 @@ jobs:
         export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
         export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
         export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib:$HDF5_LIB/lib
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib:$HDF5_LIB
         export DXT_ENABLE_IO_TRACE=1
         echo "---setting LDMS environment---"
         export LDMS_INSTALL_PATH=/opt/ovis-latest
@@ -151,7 +151,7 @@ jobs:
         pgrep -a ldmsd
         [[ -n "${STREAM_SAMP_433_PID}" ]] || error "stream-samp-4.3.3.log is not running"
         echo "---Running Test Case---"
-        mpicc -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi/lib -I/usr/include/hdf5/openmpi -lhdf5 -Wl,-rpath,/usr/lib/x86_64-linux-gnu/hdf5/openmpi/lib $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
+        mpicc -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi -I/usr/include/hdf5/openmpi -lhdf5 -Wl,-rpath,/usr/lib/x86_64-linux-gnu/hdf5/openmpi/lib $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         cd $DARSHAN_TMP
         ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
         echo "---Running Test Case Wihout Darshan-LDMS Env Set---"
