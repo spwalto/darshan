@@ -59,9 +59,12 @@ jobs:
         ref: develop
     - name: Install HDF5
       run: |
-        ls -ltr 
         cd hdf5
-        CC=/usr/local/mpi/bin/mpicc ./configure --enable-shared --enable-parallel --prefix=/opt/hdf5-latest/
+        sh autogen.sh
+        set -e
+        mkdir -p build
+        pushd build
+        mpicc ../configure --enable-shared --enable-parallel --prefix=/opt/hdf5-latest/
         make
         make install
         echo "ls -ltr /opt/hdf5-latest/"
