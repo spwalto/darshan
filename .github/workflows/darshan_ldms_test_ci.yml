@@ -107,7 +107,7 @@ jobs:
         export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
         export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$HDF5_LIB:/usr/include/hdf5/openmpi
         export CMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH:/usr/include/hdf5/openmpi
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib:$HDF5_lib:/usr/include/hdf5/openmpi: /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages/h5py
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib:$HDF5_lib:/usr/include/hdf5/openmpi:/opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages/h5py
         export DXT_ENABLE_IO_TRACE=1
         echo "---setting LDMS environment---"
         export LDMS_INSTALL_PATH=/opt/ovis-latest
