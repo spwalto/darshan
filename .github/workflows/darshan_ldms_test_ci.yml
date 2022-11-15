@@ -32,6 +32,9 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
+        echo "ls -ltr /usr/local/apps/"
+        ls -ltr /usr/local/apps/
+        exit 1
         sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
         # we need to build h5py with the system HDF5 lib backend
         export HDF5_MPI="ON"
