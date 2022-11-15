@@ -39,16 +39,6 @@ jobs:
         sudo apt-get install -y pkg-config
         #export HDF5_DIR="/usr/include/hdf5/parallel"
         CC=mpicc python -m pip install --no-binary=h5py h5py
-        echo "ls -ltr /usr/include/hdf5/openmpi"
-        ls -ltr /usr/include/hdf5/openmpi
-        echo "ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi"
-        ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi
-        echo "ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi/lib"
-        ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi/lib
-        echo "ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages"
-        ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages
-        echo "ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages/h5py"
-        ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages/h5py
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
@@ -63,6 +53,18 @@ jobs:
         ref: darshan_ldms_Connector
     - name: Install LDMS
       run: |
+        echo "ls -ltr /usr/include/hdf5/openmpi"
+        ls -ltr /usr/include/hdf5/openmpi
+        echo "ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi"
+        ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi
+        echo "ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi/lib"
+        ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi/lib
+        echo "ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages"
+        ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages
+        echo "ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages/h5py"
+        ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages/h5py
+        locate libhdf5
+        locate libhdf5_cpp
         cd ovis
         sh autogen.sh
         set -e
@@ -153,7 +155,7 @@ jobs:
         pgrep -a ldmsd
         [[ -n "${STREAM_SAMP_433_PID}" ]] || error "stream-samp-4.3.3.log is not running"
         echo "---Running Test Case---"
-        mpicc -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi -I/usr/include/hdf5/openmpi -lhdf5 -Wl,-rpath,/usr/lib/x86_64-linux-gnu/hdf5/openmpi/lib $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
+        mpicc -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi -I/usr/include/hdf5/openmpi -lhdf5 -lhdf5_cpp $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         cd $DARSHAN_TMP
         ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
         echo "---Running Test Case Wihout Darshan-LDMS Env Set---"
