@@ -61,6 +61,7 @@ jobs:
     - name: Install HDF5
       run: |
         cd hdf5
+        git branch -v
         sh autogen.sh
         set -e
         mkdir -p build
