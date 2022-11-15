@@ -40,7 +40,7 @@ jobs:
         brew install automake
         brew install libtool
         brew list libtool
-        sudo apt-get install libtool-bin
+        sudo apt-get install libtool-bin openmpi-bin 
         echo $PATH
 #        sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
 #        # we need to build h5py with the system HDF5 lib backend
