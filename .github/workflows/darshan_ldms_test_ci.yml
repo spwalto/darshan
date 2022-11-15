@@ -32,6 +32,10 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        brew install autoconf
+        brew install automake
+        brew install libtool
         libtoolize
 #        sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
 #        # we need to build h5py with the system HDF5 lib backend
