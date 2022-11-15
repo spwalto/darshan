@@ -32,6 +32,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
+        libtoolize
 #        sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
 #        # we need to build h5py with the system HDF5 lib backend
 #        export HDF5_MPI="ON"
@@ -60,8 +61,6 @@ jobs:
     - name: Install HDF5
       run: |
         cd hdf5
-        sed -i 's/.\/libtoolize/.\/glibtoolize/g' autogen.sh
-        cat autogen.sh
         sh autogen.sh
         set -e
         mkdir -p build
