@@ -58,6 +58,7 @@ jobs:
         path: hdf5
         ref: develop
     - name: Install HDF5
+      run: |
         cd hdf5
         CC=/usr/local/mpi/bin/mpicc ./configure --enable-shared --enable-parallel --prefix=/opt/hdf5-latest/
         make
