@@ -30,8 +30,11 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-#    - name: Install dependencies
-#      run: |
+    - name: Install dependencies
+      run: |
+        sudo apt-get install libtool
+        sudo apt-get install m4
+        sudo apt-get install automake
 #        sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
 #        # we need to build h5py with the system HDF5 lib backend
 #        export HDF5_MPI="ON"
