@@ -43,6 +43,8 @@ jobs:
         ls -ltr /usr/include/hdf5/openmpi
         echo "ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi"
         ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi
+        echo "ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi/lib"
+        ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi/lib
         echo "ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages"
         ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages
         echo "ls -ltr /opt/hostedtoolcache/Python/3.10.8/x64/lib/python3.10/site-packages/h5py"
