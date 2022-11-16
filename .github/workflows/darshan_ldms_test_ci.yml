@@ -67,8 +67,7 @@ jobs:
         set -e
         mkdir -p build
         pushd build
-        make clean
-        mpicc ../configure --enable-shared --enable-parallel --prefix=/opt/hdf5-latest/
+        CC=mpicc ../configure --enable-shared --enable-parallel --prefix=/opt/hdf5-latest/
         make
         make install
         echo "ls -ltr /opt/hdf5-latest/"
