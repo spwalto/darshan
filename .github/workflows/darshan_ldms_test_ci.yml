@@ -73,9 +73,7 @@ jobs:
         make install
         export CC=mpicc
         export HDF5_MPI="ON"
-        cd ../
-        python setup.py configure --mpi
-        python setup.py install
+        CC=mpicc python -m pip install --no-binary=h5py h5py
         echo "ls -ltr /opt/hdf5-latest/"
         ls -ltr /opt/hdf5-latest
     - name: Install LDMS
