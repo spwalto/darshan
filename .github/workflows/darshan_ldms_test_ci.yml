@@ -102,7 +102,7 @@ jobs:
         mkdir build
         cd build
         # build darshan against LDMS library
-        CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-latest --with-jobid-env=NONE --enable-hdf5-mod --with-hdf5=/opt/hdf5-latest
+        CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-latest --with-jobid-env=NONE --enable-hdf5-mod
         make
         make install
     - name: Install darshan-util
