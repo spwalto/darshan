@@ -69,6 +69,8 @@ jobs:
         pushd build
         mpicc ../configure --enable-shared --enable-parallel --prefix=/opt/hdf5-latest/
         make
+        make clean
+        make check
         make install
         echo "ls -ltr /opt/hdf5-latest/"
         ls -ltr /opt/hdf5-latest
