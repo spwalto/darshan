@@ -33,10 +33,11 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get install libtool-bin openmpi-bin 
-        sudo apt-get install hdf5-tools libhdf5-openmpi-dev
-        echo $PATH
-        export HDF5_MPI="ON"
-        CC=mpicc python -m pip install --no-binary=h5py h5py
+#        sudo apt-get install hdf5-tools libhdf5-openmpi-dev
+#        echo $PATH
+#        export HDF5_MPI="ON"
+#        export HDF5_DIR=/usr/include/hdf5/parallel
+#        CC=mpicc python -m pip install --no-binary=h5py h5py
 #        sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
 #        # we need to build h5py with the system HDF5 lib backend
 #        #sudo apt install python3-pip
@@ -68,9 +69,14 @@ jobs:
         set -e
         mkdir -p build
         pushd build
-        CC=mpicc ../configure --enable-shared --enable-parallel --prefix=/opt/hdf5-latest/
+        CC=mpicc ../configure --with-zlib=/usr/local/opt --disable-fortran --enable-shared --enable-parallel --prefix=/opt/hdf5-latest/
         make
         make install
+        h5pcc --showconfig
+        export CC=mpicc
+        export HDF5_MPI="ON"
+        python setup.py configure --mpi
+        python setup.py install
         echo "ls -ltr /opt/hdf5-latest/"
         ls -ltr /opt/hdf5-latest
     - name: Install LDMS
@@ -101,7 +107,7 @@ jobs:
         mkdir build
         cd build
         # build darshan against LDMS library
-        CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-latest --with-jobid-env=NONE --enable-hdf5-mod --with-hdf5=/opt/hdf5-latest
+        CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-latest --with-jobid-env=NONE --enable-hdf5-mod
         make
         make install
     - name: Install darshan-util
@@ -117,11 +123,10 @@ jobs:
       run : |
         echo "---setting Darshan environment---"
         export DARSHAN_INSTALL_PATH=/opt/darshan-latest
-        export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi:/opt/hdf5-latest/include
+        export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
         export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
-        export PATH=$PATH:/opt/hdf5-latest/bin
         #export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib:/opt/hdf5-latest/lib
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
         export DXT_ENABLE_IO_TRACE=1
         echo "---setting LDMS environment---"
         export LDMS_INSTALL_PATH=/opt/ovis-latest
