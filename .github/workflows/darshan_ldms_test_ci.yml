@@ -11,10 +11,10 @@ name: Darshan-LDMS Integration Test - Latest
 on:
   push:
     branches: 
-      - darshan_ldms_Connector
+      - darshanConnector
   pull_request:
     branches:
-      - darshan_ldms_Connector
+      - darshanConnector
 
 jobs:
   test:
@@ -47,7 +47,7 @@ jobs:
       with:
         repository: Snell1224/darshan
         path: darshan
-        ref: darshanConnector2
+        ref: darshanConnector
     - name: Install LDMS
       run: |
         cd ovis
