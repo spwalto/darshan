@@ -73,8 +73,6 @@ jobs:
         CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-latest --with-jobid-env=NONE --enable-hdf5-mod
         make
         make install
-        ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi
-        ls -ltr /usr/include/hdf5/openmpi
     - name: Install darshan-util
       run: |
         export DARSHAN_INSTALL_PATH=/opt/darshan-latest
