@@ -32,15 +32,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-        echo '# Set PATH, MANPATH, etc., for Homebrew.' >> /home/runner/.bash_profile
-        echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/runner/.bash_profile
-        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-        brew install autoconf
-        brew install automake
-        brew install libtool
-        brew list libtool
-        sudo apt-get install libtool-bin openmpi-bin 
+        sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev hdf5-bin libtool-bin openmpi-bin 
         echo $PATH
 #        sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
 #        # we need to build h5py with the system HDF5 lib backend
@@ -48,7 +40,7 @@ jobs:
 #        #sudo apt install python3-pip
 #        sudo apt-get install -y pkg-config
 #        #export HDF5_DIR="/usr/include/hdf5/parallel"
-#        CC=mpicc python -m pip install --no-binary=h5py h5py
+        CC=mpicc python -m pip install --no-binary=h5py h5py
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
