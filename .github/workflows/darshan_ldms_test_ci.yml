@@ -73,6 +73,7 @@ jobs:
         make install
         export CC=mpicc
         export HDF5_MPI="ON"
+        cd ../
         python setup.py configure --mpi
         python setup.py install
         echo "ls -ltr /opt/hdf5-latest/"
