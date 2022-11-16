@@ -71,7 +71,6 @@ jobs:
         CC=mpicc ../configure --disable-fortran --enable-shared --enable-parallel --prefix=/opt/hdf5-latest
         make
         make install
-        h5pcc --showconfig
         export CC=mpicc
         export HDF5_MPI="ON"
         python setup.py configure --mpi
