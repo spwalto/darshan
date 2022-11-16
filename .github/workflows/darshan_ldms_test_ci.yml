@@ -33,7 +33,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get install libtool-bin openmpi-bin 
-        sudo apt-get install hdf5-tools libhdf5-openmpi-dev libhdf5-mpi-dev libhdf5-openmpi-7 mpi-default-dev
+        sudo apt-get install hdf5-tools libhdf5-openmpi-dev 
 #        echo $PATH
 #        export HDF5_MPI="ON"
 #        export HDF5_DIR=/usr/include/hdf5/parallel
