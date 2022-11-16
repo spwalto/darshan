@@ -33,7 +33,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get install libtool-bin openmpi-bin 
-        sudo apt-get install hdf5-tools libhdf5-openmpi-dev
+        sudo apt-get install hdf5-tools libhdf5-openmpi-dev libhdf5-mpi-dev libhdf5-openmpi-7 mpi-default-dev
 #        echo $PATH
 #        export HDF5_MPI="ON"
 #        export HDF5_DIR=/usr/include/hdf5/parallel
@@ -71,19 +71,17 @@ jobs:
         CC=mpicc ../configure --disable-fortran --enable-shared --enable-parallel --prefix=/opt/hdf5-latest
         make
         make install
-        export CC=mpicc
         export HDF5_MPI="ON"
-        CC=mpicc python -m pip install --no-binary=h5py h5py
+        export CC=mpicc
+        HDF5_DIR=/opt/hdf5-latest
+        HDF5_LIBDIR=/opt/hdf5-latest/lib
+        HDF5_INCLUDEDIR=/opt/hdf5-latest/include
+        pip install --no-binary=h5py h5py
+        #CC=mpicc python -m pip install --no-binary=h5py h5py
         echo "ls -ltr /opt/hdf5-latest/"
         ls -ltr /opt/hdf5-latest
     - name: Install LDMS
       run: |
-        #echo "ls -ltr /usr/include/hdf5/openmpi"
-        #ls -ltr /usr/include/hdf5/openmpi
-        #echo "ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi"
-        #ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi
-        #echo "ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi/lib"
-        #ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi/lib
         cd ovis
         sh autogen.sh
         set -e
@@ -123,7 +121,7 @@ jobs:
         export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
         export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
         #export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib:/usr/lib/x86_64-linux-gnu/hdf5/openmpi
         export DXT_ENABLE_IO_TRACE=1
         echo "---setting LDMS environment---"
         export LDMS_INSTALL_PATH=/opt/ovis-latest
@@ -174,7 +172,7 @@ jobs:
         pgrep -a ldmsd
         [[ -n "${STREAM_SAMP_433_PID}" ]] || error "stream-samp-4.3.3.log is not running"
         echo "---Running Test Case---"
-        mpicc -L/opt/hdf5-latest/lib -I/opt/hdf5-latest/include $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
+        mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         cd $DARSHAN_TMP
         ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
         echo "---Running Test Case Wihout Darshan-LDMS Env Set---"
