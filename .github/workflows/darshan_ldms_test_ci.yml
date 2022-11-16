@@ -69,7 +69,7 @@ jobs:
         set -e
         mkdir -p build
         pushd build
-        CC=mpicc ../configure --with-zlib=/usr/local/opt --disable-fortran --enable-shared --enable-parallel --prefix=/opt/hdf5-latest/
+        CC=mpicc ../configure --with-zlib=/opt/hdf5-latest/ --disable-fortran --enable-shared --enable-parallel --prefix=/opt/hdf5-latest/
         make
         make install
         h5pcc --showconfig
@@ -107,7 +107,7 @@ jobs:
         mkdir build
         cd build
         # build darshan against LDMS library
-        CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-latest --with-jobid-env=NONE --enable-hdf5-mod
+        CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-latest --with-jobid-env=NONE --enable-hdf5-mod --with-hdf5=/opt/hdf5-latest
         make
         make install
     - name: Install darshan-util
@@ -177,7 +177,7 @@ jobs:
         pgrep -a ldmsd
         [[ -n "${STREAM_SAMP_433_PID}" ]] || error "stream-samp-4.3.3.log is not running"
         echo "---Running Test Case---"
-        mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
+        mpicc -L/opt/hdf5-latest/lib -I/opt/hdf5-latest/include $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         cd $DARSHAN_TMP
         ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
         echo "---Running Test Case Wihout Darshan-LDMS Env Set---"
