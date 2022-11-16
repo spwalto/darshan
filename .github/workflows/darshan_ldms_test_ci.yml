@@ -32,7 +32,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        sudo apt-get install libtool-bin openmpi-bin hdf5-tools libhdf5-openmpi-dev
+        sudo apt-get install libtool-bin openmpi-bin 
         echo $PATH
 #        sudo apt-get install -y hdf5-tools libhdf5-openmpi-dev openmpi-bin
 #        # we need to build h5py with the system HDF5 lib backend
@@ -118,6 +118,7 @@ jobs:
         export DARSHAN_INSTALL_PATH=/opt/darshan-latest
         export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi:/opt/hdf5-latest/include
         export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
+        export PATH=$PATH:/opt/hdf5-latest/bin
         #export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib:/opt/hdf5-latest/lib
         export DXT_ENABLE_IO_TRACE=1
@@ -170,7 +171,7 @@ jobs:
         pgrep -a ldmsd
         [[ -n "${STREAM_SAMP_433_PID}" ]] || error "stream-samp-4.3.3.log is not running"
         echo "---Running Test Case---"
-        mpicc -L/opt/hdf5-latest/lib -I/opt/hdf5-latest/include -lhdf5 $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
+        mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         cd $DARSHAN_TMP
         ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
         echo "---Running Test Case Wihout Darshan-LDMS Env Set---"
