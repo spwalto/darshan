@@ -105,6 +105,8 @@ jobs:
         CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --with-ldms=/opt/ovis-latest --with-jobid-env=NONE --enable-hdf5-mod
         make
         make install
+        ls -ltr /usr/lib/x86_64-linux-gnu/hdf5/openmpi
+        ls -ltr /usr/include/hdf5/openmpi
     - name: Install darshan-util
       run: |
         export DARSHAN_INSTALL_PATH=/opt/darshan-latest
@@ -172,7 +174,7 @@ jobs:
         pgrep -a ldmsd
         [[ -n "${STREAM_SAMP_433_PID}" ]] || error "stream-samp-4.3.3.log is not running"
         echo "---Running Test Case---"
-        mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
+        mpicc -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi:/opt/hdf5-latest/lib -I/usr/include/hdf5/openmpi:/opt/hdf5-latest/include -lhdf5 $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         cd $DARSHAN_TMP
         ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
         echo "---Running Test Case Wihout Darshan-LDMS Env Set---"
