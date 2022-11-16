@@ -68,7 +68,7 @@ jobs:
         set -e
         mkdir -p build
         pushd build
-        CC=mpicc ../configure --with-zlib=/opt/hdf5-latest/ --disable-fortran --enable-shared --enable-parallel --prefix=/opt/hdf5-latest/
+        CC=mpicc ../configure --disable-fortran --enable-shared --enable-parallel --prefix=/opt/hdf5-latest
         make
         make install
         h5pcc --showconfig
