@@ -11,10 +11,10 @@ name: Darshan-LDMS Integration Test - Latest
 on:
   push:
     branches: 
-      - darshanConnector
+      - darshan_ldms_Connector
   pull_request:
     branches:
-      - darshanConnector
+      - darshan_ldms_Connector
 
 jobs:
   test:
