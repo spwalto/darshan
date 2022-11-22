@@ -44,13 +44,13 @@ module load cde/v2.1/gcc/7.2.0/hdf5
 
 # to set env variables for ldms_streams daemon testing
 export DARSHAN_LDMS_STREAM=darshanConnector
-export DARSHAN_LDMS_PORT=10444
-#export DARSHAN_LDMS_PORT=412
-export DARSHAN_LDMS_HOST=st93
-#export DARSHAN_LDMS_HOST=localhost
+#export DARSHAN_LDMS_PORT=10444
+export DARSHAN_LDMS_PORT=412
+#export DARSHAN_LDMS_HOST=st93
+export DARSHAN_LDMS_HOST=localhost
 export DARSHAN_LDMS_XPRT=sock
-#export DARSHAN_LDMS_AUTH=munge
-export DARSHAN_LDMS_AUTH=none
+export DARSHAN_LDMS_AUTH=munge
+#export DARSHAN_LDMS_AUTH=none
 
 export DXT_ENABLE_LDMS=
 export MPIIO_ENABLE_LDMS=
