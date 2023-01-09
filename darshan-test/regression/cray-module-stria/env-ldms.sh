@@ -30,7 +30,7 @@ export DARSHAN_F77=ftn
 export DARSHAN_F90=ftn
 
 export LD_LIBRARY_PATH=/opt/ovis.aarch64/current/lib64/:$LD_LIBRARY_PATH
-export LD_PRELOAD=/projects/ovis/darshanConnector/stria/darshan/build/install/lib/libdarshan.so
+export LD_PRELOAD=/projects/ovis/darshanConnector/stria/darshan-no-ldms/build/install/lib/libdarshan.so
 export DXT_ENABLE_IO_TRACE=1
 export HDF5_USE_FILE_LOCKING=1
 
@@ -46,7 +46,7 @@ module load cde/v2.1/gcc/7.2.0/hdf5
 export DARSHAN_LDMS_STREAM=darshanConnector
 #export DARSHAN_LDMS_PORT=10444
 export DARSHAN_LDMS_PORT=412
-#export DARSHAN_LDMS_HOST=st93
+#export DARSHAN_LDMS_HOST=st24
 export DARSHAN_LDMS_HOST=localhost
 export DARSHAN_LDMS_XPRT=sock
 export DARSHAN_LDMS_AUTH=munge

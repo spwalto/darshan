@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export PROG=mpi-io-test_lC_long
+export PROG=mpi-io-test_lC_long2
 exe_name=mpi-io-test
 
 # set log file path; remove previous log if present

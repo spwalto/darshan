@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # note: put the application name
-export PROG=HACC_lustre_45
+export PROG=HACC_nfs_round2_5
 
 # set log file path; remove previous log if present
 #export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.darshan
@@ -14,11 +14,11 @@ export DXT_ENABLE_IO_TRACE=
 # execute the application
 
 # luster
-$DARSHAN_RUNJOB --ntasks-per-node=32 /projects/ovis/omar/stria_run/HACC-IO/hacc_io 45000000 /lustre/ovis/darshanTest/darshan
-#$DARSHAN_RUNJOB --ntasks-per-node=32 /projects/ovis/omar/stria_run/HACC-IO/hacc_io 10000000 /lustre/ovis/darshanTest/darshan
+#$DARSHAN_RUNJOB --ntasks-per-node=32 /projects/ovis/omar/stria_run/HACC-IO/hacc_io 20000000 /lustre/ovis/darshanTest/darshan
+#$DARSHAN_RUNJOB --ntasks-per-node=32 /projects/ovis/omar/stria_run/HACC-IO/hacc_io 40000000 /lustre/ovis/darshanTest/darshan
 
 # nfs
-#$DARSHAN_RUNJOB --ntasks-per-node=32 /projects/ovis/omar/stria_run/HACC-IO/hacc_io 5000000 /projects/ovis/tmp/darshan
+$DARSHAN_RUNJOB --ntasks-per-node=32 /projects/ovis/omar/stria_run/HACC-IO/hacc_io 5000000 /projects/ovis/tmp/darshan
 #$DARSHAN_RUNJOB --ntasks-per-node=32 /projects/ovis/omar/stria_run/HACC-IO/hacc_io 10000000 /projects/ovis/tmp/darshan
 
 if [ $? -ne 0 ]; then
