@@ -5,10 +5,7 @@ import base64
 import argparse
 import datetime
 from collections import OrderedDict
-if sys.version_info >= (3, 7):
-    import importlib.resources as importlib_resources
-else:
-    import importlib_resources
+import importlib.resources as importlib_resources
 
 from typing import Any, Union, Callable
 
@@ -178,16 +175,9 @@ class ReportData:
         runtime : the calculated executable run time.
 
         """
-        # calculate the run time
-        runtime_val = int(
-            report.metadata["job"]["end_time"] - report.metadata["job"]["start_time"]
-        )
-        if runtime_val < 1:
-            # to prevent the displayed run time from being 0 seconds
-            # label anything under 1 second as less than 1
-            runtime = "< 1"
-        else:
-            runtime = str(runtime_val)
+        # get the run time string
+        runtime_val = report.metadata["job"]["run_time"]
+        runtime = f'{runtime_val:.4f}'
         return runtime
 
     def get_header(self):
@@ -200,7 +190,7 @@ class ReportData:
         else:
             app_name = os.path.basename(command.split()[0])
         # collect the date from the time stamp
-        date = datetime.date.fromtimestamp(self.report.metadata["job"]["start_time"])
+        date = datetime.date.fromtimestamp(self.report.metadata["job"]["start_time_sec"])
         # the header is the application name and the log date
         self.header = f"{app_name} ({date})"
 
@@ -222,9 +212,9 @@ class ReportData:
             "Job ID": job_data["jobid"],
             "User ID": job_data["uid"],
             "# Processes": job_data["nprocs"],
-            "Runtime (s)": self.get_runtime(report=self.report),
-            "Start Time": datetime.datetime.fromtimestamp(job_data["start_time"]),
-            "End Time": datetime.datetime.fromtimestamp(job_data["end_time"]),
+            "Run time (s)": self.get_runtime(report=self.report),
+            "Start Time": datetime.datetime.fromtimestamp(job_data["start_time_sec"]),
+            "End Time": datetime.datetime.fromtimestamp(job_data["end_time_sec"]),
             "Command Line": self.get_full_command(report=self.report),
         }
         # convert the dictionary into a dataframe
@@ -412,7 +402,8 @@ class ReportData:
             "Average (across all ranks) amount of run time that each process "
             "spent performing I/O, broken down by access type. See the right "
             "edge bar graph on heat maps in preceding section to indicate if "
-            "I/O activity was balanced across processes."
+            "I/O activity was balanced across processes. The 'Wait' category "
+            "is only meaningful for PNETCDF asynchronous I/O operations."
         )
         io_cost_params = {
             "section_title": "Cross-Module Comparisons",

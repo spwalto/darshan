@@ -125,7 +125,7 @@ darshan.enable_experimental()
             'H5D Flush', 'H5F Open', 'H5F Flush'],
         ),
         (
-            "shane_ior-PNETCDF_id864223-864223_10-27-46849-11258636277699483231_1.darshan",
+            "shane_ior-PNETCDF_id438100-438100_11-9-41525-10280033558448664385_1.darshan",
             "PNETCDF_FILE",
             plot_opcounts,
             ['Var Ind Read', 'Var Ind Write', 'Var Open', 'Var Coll Read',
@@ -133,7 +133,7 @@ darshan.enable_experimental()
              'File Ind Waits', 'File Coll Waits'],
         ),
         (
-            "shane_ior-PNETCDF_id864223-864223_10-27-46849-11258636277699483231_1.darshan",
+            "shane_ior-PNETCDF_id438100-438100_11-9-41525-10280033558448664385_1.darshan",
             "PNETCDF_VAR",
             plot_opcounts,
             ['Var Ind Read', 'Var Ind Write', 'Var Open', 'Var Coll Read',
@@ -146,9 +146,9 @@ def test_xticks_and_labels(log_path, func, expected_xticklabels, mod):
     # check the x-axis tick mark locations and
     # labels
     log_path = get_log_path(log_path)
-    report = darshan.DarshanReport(log_path)
+    with darshan.DarshanReport(log_path) as report:
 
-    fig = func(report=report, mod=mod)
+        fig = func(report=report, mod=mod)
 
     # retrieve the x-axis tick mark locations and labels
     # from the output figure object
@@ -366,13 +366,13 @@ def test_xticks_and_labels(log_path, func, expected_xticklabels, mod):
             [0, 3, 3, 0, 0, 0],
         ),
         (
-            "shane_ior-PNETCDF_id864223-864223_10-27-46849-11258636277699483231_1.darshan",
+            "shane_ior-PNETCDF_id438100-438100_11-9-41525-10280033558448664385_1.darshan",
             "PNETCDF_FILE",
             plot_opcounts,
             [0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0],
         ),
         (
-            "shane_ior-PNETCDF_id864223-864223_10-27-46849-11258636277699483231_1.darshan",
+            "shane_ior-PNETCDF_id438100-438100_11-9-41525-10280033558448664385_1.darshan",
             "PNETCDF_VAR",
             plot_opcounts,
             [16, 16, 8, 0, 0, 0, 0, 8, 0, 0, 0],
@@ -382,10 +382,10 @@ def test_xticks_and_labels(log_path, func, expected_xticklabels, mod):
 def test_bar_heights(filename, mod, fig_func, expected_heights):
     # check bar graph heights
     log_path = get_log_path(filename)
-    report = darshan.DarshanReport(log_path)
-    fig, ax = plt.subplots()
+    with darshan.DarshanReport(log_path) as report:
+        fig, ax = plt.subplots()
 
-    fig_func(report=report, mod=mod, ax=ax)
+        fig_func(report=report, mod=mod, ax=ax)
 
     # retrieve the bar graph heights
     actual_heights = []

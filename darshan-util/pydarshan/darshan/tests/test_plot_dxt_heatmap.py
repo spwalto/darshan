@@ -41,24 +41,24 @@ def jointgrid():
             np.linspace(0.0, 348.956244, 10),
             np.around(np.linspace(0, 1.0, 10), decimals=2),
         ),
-        ("dxt.darshan", 2, np.linspace(0.0, 100.023116, 2), [0, 1468]),
+        ("dxt.darshan", 2, np.linspace(0.0, 100.091252, 2), [0, 1469]),
         (
             "dxt.darshan",
             4,
-            np.linspace(0.0, 100.023116, 4),
-            [0, 489, 978, 1468],
+            np.linspace(0.0, 100.091252, 4),
+            [0, 489, 979, 1469],
         ),
         (
             "dxt.darshan",
             6,
-            np.linspace(0.0, 100.023116, 6),
-            [0, 293, 587, 880, 1174, 1468],
+            np.linspace(0.0, 100.091252, 6),
+            [0, 293, 587, 881, 1175, 1469],
         ),
         (
             "dxt.darshan",
             10,
-            np.linspace(0.0, 100.023116, 10),
-            [0, 163, 326, 489, 652, 815, 978, 1141, 1304, 1468],
+            np.linspace(0.0, 100.091252, 10),
+            [0, 163, 326, 489, 652, 816, 979, 1142, 1305, 1469],
         ),
         ("sample-dxt-simple.darshan", 2, np.linspace(0.0, 959.403244, 2), [0.0, 1.0]),
         (
@@ -98,21 +98,18 @@ def test_set_x_axis_ticks_and_labels(
         data = [[4, 1.03378843, 1.03387713, 0], [4000, 1.04216653, 1.04231459, 0]]
         cols = ["length", "start_time", "end_time", "rank"]
         agg_df = pd.DataFrame(data=data, columns=cols)
-        runtime = 1
+        runtime = 2
 
     else:
         filepath = get_log_path(filepath)
         # for all other data sets just load the data from the log file
-        report = darshan.DarshanReport(filepath)
-        agg_df = heatmap_handling.get_aggregate_data(
-            report=report, mod="DXT_POSIX", ops=["read", "write"]
-        )
-        runtime = report.metadata["job"]["end_time"] - report.metadata["job"]["start_time"]
+        with darshan.DarshanReport(filepath) as report:
+            agg_df = heatmap_handling.get_aggregate_data(
+                report=report, mod="DXT_POSIX", ops=["read", "write"]
+            )
+            runtime = report.metadata["job"]["run_time"]
 
-    runtime = max(runtime, 1)
     tmax_dxt = float(agg_df["end_time"].max())
-    if tmax_dxt > runtime:
-        runtime += 1
 
     # the jointgrid fixture has 100 xbins
     xbins = 100
@@ -254,34 +251,34 @@ def test_set_y_axis_ticks_and_labels(
     filepath = get_log_path(filepath)
 
     # load the report and generate the aggregate data dataframe
-    report = darshan.DarshanReport(filepath)
-    agg_df = heatmap_handling.get_aggregate_data(
-        report=report, mod="DXT_POSIX", ops=["read", "write"]
-    )
+    with darshan.DarshanReport(filepath) as report:
+        agg_df = heatmap_handling.get_aggregate_data(
+            report=report, mod="DXT_POSIX", ops=["read", "write"]
+        )
 
-    # x-axis bins are arbitrary
-    xbins = 100
-    nprocs = report.metadata["job"]["nprocs"]
+        # x-axis bins are arbitrary
+        xbins = 100
+        nprocs = report.metadata["job"]["nprocs"]
 
-    # generate the heatmap data
-    data = heatmap_handling.get_heatmap_df(agg_df=agg_df, xbins=xbins, nprocs=nprocs)
+        # generate the heatmap data
+        data = heatmap_handling.get_heatmap_df(agg_df=agg_df, xbins=xbins, nprocs=nprocs)
 
-    # generate a joint plot object, then add the heatmap to it
-    jointgrid = sns.jointplot(kind="hist", bins=[xbins, nprocs])
-    sns.heatmap(data, ax=jointgrid.ax_joint)
+        # generate a joint plot object, then add the heatmap to it
+        jointgrid = sns.jointplot(kind="hist", bins=[xbins, nprocs])
+        sns.heatmap(data, ax=jointgrid.ax_joint)
 
-    # set the x-axis ticks and tick labels
-    plot_dxt_heatmap.set_y_axis_ticks_and_labels(
-        jointgrid=jointgrid, n_ylabels=n_ylabels
-    )
+        # set the x-axis ticks and tick labels
+        plot_dxt_heatmap.set_y_axis_ticks_and_labels(
+            jointgrid=jointgrid, n_ylabels=n_ylabels
+        )
 
-    # collect the actual x-axis tick labels
-    actual_yticks = jointgrid.ax_joint.get_yticks()
-    actual_yticklabels = [tl.get_text() for tl in jointgrid.ax_joint.get_yticklabels()]
-    actual_yticklabels = np.asarray(actual_yticklabels, dtype=float)
+        # collect the actual x-axis tick labels
+        actual_yticks = jointgrid.ax_joint.get_yticks()
+        actual_yticklabels = [tl.get_text() for tl in jointgrid.ax_joint.get_yticklabels()]
+        actual_yticklabels = np.asarray(actual_yticklabels, dtype=float)
 
-    # make sure the figure object gets closed
-    plt.close()
+        # make sure the figure object gets closed
+        plt.close()
 
     # verify the actual ticks/labels match the expected
     assert_allclose(actual_yticks, expected_yticks, atol=1e-14, rtol=1e-17)
@@ -301,11 +298,11 @@ def test_remove_marginal_graph_ticks_and_labels(filepath):
     # not have any x/y tick labels or frames
 
     filepath = get_log_path(filepath)
-    report = darshan.DarshanReport(filepath)
+    with darshan.DarshanReport(filepath) as report:
 
-    jgrid = plot_dxt_heatmap.plot_heatmap(
-        report=report, mod="DXT_POSIX", ops=["read", "write"], xbins=100
-    )
+        jgrid = plot_dxt_heatmap.plot_heatmap(
+            report=report, mod="DXT_POSIX", ops=["read", "write"], xbins=100
+        )
 
     # verify the heatmap axis is on
     assert jgrid.ax_joint.axison
@@ -335,9 +332,9 @@ def test_adjust_for_colorbar(filepath):
     # regression test for `plot_dxt_heatmap.adjust_for_colorbar()`
 
     filepath = get_log_path(filepath)
-    report = darshan.DarshanReport(filepath)
+    with darshan.DarshanReport(filepath) as report:
 
-    jgrid = plot_dxt_heatmap.plot_heatmap(report=report)
+        jgrid = plot_dxt_heatmap.plot_heatmap(report=report)
 
     # the plot positions change based on the number of unique ranks.
     # If there is only 1 rank, there is no horizontal bar graph
@@ -416,56 +413,56 @@ def test_plot_heatmap(filepath, mod, ops):
     # test the primary plotting function, `plot_dxt_heatmap.plot_heatmap()`
 
     filepath = get_log_path(filepath)
-    report = darshan.DarshanReport(filepath)
+    with darshan.DarshanReport(filepath) as report:
 
-    if mod == "POSIX":
-        with pytest.raises(NotImplementedError, match="Only DXT and HEATMAP modules are supported."):
-            plot_dxt_heatmap.plot_heatmap(report=report, mod=mod)
-    elif ("dxt.darshan" in filepath) & (mod == "DXT_MPIIO"):
-        # if the input module is not "DXT_POSIX" check
-        # that we raise the appropriate error
-        with pytest.raises(ValueError, match="DXT_MPIIO not found in"):
-            jgrid = plot_dxt_heatmap.plot_heatmap(
-                report=report, mod=mod, ops=ops, xbins=100
+        if mod == "POSIX":
+            with pytest.raises(NotImplementedError, match="Only DXT and HEATMAP modules are supported."):
+                plot_dxt_heatmap.plot_heatmap(report=report, mod=mod)
+        elif ("dxt.darshan" in filepath) & (mod == "DXT_MPIIO"):
+            # if the input module is not "DXT_POSIX" check
+            # that we raise the appropriate error
+            with pytest.raises(ValueError, match="DXT_MPIIO not found in"):
+                jgrid = plot_dxt_heatmap.plot_heatmap(
+                    report=report, mod=mod, ops=ops, xbins=100
+                )
+        elif ("sample-dxt-simple.darshan" in filepath) & (ops == ["read"]):
+            # this log file is known to not have any read data, so
+            # make sure we raise a ValueError here
+            expected_msg = (
+                "No data available for selected module\\(s\\) and operation\\(s\\)."
             )
-    elif ("sample-dxt-simple.darshan" in filepath) & (ops == ["read"]):
-        # this log file is known to not have any read data, so
-        # make sure we raise a ValueError here
-        expected_msg = (
-            "No data available for selected module\\(s\\) and operation\\(s\\)."
-        )
-        with pytest.raises(ValueError, match=expected_msg):
-            jgrid = plot_dxt_heatmap.plot_heatmap(
-                report=report, mod=mod, ops=ops, xbins=100
-            )
-    else:
-        jgrid = plot_dxt_heatmap.plot_heatmap(
-            report=report, mod=mod, ops=ops, xbins=100
-        )
-
-        # verify the margins for all plots
-        assert jgrid.ax_joint.margins() == (0.05, 0.05)
-        assert jgrid.ax_marg_x.margins() == (0.05, 0.05)
-        assert jgrid.ax_marg_y.margins() == (0.05, 0.05)
-
-        # ensure the heatmap spines are all visible
-        for _, spine in jgrid.ax_joint.spines.items():
-            assert spine.get_visible()
-
-        # for single-rank files, check that the
-        # horizontal bar graph does not exist
-        assert jgrid.ax_marg_x.has_data()
-        assert jgrid.ax_joint.has_data()
-        if "dxt.darshan" in filepath:
-            # verify the horizontal bar graph does not contain data since there
-            # is only 1 rank for this case
-            assert not jgrid.ax_marg_y.has_data()
+            with pytest.raises(ValueError, match=expected_msg):
+                jgrid = plot_dxt_heatmap.plot_heatmap(
+                    report=report, mod=mod, ops=ops, xbins=100
+                )
         else:
-            # verify the horizontal bar graph contains data for multirank cases
-            assert jgrid.ax_marg_y.has_data()
+            jgrid = plot_dxt_heatmap.plot_heatmap(
+                report=report, mod=mod, ops=ops, xbins=100
+            )
 
-        # check that the axis labels are as expected
-        assert jgrid.ax_joint.get_xlabel() == "Time (s)"
-        assert jgrid.ax_joint.get_ylabel() == "Rank"
+            # verify the margins for all plots
+            assert jgrid.ax_joint.margins() == (0.05, 0.05)
+            assert jgrid.ax_marg_x.margins() == (0.05, 0.05)
+            assert jgrid.ax_marg_y.margins() == (0.05, 0.05)
+
+            # ensure the heatmap spines are all visible
+            for _, spine in jgrid.ax_joint.spines.items():
+                assert spine.get_visible()
+
+            # for single-rank files, check that the
+            # horizontal bar graph does not exist
+            assert jgrid.ax_marg_x.has_data()
+            assert jgrid.ax_joint.has_data()
+            if "dxt.darshan" in filepath:
+                # verify the horizontal bar graph does not contain data since there
+                # is only 1 rank for this case
+                assert not jgrid.ax_marg_y.has_data()
+            else:
+                # verify the horizontal bar graph contains data for multirank cases
+                assert jgrid.ax_marg_y.has_data()
+
+            # check that the axis labels are as expected
+            assert jgrid.ax_joint.get_xlabel() == "Time (s)"
+            assert jgrid.ax_joint.get_ylabel() == "Rank"
 
     plt.close()
