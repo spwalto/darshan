@@ -497,7 +497,6 @@ void darshan_core_shutdown(int write_log)
     final_core->log_job_p->end_time_sec = (int64_t)end_ts.tv_sec;
     final_core->log_job_p->end_time_nsec = (int64_t)end_ts.tv_nsec;
 
-
     internal_timing_flag = final_core->config.internal_timing_flag;
 
 #ifdef __DARSHAN_ENABLE_MMAP_LOGS
