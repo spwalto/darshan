@@ -47,7 +47,7 @@ jobs:
       with:
         repository: Snell1224/darshan
         path: darshan
-        ref: darshanConnector
+        ref: darshan_ldms_Connector
     - name: Install LDMS
       run: |
         cd ovis
