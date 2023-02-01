@@ -37,7 +37,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install --upgrade pytest mpi4py
         export HDF5_MPI="ON"
-        CC=mpicc python -m pip install --no-cache-dir=h5py h5py
+        CC=mpicc python -m pip install --no-cache-dir h5py
         #CC=mpicc python -m pip install --no-binary=h5py h5py
     - name: Clone LDMS
       uses: actions/checkout@v3
