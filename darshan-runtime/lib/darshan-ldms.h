@@ -42,6 +42,7 @@ typedef struct darshanConnector {
         sem_t conn_sem;
         sem_t recv_sem;
 } darshanConnector;
+
 #else
 
 typedef struct darshanConnector {
@@ -52,6 +53,7 @@ typedef struct darshanConnector {
         int stdio_enable_ldms;
         int hdf5_enable_ldms;
 } darshanConnector;
+
 #endif
 
 /* darshan_ldms_connector_initialize(), darshan_ldms_connector_send()

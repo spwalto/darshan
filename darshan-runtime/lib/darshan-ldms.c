@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "darshan-ldms.h"
+#include "darshan.h"
 
 /* Check for LDMS libraries if Darshan is built --with-ldms */
 #ifdef HAVE_LDMS
@@ -21,8 +23,6 @@
 #include <ldms/ldmsd_stream.h>
 #include <ovis_util/util.h>
 #include "ovis_json/ovis_json.h"
-#include "darshan-ldms.h"
-#include "darshan.h"
 
 struct darshanConnector dC = {
      .ldms_darsh = NULL,
@@ -246,10 +246,10 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
 #else
 
 struct darshanConnector dC = {
-     .ldms_lib = 1
-     };
+ .ldms_lib = 1
+ };
 
-void darshan_ldms_connector_initialize()
+void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
 {
     return;
 }
