@@ -110,8 +110,11 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
      
     /* Set meta data for LDMS message sending */
     (void)gethostname(dC.hname, sizeof(dC.hname));
-    dC.jobid = init_core->log_job_p->jobid;
     dC.uid = init_core->log_job_p->uid;
+    dC.jobid = atoi(getenv("SLURM_JOB_ID"));
+    /* grab jobid from darshan_core_runtime if null*/
+	if (dC.jobid == NULL)
+	    dC.jobid = init_core->log_job_p->jobid;
     
     /* grab exe path from darshan_core_runtime */
     dC.exename = strtok(init_core->log_exemnt_p, " ");
@@ -127,7 +130,6 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
 
     if (!getenv("DARSHAN_LDMS_STREAM"))
     dC.env_ldms_stream = "darshanConnector";
-
 
     /* Set flags for various LDMS environment variables */
     if (getenv("POSIX_ENABLE_LDMS"))
