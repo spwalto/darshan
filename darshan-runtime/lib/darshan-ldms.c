@@ -28,6 +28,7 @@ struct darshanConnector dC = {
      .ldms_darsh = NULL,
      .exename = NULL,
      .ldms_lib = 0,
+     .jobid = 0,
      };
 
 ldms_t ldms_g;
@@ -113,8 +114,8 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
     dC.uid = init_core->log_job_p->uid;
     dC.jobid = atoi(getenv("SLURM_JOB_ID"));
     /* grab jobid from darshan_core_runtime if null*/
-	if (dC.jobid == NULL)
-	    dC.jobid = init_core->log_job_p->jobid;
+    if (dC.jobid == 0)
+        dC.jobid = init_core->log_job_p->jobid;
     
     /* grab exe path from darshan_core_runtime */
     dC.exename = strtok(init_core->log_exemnt_p, " ");
@@ -145,10 +146,10 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
     /* Disable STDIO if verbose is enabled to avoid a recursive
     function for darshan_ldms_connector_send() */
     if (getenv("STDIO_ENABLE_LDMS"))
-    	if (!getenv("DARSHAN_LDMS_VERBOSE"))
-        	dC.stdio_enable_ldms = 0;
-    	else
-        	dC.stdio_enable_ldms = 1;
+        if (!getenv("DARSHAN_LDMS_VERBOSE"))
+            dC.stdio_enable_ldms = 0;
+        else
+            dC.stdio_enable_ldms = 1;
     else
         dC.stdio_enable_ldms = 1;
     
