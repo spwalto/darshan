@@ -225,7 +225,7 @@ void darshan_ldms_connector_send(int64_t record_count, char *rwo, int64_t offset
         size = sizeof(dC.hdf5_data)/sizeof(dC.hdf5_data[0]);
         dC.data_set = "N/A";
         for (i=0; i < size; i++)
-            dC.hdf5_data[i] = -1;
+            dC.hdf5_data[i] = 0;
     }
 
     if (strcmp(data_type, "MOD") == 0)
