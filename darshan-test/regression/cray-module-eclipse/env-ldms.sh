@@ -38,8 +38,8 @@ export DARSHAN_RUNJOB=$DARSHAN_TESTDIR/$DARSHAN_PLATFORM/runjob-apps.sh
 
 module unload darshan >& /dev/null
 
-module load openmpi-gnu/4.1
-module load cde/v2/gcc/7.2.0/hdf5/1.10.6
+#module load openmpi-gnu/4.1
+#module load cde/v3/hdf5/1.10.6-gcc-10.3.0-openmpi-4.1.2
 
 # to set env variables for ldms_streams daemon testing
 export DARSHAN_LDMS_STREAM=darshanConnector

@@ -1,7 +1,5 @@
 #!/bin/bash -l
 export PBS_JOBID=$SLURM_JOB_ID
-#export LD_LIBRARY_PATH=/opt/intel/2020.4.912/lib/intel64/libimf.so:/opt/intel/2020.4.912/compilers_and_libraries_2020.4.304/linux/compiler/lib/intel64_lin:/opt/intel/2020.4.912/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64_lin:$LD_LIBRARY_PATH 
-
 export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.${PBS_JOBID}.darshan
 
 # HACC

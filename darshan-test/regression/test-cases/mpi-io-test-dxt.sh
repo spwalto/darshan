@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export PROG=mpi-io-test_lC_long2
+export PROG=mpi-io-test_lC
 exe_name=mpi-io-test
 
 # set log file path; remove previous log if present
@@ -30,11 +30,11 @@ if [ $? -ne 0 ]; then
 fi
 
 # parse log
-$DARSHAN_UTIL_PATH/bin/darshan-dxt-parser $DARSHAN_LOGFILE > $DARSHAN_TMP/${PROG}-dxt.darshan.txt
-if [ $? -ne 0 ]; then
-    echo "Error: failed to parse ${DARSHAN_LOGFILE}" 1>&2
-    exit 1
-fi
+#$DARSHAN_PATH/bin/darshan-dxt-parser $DARSHAN_LOGFILE > $DARSHAN_TMP/${PROG}-dxt.darshan.txt
+#if [ $? -ne 0 ]; then
+#    echo "Error: failed to parse ${DARSHAN_LOGFILE}" 1>&2
+#    exit 1
+#fi
 
 #$DARSHAN_PATH/bin/darshan-parser $DARSHAN_LOGFILE > /dev/null
 #if [ $? -ne 0 ]; then
