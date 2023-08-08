@@ -7,7 +7,7 @@ export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.${PBS_JOBID}.darshan
 #rm -f /projects/ovis/tmp/darshan*
 
 START=$(date +%s.%N)
-srun $@
+srun --mpi=pmi2 $@
 END=$(date +%s.%N)
 
 DIFF=$(echo "$END - $START" | bc)

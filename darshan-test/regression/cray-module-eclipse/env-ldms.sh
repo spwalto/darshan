@@ -30,7 +30,7 @@ export DARSHAN_F77=ftn
 export DARSHAN_F90=ftn
 
 export LD_LIBRARY_PATH=/opt/ovis.aarch64/current/lib64/:$LD_LIBRARY_PATH
-export LD_PRELOAD=/projects/ovis/darshanConnector/eclipse/darshan/build/install/lib/libdarshan.so
+export LD_PRELOAD=/projects/ovis/darshanConnector/eclipse_old/darshan/build/install/lib/libdarshan.so
 export DXT_ENABLE_IO_TRACE=1
 export HDF5_USE_FILE_LOCKING=1
 
@@ -55,6 +55,6 @@ export DARSHAN_LDMS_AUTH=munge
 export DXT_ENABLE_LDMS=
 export MPIIO_ENABLE_LDMS=
 export POSIX_ENABLE_LDMS=
-export STDIO_ENABLE_LDMS=
+#export STDIO_ENABLE_LDMS=
 export HDF5_ENABLE_LDMS=
 
