@@ -198,7 +198,7 @@ void darshan_ldms_connector_send(uint64_t record_id, int64_t rank, int64_t recor
 {
     char jb11[1024];
     int rc, ret, i, size, exists;
-    const char *filepath, *dataset_name;
+    const char *filepath;
     struct timespec tspec_start, tspec_end;
     uint64_t micro_s;
     
