@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export PROG=mpi-io-test_lC
+export PROG=mpi-io-test_pC
 exe_name=mpi-io-test
 
 # set log file path; remove previous log if present
@@ -19,7 +19,10 @@ export DXT_ENABLE_IO_TRACE=
 
 # execute
 # luster
-$DARSHAN_RUNJOB --ntasks-per-node=32 $DARSHAN_TMP/${exe_name} -C -f $DARSHAN_TMP/${PROG}.tmp.dat
+#for skybridge
+$DARSHAN_RUNJOB --ntasks-per-node=2 $DARSHAN_TMP/${exe_name} -C -f $DARSHAN_TMP/${PROG}.tmp.dat
+
+#$DARSHAN_RUNJOB --ntasks-per-node=32 $DARSHAN_TMP/${exe_name} -C -f $DARSHAN_TMP/${PROG}.tmp.dat
 #$DARSHAN_RUNJOB --ntasks-per-node=32 $DARSHAN_TMP/${exe_name} -f $DARSHAN_TMP/${PROG}.tmp.dat
 # nfs
 #$DARSHAN_RUNJOB --ntasks-per-node=32 $DARSHAN_TMP/${exe_name} -C -f /projects/ovis/tmp/${PROG}.tmp.dat

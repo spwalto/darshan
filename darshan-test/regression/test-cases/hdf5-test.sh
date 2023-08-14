@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PROG=hdf5-test
+export PROG=hdf5-test
 
 # set log file path; remove previous log if present
 export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.darshan
