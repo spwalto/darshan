@@ -106,7 +106,6 @@ extern void darshan_instrument_lustre_file(const char *filepath, int fd);
 static void *darshan_init_mmap_log(
     struct darshan_core_runtime* core, int jobid);
 #endif
-
 static void darshan_log_record_hints_and_ver(
     struct darshan_core_runtime* core);
 static void darshan_get_exe_and_mounts(
@@ -357,7 +356,7 @@ void darshan_core_initialize(int argc, char **argv)
         /* pass init_core to darshan-ldms connector initialization*/
         darshan_ldms_connector_initialize(init_core);
 #endif
-
+      
         /* if darshan was successfully initialized, set the global pointer
          * and record absolute start time so that we can later generate
          * relative times with this as a reference point.
@@ -366,7 +365,6 @@ void darshan_core_initialize(int argc, char **argv)
         __darshan_core = init_core;
         __darshan_core_wtime_offset = init_start;
         __DARSHAN_CORE_UNLOCK();
-
 
         /* bootstrap any modules with static initialization routines */
         i = 0;

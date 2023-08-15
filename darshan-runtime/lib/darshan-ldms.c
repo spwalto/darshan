@@ -124,7 +124,7 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
         dC.jobid = atoi(getenv("LOAD_STEP_ID"));
     else
     /* grab jobid from darshan_core_runtime if slurm, lsf, sge or loadleveler do not exist*/
-    dC.jobid = init_core->log_job_p->jobid;
+        dC.jobid = init_core->log_job_p->jobid;
     
     /* grab exe path from darshan_core_runtime */
     dC.exename = strtok(init_core->log_exemnt_p, " ");
@@ -220,7 +220,7 @@ void darshan_ldms_connector_send(uint64_t record_id, int64_t rank, int64_t recor
 
     if (strcmp(rwo, "open") == 0)
         dC.open_count = record_count;
-    
+
     /* set record count of closes to number of opens since we are closing the same file we opened.*/
     if (strcmp(rwo, "close") == 0)
         record_count = dC.open_count;
