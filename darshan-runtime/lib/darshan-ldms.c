@@ -23,8 +23,8 @@
 #include <ldms/ldmsd_stream.h>
 #include <ovis_util/util.h>
 #include "ovis_json/ovis_json.h"
-#include <semaphore.h>
 
+ldms_t ldms_darsh, ldms_g;
 struct darshanConnector dC = {
      .schema = "darshanConnector",
      .ldms_darsh = NULL,
@@ -80,8 +80,8 @@ ldms_t setup_connection(const char *xprt, const char *host,
                 ts.tv_nsec = 0;
         }
 
-        dC.ldms_g = ldms_xprt_new_with_auth(xprt, auth, NULL);
-        if (!dC.ldms_g) {
+        ldms_g = ldms_xprt_new_with_auth(xprt, auth, NULL);
+        if (!ldms_g) {
                 printf("Error %d creating the '%s' transport\n",
                        errno, xprt);
                 return NULL;
@@ -90,7 +90,7 @@ ldms_t setup_connection(const char *xprt, const char *host,
         sem_init(&dC.recv_sem, 1, 0);
         sem_init(&dC.conn_sem, 1, 0);
 
-        rc = ldms_xprt_connect_by_name(dC.ldms_g, host, port, event_cb, NULL);
+        rc = ldms_xprt_connect_by_name(ldms_g, host, port, event_cb, NULL);
         if (rc) {
                 printf("Error %d connecting to %s:%s\n",
                        rc, host, port);
@@ -99,7 +99,7 @@ ldms_t setup_connection(const char *xprt, const char *host,
         sem_timedwait(&dC.conn_sem, &ts);
         if (dC.conn_status)
                 return NULL;
-        return dC.ldms_g;
+        return ldms_g;
 }
 
 void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
@@ -179,13 +179,13 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
     }
 
     pthread_mutex_lock(&dC.ln_lock);
-    dC.ldms_darsh = setup_connection(env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth);
+    ldms_darsh = setup_connection(env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth);
         if (dC.conn_status != 0) {
             printf("Error setting up connection to LDMS streams daemon: %i -- exiting\n", dC.conn_status);
             pthread_mutex_unlock(&dC.ln_lock);
             return;
         }
-        else if (dC.ldms_darsh->disconnected){
+        else if (ldms_darsh->disconnected){
             printf("Disconnected from LDMS streams daemon -- exiting\n");
             pthread_mutex_unlock(&dC.ln_lock);
             return;
@@ -205,7 +205,7 @@ void darshan_ldms_connector_send(uint64_t record_id, int64_t rank, int64_t recor
     dC.env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
 
     pthread_mutex_lock(&dC.ln_lock);
-    if (dC.ldms_darsh != NULL)
+    if (ldms_darsh != NULL)
         exists = 1;
     else
         exists = 0;
@@ -249,7 +249,7 @@ void darshan_ldms_connector_send(uint64_t record_id, int64_t rank, int64_t recor
     if (getenv("DARSHAN_LDMS_VERBOSE"))
             printf("JSON Message: %s\n", jb11);
     
-    rc = ldmsd_stream_publish(dC.ldms_darsh, dC.env_ldms_stream, LDMSD_STREAM_JSON, jb11, strlen(jb11) + 1);
+    rc = ldmsd_stream_publish(ldms_darsh, dC.env_ldms_stream, LDMSD_STREAM_JSON, jb11, strlen(jb11) + 1);
     if (rc)
         printf("Error %d publishing data.\n", rc);
     
