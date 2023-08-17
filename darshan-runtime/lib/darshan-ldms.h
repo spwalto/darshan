@@ -37,8 +37,7 @@ typedef struct darshanConnector {
         struct timespec ts;
         pthread_mutex_t ln_lock;
         ldms_t ldms_darsh;
-        sem_t conn_sem;
-        sem_t recv_sem;
+	ldms_t ldms_g;
 } darshanConnector;
 
 #else

@@ -33,12 +33,12 @@ struct darshanConnector dC = {
      .jobid = 0,
      };
 
-ldms_t ldms_g;
+sem_t conn_sem, recv_sem;
 static void event_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
 {
         switch (e->type) {
         case LDMS_XPRT_EVENT_CONNECTED:
-                sem_post(&dC.conn_sem);
+                sem_post(&conn_sem);
                 dC.conn_status = 0;
                 break;
         case LDMS_XPRT_EVENT_REJECTED:
@@ -53,7 +53,7 @@ static void event_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
                 dC.conn_status = ECONNREFUSED;
                 break;
         case LDMS_XPRT_EVENT_RECV:
-                sem_post(&dC.recv_sem);
+                sem_post(&recv_sem);
                 break;
         case LDMS_XPRT_EVENT_SEND_COMPLETE:
                 break;
@@ -81,26 +81,26 @@ ldms_t setup_connection(const char *xprt, const char *host,
                 ts.tv_nsec = 0;
         }
 
-        ldms_g = ldms_xprt_new_with_auth(xprt, auth, NULL);
-        if (!ldms_g) {
+        dC.ldms_g = ldms_xprt_new_with_auth(xprt, auth, NULL);
+        if (!dC.ldms_g) {
                 printf("Error %d creating the '%s' transport\n",
                        errno, xprt);
                 return NULL;
         }
 
-        sem_init(&dC.recv_sem, 1, 0);
-        sem_init(&dC.conn_sem, 1, 0);
+        sem_init(&recv_sem, 1, 0);
+        sem_init(&conn_sem, 1, 0);
 
-        rc = ldms_xprt_connect_by_name(ldms_g, host, port, event_cb, NULL);
+        rc = ldms_xprt_connect_by_name(dC.ldms_g, host, port, event_cb, NULL);
         if (rc) {
                 printf("Error %d connecting to %s:%s\n",
                        rc, host, port);
                 return NULL;
         }
-        sem_timedwait(&dC.conn_sem, &ts);
+        sem_timedwait(&conn_sem, &ts);
         if (dC.conn_status)
                 return NULL;
-        return ldms_g;
+        return dC.ldms_g;
 }
 
 void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
