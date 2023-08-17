@@ -33,12 +33,11 @@ struct darshanConnector dC = {
      .jobid = 0,
      };
 
-sem_t conn_sem, recv_sem;
 static void event_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
 {
         switch (e->type) {
         case LDMS_XPRT_EVENT_CONNECTED:
-                sem_post(&conn_sem);
+                sem_post(&dC.conn_sem);
                 dC.conn_status = 0;
                 break;
         case LDMS_XPRT_EVENT_REJECTED:
@@ -53,7 +52,7 @@ static void event_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
                 dC.conn_status = ECONNREFUSED;
                 break;
         case LDMS_XPRT_EVENT_RECV:
-                sem_post(&recv_sem);
+                sem_post(&dC.recv_sem);
                 break;
         case LDMS_XPRT_EVENT_SEND_COMPLETE:
                 break;
@@ -88,8 +87,8 @@ ldms_t setup_connection(const char *xprt, const char *host,
                 return NULL;
         }
 
-        sem_init(&recv_sem, 1, 0);
-        sem_init(&conn_sem, 1, 0);
+        sem_init(&dC.recv_sem, 1, 0);
+        sem_init(&dC.conn_sem, 1, 0);
 
         rc = ldms_xprt_connect_by_name(dC.ldms_g, host, port, event_cb, NULL);
         if (rc) {
@@ -97,7 +96,7 @@ ldms_t setup_connection(const char *xprt, const char *host,
                        rc, host, port);
                 return NULL;
         }
-        sem_timedwait(&conn_sem, &ts);
+        sem_timedwait(&dC.conn_sem, &ts);
         if (dC.conn_status)
                 return NULL;
         return dC.ldms_g;
