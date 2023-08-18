@@ -25,9 +25,9 @@
 #include "ovis_json/ovis_json.h"
 
 ldms_t ldms_darsh, ldms_g;
+ldms_darsh = NULL;
 struct darshanConnector dC = {
      .schema = "darshanConnector",
-     .ldms_darsh = NULL,
      .exename = NULL,
      .ldms_lib = 0,
      .jobid = 0,
