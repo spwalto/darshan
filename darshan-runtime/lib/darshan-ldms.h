@@ -13,7 +13,7 @@
 #include <ldms/ldmsd_stream.h>
 #include <ovis_util/util.h>
 #include "ovis_json/ovis_json.h"
-#include <semaphore.h>
+//#include <semaphore.h>
 
 typedef struct darshanConnector {
         int to;
@@ -36,7 +36,7 @@ typedef struct darshanConnector {
         int conn_status;
         struct timespec ts;
         pthread_mutex_t ln_lock;
-	ldms_t *ldms_darsh;
+	ldms_t ldms_darsh;
 	ldms_t ldms_g;
 	sem_t recv_sem;
 	sem_t conn_sem;
