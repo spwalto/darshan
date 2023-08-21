@@ -184,11 +184,11 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
             pthread_mutex_unlock(&dC.ln_lock);
             return;
         }
-        else if (dC.ldms_darsh.disconnected){
-            printf("Disconnected from LDMS streams daemon -- exiting\n");
-            pthread_mutex_unlock(&dC.ln_lock);
-            return;
-        }
+        //else if (dC.ldms_darsh->disconnected){
+          //  printf("Disconnected from LDMS streams daemon -- exiting\n");
+          //  pthread_mutex_unlock(&dC.ln_lock);
+          //  return;
+        //}
     pthread_mutex_unlock(&dC.ln_lock);
     return;
 }
