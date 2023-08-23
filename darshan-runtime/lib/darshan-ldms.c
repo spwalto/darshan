@@ -22,7 +22,6 @@
 #include <ldms/ldms.h>
 #include <ldms/ldmsd_stream.h>
 #include <ovis_util/util.h>
-#include "ovis_json/ovis_json.h"
 
 struct darshanConnector dC = {
      .schema = "darshanConnector",
@@ -184,7 +183,7 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
             pthread_mutex_unlock(&dC.ln_lock);
             return;
         }
-        else if (dC.ldms_darsh->stats.disconnected){
+        else if (dC.ldms_darsh->disconnected){
             printf("Disconnected from LDMS streams daemon -- exiting\n");
             pthread_mutex_unlock(&dC.ln_lock);
             return;
