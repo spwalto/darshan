@@ -19,9 +19,6 @@
 
 /* Check for LDMS libraries if Darshan is built --with-ldms */
 #ifdef HAVE_LDMS
-#include <ldms/ldms.h>
-#include <ldms/ldmsd_stream.h>
-#include <ovis_util/util.h>
 
 struct darshanConnector dC = {
      .schema = "darshanConnector",
