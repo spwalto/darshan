@@ -24,22 +24,21 @@
 # RUNJOB is responsible for submitting a slurm job, waiting for its
 # completion, and checking its return status
 
-export DARSHAN_CC="mpicc"
-#export DARSHAN_CC="mpicc -lhdf5_hl -lhdf5"
+export DARSHAN_CC=mpicc
 export DARSHAN_CXX=CC
 export DARSHAN_F77=ftn
 export DARSHAN_F90=ftn
 
 export LD_LIBRARY_PATH=/usr/lib64/:$LD_LIBRARY_PATH
 export LD_PRELOAD=/projects/ovis/darshanConnector/common/darshan/build/install/lib/libdarshan.so
+export PATH=$PATH:/projects/ovis/darshanConnector/stress-ng/build/usr/bin
 export DXT_ENABLE_IO_TRACE=1
 export HDF5_USE_FILE_LOCKING=1
 
 export DARSHAN_RUNJOB=$DARSHAN_TESTDIR/$DARSHAN_PLATFORM/runjob-apps.sh
 
-module unload darshan >& /dev/null
+#module unload darshan >& /dev/null
 module load openmpi-gnu/4.1
-module load cde/v3/hdf5/1.10.6-gcc-10.3.0-openmpi-4.1.2
 
 # to set env variables for ldms_streams daemon testing
 export DARSHAN_LDMS_STREAM=darshanConnector
@@ -48,9 +47,9 @@ export DARSHAN_LDMS_HOST=localhost
 export DARSHAN_LDMS_XPRT=sock
 export DARSHAN_LDMS_AUTH=munge
 
-export DARSHAN_LDMS_VERBOSE=
+#export DARSHAN_LDMS_VERBOSE=
 export MPIIO_ENABLE_LDMS=
-#export POSIX_ENABLE_LDMS=
-#export STDIO_ENABLE_LDMS=
+export POSIX_ENABLE_LDMS=
+export STDIO_ENABLE_LDMS=
 export HDF5_ENABLE_LDMS=
 

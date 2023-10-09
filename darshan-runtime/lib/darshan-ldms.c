@@ -128,7 +128,8 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
         if (dC.exename == NULL)
         {
          char buff[DARSHAN_EXE_LEN];
-         int len = readlink("/proc/self/exe", buff, sizeof(buff)-1);
+         int sz = sizeof(buff)/sizeof(buff[0]);
+	 int len = readlink("/proc/self/exe", buff, sz-1);
          buff[len] = '\0';
          dC.exename = buff;
         }

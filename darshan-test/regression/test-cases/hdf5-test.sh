@@ -2,12 +2,16 @@
 
 export PROG=hdf5-test
 
+# setup for hdf5
+module use /apps/modules/modulefiles-apps/cde/v3/hdf5
+module load cde/v3/hdf5/1.10.6-gcc-10.3.0-openmpi-4.1.2
+
 # set log file path; remove previous log if present
 export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.darshan
 rm -f ${DARSHAN_LOGFILE}
 
 # compile
-$DARSHAN_CC $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
+$DARSHAN_CC -L/projects/cde/v3/2023-03/x86_64/spack/opt/spack/linux-rhel7-x86_64/gcc-10.3.0/hdf5-1.10.6-xaapjijkqikzzc5hlqo36tl6vngytusy/lib -lhdf5 $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
 if [ $? -ne 0 ]; then
     echo "Error: failed to compile ${PROG}" 1>&2
     exit 1
@@ -29,15 +33,5 @@ if [ $? -ne 0 ]; then
     echo "Error: failed to parse ${DARSHAN_LOGFILE}" 1>&2
     exit 1
 fi
-
-# check results
-
-# also, ensure that darshan-dxt-parser doesn't complain if given a log file that
-# does not have DXT data present
-#$DARSHAN_PATH/bin/darshan-dxt-parser $DARSHAN_LOGFILE > /dev/null
-#if [ $? -ne 0 ]; then
-#    echo "Error: darshan-dxt-parser failed to handle ${DARSHAN_LOGFILE}" 1>&2
-#    exit 1
-#fi
 
 exit 0

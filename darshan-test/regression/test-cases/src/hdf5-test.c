@@ -25,7 +25,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define FILE            "/lscratch/spwalto/darshan-output/h5ex_d_chunk.h5"
+#define FILE            "/pscratch/spwalto/darshan-ldms-output/h5ex_d_chunk.h5"
 #define DATASET         "DS1"
 #define DIM0            6
 #define DIM1            8
