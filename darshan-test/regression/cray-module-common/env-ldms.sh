@@ -31,6 +31,7 @@ export DARSHAN_F90=ftn
 
 export LD_LIBRARY_PATH=/usr/lib64/:$LD_LIBRARY_PATH
 export LD_PRELOAD=/projects/ovis/darshanConnector/common/darshan/build/install/lib/libdarshan.so
+#export LD_PRELOAD=/projects/ovis/darshanConnector/common/darshan_original/build/install/lib/libdarshan.so
 export PATH=$PATH:/projects/ovis/darshanConnector/stress-ng/build/usr/bin
 export DXT_ENABLE_IO_TRACE=1
 export HDF5_USE_FILE_LOCKING=1
@@ -38,7 +39,6 @@ export HDF5_USE_FILE_LOCKING=1
 export DARSHAN_RUNJOB=$DARSHAN_TESTDIR/$DARSHAN_PLATFORM/runjob-apps.sh
 
 #module unload darshan >& /dev/null
-module load openmpi-gnu/4.1
 
 # to set env variables for ldms_streams daemon testing
 export DARSHAN_LDMS_STREAM=darshanConnector
