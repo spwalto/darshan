@@ -52,7 +52,7 @@ static void event_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
         case LDMS_XPRT_EVENT_SEND_COMPLETE:
                 break;
         default:
-                printf("Received invalid event type %d\n", e->type);
+                darshan_core_fprintf(stderr, "LDMS library: Received invalid event type %d.\n", e->type);
         }
 }
 
@@ -77,8 +77,7 @@ ldms_t setup_connection(const char *xprt, const char *host,
 
         dC.ldms_g = ldms_xprt_new_with_auth(xprt, auth, NULL);
         if (!dC.ldms_g) {
-                printf("Error %d creating the '%s' transport\n",
-                       errno, xprt);
+                darshan_core_fprintf(stderr, "LDMS library: Error %d creating the '%s' transport.\n", errno, xprt);
                 return NULL;
         }
 
@@ -87,8 +86,7 @@ ldms_t setup_connection(const char *xprt, const char *host,
 
         rc = ldms_xprt_connect_by_name(dC.ldms_g, host, port, event_cb, NULL);
         if (rc) {
-                printf("Error %d connecting to %s:%s\n",
-                       rc, host, port);
+                darshan_core_fprintf(stderr, "LDMS Library: Error %d connecting to %s:%s \n",rc,host,port); 
                 return NULL;
         }
         sem_timedwait(&dC.conn_sem, &ts);
@@ -124,16 +122,6 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
     /* grab exe path from darshan_core_runtime */
     dC.exename = strtok(init_core->log_exemnt_p, " ");
      
-    /* Pull executable name from proc if no arguemments are given. */
-        if (dC.exename == NULL)
-        {
-         char buff[DARSHAN_EXE_LEN];
-         int sz = sizeof(buff)/sizeof(buff[0]);
-	 int len = readlink("/proc/self/exe", buff, sz-1);
-         buff[len] = '\0';
-         dC.exename = buff;
-        }
-
     /* Set flags for various LDMS environment variables */
     if (getenv("POSIX_ENABLE_LDMS"))
         dC.posix_enable_ldms = 0;
@@ -145,13 +133,8 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
     else
         dC.mpiio_enable_ldms = 1;
 
-    /* Disable STDIO if verbose is enabled to avoid a recursive
-    function for darshan_ldms_connector_send() */
     if (getenv("STDIO_ENABLE_LDMS"))
-        if (!getenv("DARSHAN_LDMS_VERBOSE"))
-            dC.stdio_enable_ldms = 0;
-        else
-            dC.stdio_enable_ldms = 1;
+	dC.stdio_enable_ldms = 0;
     else
         dC.stdio_enable_ldms = 1;
     
@@ -161,7 +144,9 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
         dC.hdf5_enable_ldms = 1;
 
     if (!getenv("DARSHAN_LDMS_STREAM"))
-    dC.env_ldms_stream = "darshanConnector";
+	dC.env_ldms_stream = "darshanConnector";
+    else
+	dC.env_ldms_stream = getenv("DARSHAN_LDMS_STREAM");
     
     const char* env_ldms_xprt    = getenv("DARSHAN_LDMS_XPRT");
     const char* env_ldms_host    = getenv("DARSHAN_LDMS_HOST");
@@ -170,19 +155,19 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
 
     /* Check/set LDMS transport type */
     if (!env_ldms_xprt || !env_ldms_host || !env_ldms_port || !env_ldms_auth){
-        printf("Either the transport, host, port or authentication is not given\n");
+        darshan_core_fprintf(stderr, "LDMS library: The darshanConnector transport, host, port or authentication to LDMS streams daemon is not given -- exiting.\n");
         return;
     }
 
     pthread_mutex_lock(&dC.ln_lock);
     dC.ldms_darsh = setup_connection(env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth);
         if (dC.conn_status != 0) {
-            printf("Error setting up connection to LDMS streams daemon: %i -- exiting\n", dC.conn_status);
+            darshan_core_fprintf(stderr, "LDMS library: darshanConnector error %i setting up connection to LDMS streams daemon -- exiting.\n", dC.conn_status);
             pthread_mutex_unlock(&dC.ln_lock);
             return;
         }
         else if (dC.ldms_darsh->disconnected){
-            printf("Disconnected from LDMS streams daemon -- exiting\n");
+            darshan_core_fprintf(stderr, "LDMS library: darshanConnector disconnected from LDMS streams daemon -- exiting.\n"); 
             pthread_mutex_unlock(&dC.ln_lock);
             return;
         }
@@ -198,8 +183,6 @@ void darshan_ldms_connector_send(uint64_t record_id, int64_t rank, int64_t recor
     struct timespec tspec_start, tspec_end;
     uint64_t micro_s;
     
-    dC.env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
-
     pthread_mutex_lock(&dC.ln_lock);
     if (dC.ldms_darsh != NULL)
         exists = 1;
@@ -243,11 +226,11 @@ void darshan_ldms_connector_send(uint64_t record_id, int64_t rank, int64_t recor
     sprintf(jb11,"{\"schema\":\"%s\", \"uid\":%ld, \"exe\":\"%s\",\"job_id\":%ld,\"rank\":%ld,\"ProducerName\":\"%s\",\"file\":\"%s\",\"record_id\":%"PRIu64",\"module\":\"%s\",\"type\":\"%s\",\"max_byte\":%ld,\"switches\":%ld,\"flushes\":%ld,\"cnt\":%ld,\"op\":\"%s\",\"seg\":[{\"pt_sel\":%ld,\"irreg_hslab\":%ld,\"reg_hslab\":%ld,\"ndims\":%ld,\"npoints\":%ld,\"off\":%ld,\"len\":%ld,\"start\":%0.6f,\"dur\":%0.6f,\"total\":%0.6f,\"timestamp\":%lu.%.6lu}]}", dC.schema, dC.uid, dC.exename, dC.jobid, rank, dC.hname, filepath, record_id, mod_name, data_type, max_byte, rw_switch, flushes, record_count, rwo, dC.hdf5_data[0], dC.hdf5_data[1], dC.hdf5_data[2], dC.hdf5_data[3], dC.hdf5_data[4], offset, length, start_time, end_time-start_time, total_time, tspec_end.tv_sec, micro_s);
     
     if (getenv("DARSHAN_LDMS_VERBOSE"))
-            printf("JSON Message: %s\n", jb11);
+       darshan_core_fprintf(stdout, "JSON Message: %s\n", jb11);
     
     rc = ldmsd_stream_publish(dC.ldms_darsh, dC.env_ldms_stream, LDMSD_STREAM_JSON, jb11, strlen(jb11) + 1);
     if (rc)
-        printf("Error %d publishing data.\n", rc);
+       darshan_core_fprintf(stderr, "LDMS library: Error %d publishing darshanConnector data.\n", rc);
     
     out_1:
          return;
