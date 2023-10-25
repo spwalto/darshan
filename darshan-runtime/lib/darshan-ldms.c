@@ -1,7 +1,7 @@
 /*
  *   Copyright (C) 2016 Intel Corporation.
  *   See COPYRIGHT notice in top-level directory.
- *    
+ *
  */
 
 #ifdef HAVE_CONFIG_H
@@ -21,11 +21,11 @@
 #ifdef HAVE_LDMS
 
 struct darshanConnector dC = {
-     .schema = "darshanConnector",
      .ldms_darsh = NULL,
-     .exename = NULL,
-     .ldms_lib = 0,
+     .ldms_lib = 1,
      .jobid = 0,
+     .pos = 0,
+     .array_size = 50,
      };
 
 static void event_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
@@ -86,7 +86,7 @@ ldms_t setup_connection(const char *xprt, const char *host,
 
         rc = ldms_xprt_connect_by_name(dC.ldms_g, host, port, event_cb, NULL);
         if (rc) {
-                darshan_core_fprintf(stderr, "LDMS Library: Error %d connecting to %s:%s \n",rc,host,port); 
+                darshan_core_fprintf(stderr, "LDMS Library: Error %d connecting to %s:%s \n",rc,host,port);
                 return NULL;
         }
         sem_timedwait(&dC.conn_sem, &ts);
@@ -102,52 +102,55 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
             dC.env_ldms_reinit = getenv("DARSHAN_LDMS_REINIT");
         else
             dC.env_ldms_reinit = "1";*/
-     
+    dC.record_id = (uint64_t *)malloc(sizeof(int) * dC.array_size);
+    dC.record_count = (int64_t *)malloc(sizeof(int) * dC.array_size);
+
     (void)gethostname(dC.hname, sizeof(dC.hname));
-    
+
     dC.uid = init_core->log_job_p->uid;
-    
+
     if (getenv("SLURM_JOB_ID"))
         dC.jobid = atoi(getenv("SLURM_JOB_ID"));
     else if (getenv("LSB_JOBID"))
-    	dC.jobid = atoi(getenv("LSB_JOBID"));
+        dC.jobid = atoi(getenv("LSB_JOBID"));
     else if (getenv("JOB_ID"))
         dC.jobid = atoi(getenv("JOB_ID"));
     else if (getenv("LOAD_STEP_ID"))
         dC.jobid = atoi(getenv("LOAD_STEP_ID"));
     else
     /* grab jobid from darshan_core_runtime if slurm, lsf, sge or loadleveler do not exist*/
-        dC.jobid = init_core->log_job_p->jobid;
-    
-    /* grab exe path from darshan_core_runtime */
-    dC.exename = strtok(init_core->log_exemnt_p, " ");
-     
+    dC.jobid = init_core->log_job_p->jobid;
+
+    /* grab exe path from darshan_core_runtime. Save with a tmp that will be used later*/
+    dC.exepath = strtok(init_core->log_exemnt_p, " ");
+    dC.exe_tmp = dC.exepath;
+
     /* Set flags for various LDMS environment variables */
     if (getenv("POSIX_ENABLE_LDMS"))
-        dC.posix_enable_ldms = 0;
-    else
         dC.posix_enable_ldms = 1;
+    else
+        dC.posix_enable_ldms = 0;
 
     if (getenv("MPIIO_ENABLE_LDMS"))
-        dC.mpiio_enable_ldms = 0;
-    else
         dC.mpiio_enable_ldms = 1;
+    else
+        dC.mpiio_enable_ldms = 0;
 
     if (getenv("STDIO_ENABLE_LDMS"))
-	dC.stdio_enable_ldms = 0;
-    else
         dC.stdio_enable_ldms = 1;
-    
-    if (getenv("HDF5_ENABLE_LDMS"))
-        dC.hdf5_enable_ldms = 0;
     else
+        dC.stdio_enable_ldms = 0;
+
+    if (getenv("HDF5_ENABLE_LDMS"))
         dC.hdf5_enable_ldms = 1;
+    else
+        dC.hdf5_enable_ldms = 0;
 
     if (!getenv("DARSHAN_LDMS_STREAM"))
-	dC.env_ldms_stream = "darshanConnector";
+        dC.env_ldms_stream = "darshanConnector";
     else
-	dC.env_ldms_stream = getenv("DARSHAN_LDMS_STREAM");
-    
+        dC.env_ldms_stream = getenv("DARSHAN_LDMS_STREAM");
+
     const char* env_ldms_xprt    = getenv("DARSHAN_LDMS_XPRT");
     const char* env_ldms_host    = getenv("DARSHAN_LDMS_HOST");
     const char* env_ldms_port    = getenv("DARSHAN_LDMS_PORT");
@@ -167,7 +170,7 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
             return;
         }
         else if (dC.ldms_darsh->disconnected){
-            darshan_core_fprintf(stderr, "LDMS library: darshanConnector disconnected from LDMS streams daemon -- exiting.\n"); 
+            darshan_core_fprintf(stderr, "LDMS library: darshanConnector disconnected from LDMS streams daemon -- exiting.\n");
             pthread_mutex_unlock(&dC.ln_lock);
             return;
         }
@@ -178,11 +181,10 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
 void darshan_ldms_connector_send(uint64_t record_id, int64_t rank, int64_t record_count, char *rwo, int64_t offset, int64_t length, int64_t max_byte, int64_t rw_switch, int64_t flushes,  double start_time, double end_time, double total_time, char *mod_name, char *data_type)
 {
     char jb11[1024];
-    int rc, ret, i, size, exists;
-    const char *filepath;
+    int rc, ret, i, size, exists, found;
     struct timespec tspec_start, tspec_end;
     uint64_t micro_s;
-    
+
     pthread_mutex_lock(&dC.ln_lock);
     if (dC.ldms_darsh != NULL)
         exists = 1;
@@ -194,16 +196,14 @@ void darshan_ldms_connector_send(uint64_t record_id, int64_t rank, int64_t recor
         return;
     }
 
+    /* Current schema name used to query darshan data stored in DSOS.
+    * If not storing to DSOS, then this can be ignored.*/
+    dC.schema = "darshan_data3";
+
     /* get the full file path from record ID */
-    filepath = darshan_core_lookup_record_name(record_id);
+    dC.filepath = darshan_core_lookup_record_name(record_id);
 
-    if (strcmp(rwo, "open") == 0)
-        dC.open_count = record_count;
-
-    /* set record count of closes to number of opens since we are closing the same file we opened.*/
-    if (strcmp(rwo, "close") == 0)
-        record_count = dC.open_count;
-
+    /* set all hdf5 related fields to -1 for all other modules*/
     if (strcmp(mod_name, "H5D") != 0){
         size = sizeof(dC.hdf5_data)/sizeof(dC.hdf5_data[0]);
         for (i=0; i < size; i++)
@@ -213,9 +213,45 @@ void darshan_ldms_connector_send(uint64_t record_id, int64_t rank, int64_t recor
     /* set following fields for module data to N/A to reduce message size */
     if (strcmp(data_type, "MOD") == 0)
     {
-        filepath = "N/A";
-        dC.exename = "N/A";
-	dC.schema = "N/A";
+        dC.filepath = "N/A";
+        dC.exepath = "N/A";
+        dC.schema = "N/A";
+    }
+    else
+        dC.exepath = dC.exe_tmp;
+
+    /* Utilize 2 arrays to store open counts to corresponding record_id */
+    pthread_mutex_lock(&dC.ln_lock);
+    if (strcmp(rwo, "open") == 0){
+        for (i = 0; i < dC.array_size; i++) {
+            if (dC.record_id[i] == record_id){
+                dC.record_count[i] = record_count;
+                    found = 1;
+                    break;
+                }
+            else
+                found = 0;
+            }
+    /* Add record id and count if not already in the array*/
+    if (!found) {
+        /* Double array size if initial allocated size is reached*/
+        if (dC.pos >= dC.array_size){
+            dC.array_size *= 2;
+            dC.record_id = (uint64_t *)realloc(dC.record_id, sizeof(int) * dC.array_size);
+            dC.record_count = (int64_t *)realloc(dC.record_count, sizeof(int) * dC.array_size);
+            }
+        dC.record_id[dC.pos] = record_id;
+        dC.record_count[dC.pos] = record_count;
+        dC.pos++;
+        }
+    }
+    pthread_mutex_unlock(&dC.ln_lock);
+
+    /* Set the number of close counts to open count of corresponding record_id*/
+    if (strcmp(rwo, "close") == 0){
+    for (i = 0; i < dC.array_size; i++)
+    if (dC.record_id[i] == record_id)
+        record_count = dC.record_count[i];
     }
 
     /* convert the start and end times to timespecs and report absolute timestamps */
@@ -223,22 +259,23 @@ void darshan_ldms_connector_send(uint64_t record_id, int64_t rank, int64_t recor
     tspec_end = darshan_core_abs_timespec_from_wtime(end_time);
     micro_s = tspec_end.tv_nsec/1.0e3;
 
-    sprintf(jb11,"{\"schema\":\"%s\", \"uid\":%ld, \"exe\":\"%s\",\"job_id\":%ld,\"rank\":%ld,\"ProducerName\":\"%s\",\"file\":\"%s\",\"record_id\":%"PRIu64",\"module\":\"%s\",\"type\":\"%s\",\"max_byte\":%ld,\"switches\":%ld,\"flushes\":%ld,\"cnt\":%ld,\"op\":\"%s\",\"seg\":[{\"pt_sel\":%ld,\"irreg_hslab\":%ld,\"reg_hslab\":%ld,\"ndims\":%ld,\"npoints\":%ld,\"off\":%ld,\"len\":%ld,\"start\":%0.6f,\"dur\":%0.6f,\"total\":%0.6f,\"timestamp\":%lu.%.6lu}]}", dC.schema, dC.uid, dC.exename, dC.jobid, rank, dC.hname, filepath, record_id, mod_name, data_type, max_byte, rw_switch, flushes, record_count, rwo, dC.hdf5_data[0], dC.hdf5_data[1], dC.hdf5_data[2], dC.hdf5_data[3], dC.hdf5_data[4], offset, length, start_time, end_time-start_time, total_time, tspec_end.tv_sec, micro_s);
-    
+    sprintf(jb11,"{\"schema\":\"%s\", \"uid\":%ld, \"exe\":\"%s\",\"job_id\":%ld,\"rank\":%ld,\"ProducerName\":\"%s\",\"file\":\"%s\",\"record_id\":%"PRIu64",\"module\":\"%s\",\"type\":\"%s\",\"max_byte\":%ld,\"switches\":%ld,\"flushes\":%ld,\"cnt\":%ld,\"op\":\"%s\",\"seg\":[{\"pt_sel\":%ld,\"irreg_hslab\":%ld,\"reg_hslab\":%ld,\"ndims\":%ld,\"npoints\":%ld,\"off\":%ld,\"len\":%ld,\"start\":%0.6f,\"dur\":%0.6f,\"total\":%0.6f,\"timestamp\":%lu.%.6lu}]}", dC.schema, dC.uid, dC.exepath, dC.jobid, rank, dC.hname, dC.filepath, record_id, mod_name, data_type, max_byte, rw_switch, flushes, record_count, rwo, dC.hdf5_data[0], dC.hdf5_data[1], dC.hdf5_data[2], dC.hdf5_data[3], dC.hdf5_data[4], offset, length, start_time, end_time-start_time, total_time, tspec_end.tv_sec, micro_s);
+
     if (getenv("DARSHAN_LDMS_VERBOSE"))
-       darshan_core_fprintf(stdout, "JSON Message: %s\n", jb11);
-    
+       darshan_core_fprintf(stderr, "JSON Message: %s\n", jb11);
+
     rc = ldmsd_stream_publish(dC.ldms_darsh, dC.env_ldms_stream, LDMSD_STREAM_JSON, jb11, strlen(jb11) + 1);
     if (rc)
        darshan_core_fprintf(stderr, "LDMS library: Error %d publishing darshanConnector data.\n", rc);
-    
+
     out_1:
          return;
 }
+
 #else
 
 struct darshanConnector dC = {
- .ldms_lib = 1
+ .ldms_lib = 0
  };
 
 void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)

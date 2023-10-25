@@ -33,6 +33,8 @@ END=$(date +%s.%N)
 DIFF=$(echo "$END - $START" | bc)
 echo "The DiffOfTime = $DIFF"
 
+lfs getstripe /nscratch/spwalto/iorTest/darshan* > $DARSHAN_TMP/${PBS_JOBID}-${PROG}-OST.txt
+
 # parse log with the dxt parser
 $DARSHAN_PATH/bin/darshan-dxt-parser --show-incomplete $DARSHAN_LOGFILE > $DARSHAN_TMP/${PROG}.${PBS_JOBID}-dxt.darshan.txt
 if [ $? -ne 0 ]; then
