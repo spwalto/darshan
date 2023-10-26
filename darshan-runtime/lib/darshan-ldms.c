@@ -25,7 +25,7 @@ struct darshanConnector dC = {
      .ldms_lib = 1,
      .jobid = 0,
      .pos = 0,
-     .array_size = 50,
+     .array_size = 1024,
      };
 
 static void event_cb(ldms_t x, ldms_xprt_event_t e, void *cb_arg)
