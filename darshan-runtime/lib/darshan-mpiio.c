@@ -147,6 +147,9 @@ struct mpiio_file_record_ref
     double last_write_end;
     void *access_root;
     int access_count;
+#ifdef HAVE_LDMS
+    int64_t close_counts;
+#endif
 };
 
 /* The mpiio_runtime structure maintains necessary state for storing
@@ -219,7 +222,7 @@ static int my_rank = -1;
     struct mpiio_file_record_ref *rec_ref; \
     char *newpath; \
     int comm_size; \
-    extern struct darshanConnector dC;\
+    extern struct darshanConnector dC; \
     if(__ret != MPI_SUCCESS) break; \
     newpath = darshan_clean_file_path(__path); \
     if(!newpath) newpath = (char *)__path; \
@@ -245,7 +248,7 @@ static int my_rank = -1;
     DARSHAN_TIMER_INC_NO_OVERLAP(rec_ref->file_rec->fcounters[MPIIO_F_META_TIME], \
         __tm1, __tm2, rec_ref->last_meta_end); \
     darshan_add_record_ref(&(mpiio_runtime->fh_hash), &__fh, sizeof(MPI_File), rec_ref); \
-    if(newpath != __path) free(newpath);\
+    if(newpath != __path) free(newpath); \
     /* LDMS to publish realtime read tracing information to daemon*/ \
     if(dC.ldms_lib)\
         if(dC.mpiio_enable_ldms)\
@@ -269,7 +272,7 @@ static int get_byte_offset = 0;
     int64_t size_ll; \
     struct darshan_common_val_counter *cvc; \
     double __elapsed = __tm2-__tm1; \
-    extern struct darshanConnector dC;\
+    extern struct darshanConnector dC; \
     if(__ret != MPI_SUCCESS) break; \
     rec_ref = darshan_lookup_record_ref(mpiio_runtime->fh_hash, &(__fh), sizeof(MPI_File)); \
     if(!rec_ref) break; \
@@ -1202,11 +1205,12 @@ int DARSHAN_DECL(MPI_File_close)(MPI_File *fh)
             &tmp_fh, sizeof(MPI_File));
 
 #ifdef HAVE_LDMS
+    rec_ref->close_counts++;
     /* publish close information for mpiio */
     extern struct darshanConnector dC;
     if(dC.ldms_lib)
         if(dC.mpiio_enable_ldms)
-            darshan_ldms_connector_send(rec_ref->file_rec->base_rec.id, rec_ref->file_rec->base_rec.rank, -1, "close", -1, -1, -1, -1, -1, tm1, tm2, rec_ref->file_rec->fcounters[MPIIO_F_META_TIME], "MPIIO", "MOD");
+            darshan_ldms_connector_send(rec_ref->file_rec->base_rec.id, rec_ref->file_rec->base_rec.rank, rec_ref->close_counts, "close", -1, -1, -1, -1, -1, tm1, tm2, rec_ref->file_rec->fcounters[MPIIO_F_META_TIME], "MPIIO", "MOD");
 #endif
 
     }

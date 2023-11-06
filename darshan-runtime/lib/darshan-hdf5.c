@@ -71,6 +71,9 @@ struct hdf5_file_record_ref
 {
     struct darshan_hdf5_file* file_rec;
     double last_meta_end;
+#ifdef HAVE_LDMS
+    int64_t close_counts;
+#endif
 };
 
 /* structure that can track i/o stats for a given HDF5 dataset record at runtime */
@@ -83,6 +86,9 @@ struct hdf5_dataset_record_ref
     double last_meta_end;
     void *access_root;
     int access_count;
+#ifdef HAVE_LDMS
+    int64_t close_counts;
+#endif
 };
 
 /* struct to encapsulate runtime state for the HDF5 module */
@@ -417,11 +423,12 @@ herr_t DARSHAN_DECL(H5Fclose)(hid_t file_id)
                 &file_id, sizeof(hid_t));
 
 #ifdef HAVE_LDMS
-    /* LDMS to publish runtime h5d tracing information to daemon*/
+    rec_ref->close_counts++;
+    /* publish close information for h5f */
     extern struct darshanConnector dC;
     if(dC.ldms_lib)
         if(dC.hdf5_enable_ldms)
-            darshan_ldms_connector_send(rec_ref->file_rec->base_rec.id, rec_ref->file_rec->base_rec.rank, -1, "close", -1, -1, -1, -1, rec_ref->file_rec->counters[H5F_FLUSHES],rec_ref->file_rec->fcounters[H5F_F_CLOSE_START_TIMESTAMP], rec_ref->file_rec->fcounters[H5F_F_CLOSE_END_TIMESTAMP], rec_ref->file_rec->fcounters[H5F_F_META_TIME], "H5F", "MOD");
+            darshan_ldms_connector_send(rec_ref->file_rec->base_rec.id, rec_ref->file_rec->base_rec.rank, rec_ref->close_counts, "close", -1, -1, -1, -1, rec_ref->file_rec->counters[H5F_FLUSHES],rec_ref->file_rec->fcounters[H5F_F_CLOSE_START_TIMESTAMP], rec_ref->file_rec->fcounters[H5F_F_CLOSE_END_TIMESTAMP], rec_ref->file_rec->fcounters[H5F_F_META_TIME], "H5F", "MOD");
 #endif
 
         }
@@ -466,7 +473,7 @@ herr_t DARSHAN_DECL(H5Fclose)(hid_t file_id)
     ssize_t __req_name_len = DARSHAN_HDF5_MAX_NAME_LEN-1, __ret_name_len; \
     darshan_record_id __rec_id, __file_rec_id = 0; \
     struct hdf5_dataset_record_ref *__rec_ref; \
-    extern struct darshanConnector dC;\
+    extern struct darshanConnector dC; \
     hsize_t __chunk_dims[H5D_MAX_NDIMS] = {0}; \
     int __i, __n_chunk_dims = 0; \
     /* get corresponding file name */\
@@ -982,11 +989,12 @@ herr_t DARSHAN_DECL(H5Dclose)(hid_t dataset_id)
                 tm1, tm2, rec_ref->last_meta_end);
             darshan_delete_record_ref(&(hdf5_dataset_runtime->hid_hash), &dataset_id, sizeof(hid_t));
 #ifdef HAVE_LDMS
-    /* LDMS to publish runtime h5d tracing information to daemon*/
+    rec_ref->close_counts++;
+    /* publish close information for h5f */
     extern struct darshanConnector dC;
     if(dC.ldms_lib)
         if(dC.hdf5_enable_ldms)
-            darshan_ldms_connector_send(rec_ref->dataset_rec->base_rec.id, rec_ref->dataset_rec->base_rec.rank, -1, "close", -1, -1, -1, -1, rec_ref->dataset_rec->counters[H5D_FLUSHES], rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_START_TIMESTAMP], rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_END_TIMESTAMP], rec_ref->dataset_rec->fcounters[H5D_F_META_TIME], "H5D", "MOD");
+            darshan_ldms_connector_send(rec_ref->dataset_rec->base_rec.id, rec_ref->dataset_rec->base_rec.rank, rec_ref->close_counts, "close", -1, -1, -1, -1, rec_ref->dataset_rec->counters[H5D_FLUSHES], rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_START_TIMESTAMP], rec_ref->dataset_rec->fcounters[H5D_F_CLOSE_END_TIMESTAMP], rec_ref->dataset_rec->fcounters[H5D_F_META_TIME], "H5D", "MOD");
 #endif
 
         }
