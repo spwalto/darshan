@@ -122,22 +122,22 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
     dC.exe_tmp = dC.exepath;
 
     /* Set flags for various LDMS environment variables */
-    if (getenv("POSIX_ENABLE_LDMS"))
+    if (getenv("DARSHAN_LDMS_ENABLE_POSIX"))
         dC.posix_enable_ldms = 1;
     else
         dC.posix_enable_ldms = 0;
 
-    if (getenv("MPIIO_ENABLE_LDMS"))
+    if (getenv("DARSHAN_LDMS_ENABLE_MPIIO"))
         dC.mpiio_enable_ldms = 1;
     else
         dC.mpiio_enable_ldms = 0;
 
-    if (getenv("STDIO_ENABLE_LDMS"))
+    if (getenv("DARSHAN_LDMS_ENABLE_STDIO"))
         dC.stdio_enable_ldms = 1;
     else
         dC.stdio_enable_ldms = 0;
 
-    if (getenv("HDF5_ENABLE_LDMS"))
+    if (getenv("DARSHAN_LDMS_ENABLE_HDF5"))
         dC.hdf5_enable_ldms = 1;
     else
         dC.hdf5_enable_ldms = 0;
