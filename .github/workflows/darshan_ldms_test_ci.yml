@@ -93,7 +93,6 @@ jobs:
         export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
         export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
-        export DXT_ENABLE_IO_TRACE=1
         echo "---setting LDMS environment---"
         export LDMS_INSTALL_PATH=/opt/ovis-latest
         export LD_LIBRARY_PATH=$LDMS_INSTALL_PATH/lib/:$LD_LIBRARY_PATH
@@ -107,10 +106,10 @@ jobs:
         export DARSHAN_LDMS_HOST=localhost
         export DARSHAN_LDMS_XPRT=sock
         export DARSHAN_LDMS_AUTH=none
-        export POSIX_ENABLE_LDMS=
-        export MPIIO_ENABLE_LDMS=
-        export STDIO_ENABLE_LDMS=
-        export HDF5_ENABLE_LDMS=
+        export DARSHAN_LDMS_ENABLE_MPIIO=
+        export DARSHAN_LDMS_ENABLE_POSIX=
+        export DARSHAN_LDMS_ENABLE_STDIO=
+        export DARSHAN_LDMS_ENABLE_HDF5=
         echo "---setting Test Case Variables---"
         export PROG=mpi-io-test
         export DARSHAN_TMP=/tmp/darshan-ldms-test
