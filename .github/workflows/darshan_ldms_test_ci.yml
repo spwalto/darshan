@@ -138,8 +138,9 @@ jobs:
         echo "---starting ldmsd---"
         ldmsd -x sock:10444 -c stream-samp-4.3.3.conf -l /tmp/stream-samp-4.3.3.log -v DEBUG
         # check it is running
-        ldms_ls -h localhost -p 10444 -v
         ps auwx | grep ldmsd | grep -v grep
+        cat /tmp/stream-samp-4.3.3.log
+        ldms_ls -h localhost -p 10444 -v
         STREAM_SAMP_433_PID=$(pgrep -f stream-samp-4.3.3.conf)
         pgrep -a ldmsd
         [[ -n "${STREAM_SAMP_433_PID}" ]] || error "stream-samp-4.3.3.log is not running"
