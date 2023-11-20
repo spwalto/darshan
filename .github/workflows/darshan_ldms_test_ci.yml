@@ -152,10 +152,10 @@ jobs:
         unset DARSHAN_LDMS_HOST
         unset DARSHAN_LDMS_XPRT
         unset DARSHAN_LDMS_AUTH
-        # Collect both MPIIO and POSIX
-        unset DXT_ENABLE_LDMS
-        unset STDIO_ENABLE_LDMS
-        unset HDF5_ENABLE_LDMS
+        unset DARSHAN_LDMS_ENABLE_MPIIO=
+        unset DARSHAN_LDMS_ENABLE_POSIX=
+        unset DARSHAN_LDMS_ENABLE_STDIO=
+        unset DARSHAN_LDMS_ENABLE_HDF5=
         export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}-no-ldms-env.darshan
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
@@ -194,6 +194,7 @@ jobs:
         export DARSHAN_TMP=/tmp/darshan-ldms-test
         export PROG=mpi-io-test
         ls -ltr $DARSHAN_TMP
+        ls -ltr "streams/store/csv/"
         if [[ ! -f "$DARSHAN_TMP/${PROG}.darshan" || ! -f "$DARSHAN_TMP/${PROG}-no-ldms-env.darshan" || ! -f "$DARSHAN_TMP/${PROG}-no-ldms-daemon.darshan" ]]; then
                 echo "One of the darshan log files do not exist."
                 exit 1
@@ -202,8 +203,8 @@ jobs:
                 echo "CSV file does not exist."
                 cat /tmp/stream-samp-4.3.3.log
                 exit 1
-        else
-                ls -ltr streams/store/csv/
-                cat streams/store/csv/darshanConnector.*
+        elif [[ "streams/store/csv/darshanConnector.*" -e 0 ]]; then
+                echo "No data was stored to CSV file.
+                exit 1"
         fi        
         echo "DONE!"
