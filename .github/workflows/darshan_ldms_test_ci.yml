@@ -89,10 +89,10 @@ jobs:
       run : |
         echo "---setting Darshan environment---"
         export DARSHAN_INSTALL_PATH=/opt/darshan-latest
-        export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
-        export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
-        export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
+        #export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
+        #export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
+        #export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
+        #export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
         echo "---setting LDMS environment---"
         export LDMS_INSTALL_PATH=/opt/ovis-latest
         export LD_LIBRARY_PATH=$LDMS_INSTALL_PATH/lib/:$LD_LIBRARY_PATH
@@ -141,7 +141,6 @@ jobs:
         ps auwx | grep ldmsd | grep -v grep
         cat /tmp/stream-samp-4.3.3.log
         ldms_ls
-        ldmsd_controller
         ldms_ls -h localhost -p 10444 -v
         STREAM_SAMP_433_PID=$(pgrep -f stream-samp-4.3.3.conf)
         pgrep -a ldmsd
