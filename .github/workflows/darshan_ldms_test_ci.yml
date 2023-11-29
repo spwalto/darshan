@@ -128,7 +128,7 @@ jobs:
                 exit 1
         fi
         echo "---generating ldmsd configuration file---"
-        cat > stream-samp-4.3.3.conf << EOF
+        cat > stream-samp-lastest.conf << EOF
         load name=hello_sampler
         config name=hello_sampler producer=host1 instance=host1/hello_sampler stream=darshanConnector component_id=1
         start name=hello_sampler interval=1000000 offset=0
@@ -136,10 +136,11 @@ jobs:
         config name=stream_csv_store path=./streams/store container=csv stream=darshanConnector rolltype=3 rollover=500000
         EOF
         echo "---starting ldmsd---"
-        ldmsd -x sock:10444 -c stream-samp-4.3.3.conf -l /tmp/stream-samp-4.3.3.log -v DEBUG
+        ldmsd -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG
         # check it is running
         ps auwx | grep ldmsd | grep -v grep
-        cat /tmp/stream-samp-4.3.3.log
+        cat /tmp/stream-samp-latest.log
+        ldmsd_controller -p 10444 -h localhost -x sock
         ldms_ls -p 10444 -v
         STREAM_SAMP_433_PID=$(pgrep -f stream-samp-4.3.3.conf)
         pgrep -a ldmsd
