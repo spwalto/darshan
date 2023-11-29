@@ -128,7 +128,7 @@ jobs:
                 exit 1
         fi
         echo "---generating ldmsd configuration file---"
-        cat > stream-samp-lastest.conf << EOF
+        cat > stream-samp-latest.conf << EOF
         load name=hello_sampler
         config name=hello_sampler producer=host1 instance=host1/hello_sampler stream=darshanConnector component_id=1
         start name=hello_sampler interval=1000000 offset=0
