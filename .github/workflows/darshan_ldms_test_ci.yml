@@ -60,8 +60,7 @@ jobs:
         pushd build
         export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
         ../configure --prefix=/opt/ovis-latest  
-        make 
-        make install
+        make && make install
     - name: Install darshan-runtime
       run: |
         cd darshan
@@ -74,8 +73,7 @@ jobs:
         cd build
         # build darshan against LDMS library
         CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --enable-ldms-mod --with-ldms=/opt/ovis-latest --with-jobid-env=NONE --enable-hdf5-mod
-        make
-        make install
+        make && make install
     - name: Install darshan-util
       run: |
         export DARSHAN_INSTALL_PATH=/opt/darshan-latest
@@ -128,6 +126,8 @@ jobs:
                 exit 1
         fi
         echo "---generating ldmsd configuration file---"
+        which ldmsd
+        which darshan
         cat > stream-samp-latest.conf << EOF
         load name=hello_sampler
         config name=hello_sampler producer=host1 instance=host1/hello_sampler stream=darshanConnector component_id=1
