@@ -127,6 +127,9 @@ jobs:
         fi
         echo "---generating ldmsd configuration file---"
         which ldmsd
+        ls -ltrch /opt/ovis-latest/bin
+        which ldms_ls
+        which ldmsd_controller
         which darshan
         cat > stream-samp-latest.conf << EOF
         load name=hello_sampler
