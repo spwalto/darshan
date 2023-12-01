@@ -127,7 +127,7 @@ jobs:
         fi
         echo "---generating ldmsd configuration file---"
         which ldmsd
-        ls -ltrch /opt/ovis-latest/bin
+        ls -ltrch /opt/ovis-latest/sbin
         which ldms_ls
         which ldmsd_controller
         which darshan
