@@ -33,12 +33,12 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update -y
-        sudo apt-get install hdf5-tools libhdf5-openmpi-dev openmpi-bin 
+        #sudo apt-get install hdf5-tools libhdf5-openmpi-dev openmpi-bin 
         python -m pip install --upgrade pip
         python -m pip install --upgrade pytest mpi4py
-        export HDF5_MPI="ON"
-        CC=mpicc python -m pip install --no-cache-dir h5py
-        #CC=mpicc python -m pip install --no-binary=h5py h5py
+        #export HDF5_MPI="ON"
+        #CC=mpicc python -m pip install --no-cache-dir h5py
+        ####CC=mpicc python -m pip install --no-binary=h5py h5py
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
@@ -64,7 +64,7 @@ jobs:
     - name: Install darshan-runtime
       run: |
         cd darshan
-        export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
+        #export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
         export DARSHAN_INSTALL_PATH=/opt/darshan-latest
         git submodule update --init
         ./prepare.sh
@@ -81,15 +81,14 @@ jobs:
         mkdir build
         cd build
         ../configure --prefix=$DARSHAN_INSTALL_PATH --enable-apxc-mod --enable-apmpi-mod
-        make
-        make install
+        make && make install
     - name: Test Preparation and Run
       run : |
         echo "---setting Darshan environment---"
         export DARSHAN_INSTALL_PATH=/opt/darshan-latest
-        export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
+        #export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
         export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
-        export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
+        #export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
         echo "---setting LDMS environment---"
         export LDMS_INSTALL_PATH=/opt/ovis-latest
