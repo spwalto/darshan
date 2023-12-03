@@ -143,9 +143,15 @@ jobs:
         ldmsd -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG
         # check it is running
         ps auwx | grep ldmsd | grep -v grep
+        cat > ldms_ls-4.3.3.sh << EOF
+        . /opt/ovis-latest/etc/profile.d/set-ovis-variables.sh
+        ldms_ls \$@
+        EOF
+        chmod 755 ldms_ls-latest.sh
         cat /tmp/stream-samp-latest.log
-        ldmsctl -p 10444 -h localhost -x sock
-        ldms_ls -p 10444 -v
+        ./ldms_ls-latest.sh -p 10444 -x sock -v
+        #ldmsctl -p 10444 -h localhost -x sock
+        #ldms_ls -p 10444 -v
         STREAM_SAMP_433_PID=$(pgrep -f stream-samp-4.3.3.conf)
         pgrep -a ldmsd
         [[ -n "${STREAM_SAMP_433_PID}" ]] || error "stream-samp-4.3.3.log is not running"
