@@ -144,7 +144,6 @@ jobs:
         # check it is running
         ps auwx | grep ldmsd | grep -v grep
         cat > ldms_ls-latest.sh << EOF
-        . /opt/ovis-latest/etc/profile.d/set-ovis-variables.sh
         ldms_ls \$@
         EOF
         chmod 755 ldms_ls-latest.sh
