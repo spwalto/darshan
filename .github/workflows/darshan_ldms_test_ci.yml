@@ -61,7 +61,7 @@ jobs:
         mkdir -p build
         pushd build
         export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
-        ../configure --prefix=/opt/ovis-latest --enable-etc --enable-munge
+        ../configure --prefix=/opt/ovis-latest --enable-etc 
         make && make install
     - name: Install darshan-runtime
       run: |
