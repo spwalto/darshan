@@ -25,7 +25,7 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-latest]
-        python-version: ["2.7.5"]
+        python-version: ["3.10"]
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Set Up Python ${{ matrix.python-version }}
@@ -61,7 +61,7 @@ jobs:
         mkdir -p build
         pushd build
         export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
-        ../configure --prefix=/opt/ovis-latest  
+        ../configure --prefix=/opt/ovis-latest --enable-etc --enable-munge
         make && make install
     - name: Install darshan-runtime
       run: |
@@ -129,6 +129,8 @@ jobs:
         fi
         echo "---generating ldmsd configuration file---"
         ls -ltrch /opt/ovis-latest/sbin
+        ls -ltrch /opt/ovis-latest/etc/profile.d
+        ls -ltrch /opt/ovis-latest/etc
         echo $LD_LIBRARY_PATH
         which ldmsd
         which ldms_ls
@@ -145,6 +147,7 @@ jobs:
         # check it is running
         ps auwx | grep ldmsd | grep -v grep
         cat > ldms_ls-latest.sh << EOF
+        . /opt/ovis-latest/etc/profile.d/set-ovis-variables.sh
         ldms_ls \$@
         EOF
         chmod 755 ldms_ls-latest.sh
