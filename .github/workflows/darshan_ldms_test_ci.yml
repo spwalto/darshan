@@ -133,6 +133,8 @@ jobs:
         ls -ltrch /opt/ovis-latest/etc
         echo $LD_LIBRARY_PATH
         which ldmsd
+        ldmsd
+        ldmsctl
         which ldms_ls
         ldms_ls
         which ldmsctl
