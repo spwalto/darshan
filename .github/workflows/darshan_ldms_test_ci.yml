@@ -87,7 +87,7 @@ jobs:
         make && make install
     - name: Test Preparation and Run
       run : |
-        ln -s ~/.docker/run/docker.sock /var/run/docker.sock
+        ln -s /var/run/docker.sock ~/.docker/run/docker.sock 
         echo "---setting Darshan environment---"
         export DARSHAN_INSTALL_PATH=/opt/darshan-latest
         #export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
