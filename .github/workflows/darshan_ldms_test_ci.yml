@@ -135,6 +135,7 @@ jobs:
         echo $LD_LIBRARY_PATH
         which ldmsd
         which ldms_ls
+        ldms_ls
         which ldmsctl
         cat > stream-samp-latest.conf << EOF
         load name=hello_sampler
