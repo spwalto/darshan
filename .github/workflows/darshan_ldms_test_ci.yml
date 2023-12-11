@@ -35,14 +35,14 @@ jobs:
       uses: actions/setup-python@v3
       with:
          python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        sudo apt-get update -y
-        sudo apt-get install hdf5-tools libhdf5-openmpi-dev openmpi-bin -y 
-        python -m pip install --upgrade pip -y
-        python -m pip install --upgrade pytest mpi4py -y
-        export HDF5_MPI="ON"
-        CC=mpicc python -m pip install --no-cache-dir h5py -y
+    #- name: Install dependencies
+     # run: |
+        #sudo apt-get update -y
+        #sudo apt-get install hdf5-tools libhdf5-openmpi-dev openmpi-bin -y 
+        #python -m pip install --upgrade pip -y
+        #python -m pip install --upgrade pytest mpi4py -y
+        #export HDF5_MPI="ON"
+        #CC=mpicc python -m pip install --no-cache-dir h5py -y
       #  #CC=mpicc python -m pip install --no-binary=h5py h5py
     - name: Clone LDMS
       uses: actions/checkout@v3
