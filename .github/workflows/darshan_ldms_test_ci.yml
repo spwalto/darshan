@@ -98,7 +98,7 @@ jobs:
         export LD_LIBRARY_PATH=$LDMS_INSTALL_PATH/lib/:$LD_LIBRARY_PATH
         export LDMSD_PLUGIN_LIBPATH=$LDMS_INSTALL_PATH/lib/ovis-ldms
         export ZAP_LIBPATH=$LDMS_INSTALL_PATH/lib/ovis-ldms
-        export PATH=$LDMS_INSTALL_PATH/sbin:$LDMS_INSTALL_PATH/bin:$PATH
+        export PATH=$LDMS_INSTALL_PATH/ldms/src/ldmsd:$LDMS_INSTALL_PATH/sbin:$LDMS_INSTALL_PATH/bin:$PATH
         export PYTHONPATH=$LDMS_INSTALL_PATH/lib/python3.6/site-packages
         echo "---setting Darshan-LDMS environment---"
         export DARSHAN_LDMS_STREAM=darshanConnector
