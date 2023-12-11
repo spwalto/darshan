@@ -35,15 +35,15 @@ jobs:
       uses: actions/setup-python@v3
       with:
          python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        sudo apt-get update -y
-        sudo apt-get install hdf5-tools libhdf5-openmpi-dev openmpi-bin 
-        python -m pip install --upgrade pip
-        python -m pip install --upgrade pytest mpi4py
-        export HDF5_MPI="ON"
-        CC=mpicc python -m pip install --no-cache-dir h5py
-        #CC=mpicc python -m pip install --no-binary=h5py h5py
+    #- name: Install dependencies
+      #run: |
+      #  sudo apt-get update -y
+      #  sudo apt-get install hdf5-tools libhdf5-openmpi-dev openmpi-bin 
+      #  python -m pip install --upgrade pip
+      #  python -m pip install --upgrade pytest mpi4py
+      #  export HDF5_MPI="ON"
+      #  CC=mpicc python -m pip install --no-cache-dir h5py
+      #  #CC=mpicc python -m pip install --no-binary=h5py h5py
     #- name: Clone LDMS
       #uses: actions/checkout@v3
       #with:
@@ -83,7 +83,8 @@ jobs:
         mkdir build
         cd build
         # build darshan against LDMS library
-        CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --enable-ldms-mod --with-ldms=/opt/ovis-latest --with-jobid-env=NONE --enable-hdf5-mod
+        CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --enable-ldms-mod --with-ldms=/opt/ovis-latest --with-jobid-env=NONE 
+        #--enable-hdf5-mod
         make && make install
     - name: Install darshan-util
       run: |
