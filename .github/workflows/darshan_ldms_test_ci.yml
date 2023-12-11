@@ -58,6 +58,7 @@ jobs:
     #    ref: darshan_ldms_Connector
     - name: Install LDMS
       run: |
+        sed -i '/ip6-allhosts/d' /etc/hosts
         cat /etc/hosts
         #printenv
         cd ovis
