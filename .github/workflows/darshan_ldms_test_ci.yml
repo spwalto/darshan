@@ -59,7 +59,6 @@ jobs:
     - name: Install LDMS
       run: |
         cat /etc/sysctl.conf
-        --sysctl net.ipv6.conf.all.disable_ipv6=0
         #printenv
         cd ovis
         #git fetch --all
@@ -150,8 +149,6 @@ jobs:
         ls -ltrch /opt/ovis-latest/etc
         echo $LD_LIBRARY_PATH
         which ldmsd
-        ldmsd
-        ldmsctl
         which ldms_ls
         which ldmsctl
         cat > stream-samp-latest.conf << EOF
@@ -177,7 +174,7 @@ jobs:
         STREAM_SAMP_433_PID=$(pgrep -f stream-samp-latest.conf)
         pgrep -a ldmsd
         [[ -n "${STREAM_SAMP_433_PID}" ]] || error "stream-samp-latest.log is not running"
-        ldms_ls -p 10444 -v
+        ldms_ls -p 10444 -v -v
         echo "---Running Test Case---"
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         cd $DARSHAN_TMP
