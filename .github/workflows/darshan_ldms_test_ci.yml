@@ -50,12 +50,12 @@ jobs:
         #repository: ovis-hpc/ovis
         #path: ovis
         #ref: OVIS-4
-    - name: Clone Darshan Repo
-      uses: actions/checkout@v3
-      with:
-        repository: Snell1224/darshan
-        path: darshan
-        ref: darshan_ldms_Connector
+    #- name: Clone Darshan Repo
+    #  uses: actions/checkout@v3
+    #  with:
+    #    repository: Snell1224/darshan
+    #    path: darshan
+    #    ref: darshan_ldms_Connector
     - name: Install LDMS
       run: |
         set -e
@@ -72,6 +72,12 @@ jobs:
         #export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
         #../configure --prefix=/opt/ovis-latest --enable-etc --disable-python
         #make && make install
+    - name: Clone Darshan Repo
+      uses: actions/checkout@v3
+      with:
+        repository: Snell1224/darshan
+        path: darshan
+        ref: darshan_ldms_Connector
     - name: Install darshan-runtime
       run: |
         cd darshan
