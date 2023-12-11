@@ -66,7 +66,7 @@ jobs:
     - name: Install darshan-runtime
       run: |
         cd darshan
-        #export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
+        export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
         export DARSHAN_INSTALL_PATH=/opt/darshan-latest
         git submodule update --init
         ./prepare.sh
@@ -88,9 +88,9 @@ jobs:
       run : |
         echo "---setting Darshan environment---"
         export DARSHAN_INSTALL_PATH=/opt/darshan-latest
-        #export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
+        export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
         export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
-        #export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
+        export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
         echo "---setting LDMS environment---"
         export LDMS_INSTALL_PATH=/opt/ovis-latest
@@ -135,7 +135,6 @@ jobs:
         ldmsd
         ldmsctl
         which ldms_ls
-        ldms_ls
         which ldmsctl
         cat > stream-samp-latest.conf << EOF
         load name=hello_sampler
@@ -152,6 +151,8 @@ jobs:
         . /opt/ovis-latest/etc/profile.d/set-ovis-variables.sh
         ldms_ls \$@
         EOF
+        echo "checking set-ovis-variables.sh file"
+        cat /opt/ovis-latest/etc/profile.d/set-ovis-variables.sh
         chmod 755 ldms_ls-latest.sh
         cat /tmp/stream-samp-latest.log
         ./ldms_ls-latest.sh -p 10444 -x sock -v
