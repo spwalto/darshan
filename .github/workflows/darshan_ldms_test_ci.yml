@@ -59,9 +59,8 @@ jobs:
     - name: Install LDMS
       run: |
         printenv
-        pwd
-        ls -ltrch 
         cd ovis
+        git checkout 39468f0bf3d60311b0d269a2906745064ec61791
         sh autogen.sh
         set -e
         mkdir -p build
@@ -102,12 +101,12 @@ jobs:
         #make && make install
     - name: Test Preparation and Run
       run : |
-        echo "---setting Darshan environment---"
-        export DARSHAN_INSTALL_PATH=/opt/darshan-latest
-        export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
-        export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
-        export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
+        #echo "---setting Darshan environment---"
+        #export DARSHAN_INSTALL_PATH=/opt/darshan-latest
+        #export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
+        #export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
+        #export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
+        #export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
         echo "---setting LDMS environment---"
         export LDMS_INSTALL_PATH=/opt/ovis-latest
         export LD_LIBRARY_PATH=$LDMS_INSTALL_PATH/lib/:$LD_LIBRARY_PATH
