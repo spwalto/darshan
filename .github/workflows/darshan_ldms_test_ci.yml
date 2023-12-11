@@ -31,6 +31,13 @@ jobs:
         image: ovishpc/ovis-compat-centos7
     steps:
     - uses: actions/checkout@v3
+    - run: |
+        cd ..
+        pwd
+        ls -ltrch
+        cd ..
+        pwd
+        ls -ltrch
     #- name: Set Up Python ${{ matrix.python-version }}
     #  uses: actions/setup-python@v3
     #  with:
