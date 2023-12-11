@@ -27,11 +27,15 @@ jobs:
         platform: [ubuntu-latest]
         python-version: ["3.10"]
     runs-on: ${{ matrix.platform }}
+    container:
+        image: ovishpc/ovis-compat-centos7
     steps:
-    - name: Set Up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
-      with:
-         python-version: ${{ matrix.python-version }}
+    - uses: actions/checkout@v3
+    - run: sh autogen.sh
+    #- name: Set Up Python ${{ matrix.python-version }}
+      #uses: actions/setup-python@v3
+      #with:
+         #python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
         sudo apt-get update -y
@@ -41,12 +45,12 @@ jobs:
         export HDF5_MPI="ON"
         CC=mpicc python -m pip install --no-cache-dir h5py
         #CC=mpicc python -m pip install --no-binary=h5py h5py
-    - name: Clone LDMS
-      uses: actions/checkout@v3
-      with:
-        repository: ovis-hpc/ovis
-        path: ovis
-        ref: OVIS-4
+    #- name: Clone LDMS
+      #uses: actions/checkout@v3
+      #with:
+        #repository: ovis-hpc/ovis
+        #path: ovis
+        #ref: OVIS-4
     - name: Clone Darshan Repo
       uses: actions/checkout@v3
       with:
@@ -55,14 +59,20 @@ jobs:
         ref: darshan_ldms_Connector
     - name: Install LDMS
       run: |
-        cd ovis
-        sh autogen.sh
         set -e
         mkdir -p build
         pushd build
-        export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
-        ../configure --prefix=/opt/ovis-latest --enable-etc --disable-python
-        make && make install
+        ../configure --prefix=/opt/ovis-latest --enable-etc --enable-munge
+        make
+        make install
+        #cd ovis
+        #sh autogen.sh
+        #set -e
+        #mkdir -p build
+        #pushd build
+        #export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
+        #../configure --prefix=/opt/ovis-latest --enable-etc --disable-python
+        #make && make install
     - name: Install darshan-runtime
       run: |
         cd darshan
