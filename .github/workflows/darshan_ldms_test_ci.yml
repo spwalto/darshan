@@ -76,19 +76,13 @@ jobs:
         #export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
         #../configure --prefix=/opt/ovis-latest --enable-etc --disable-python
         #make && make install
-    - name: Clone Darshan Repo
-      uses: actions/checkout@v3
-      with:
-        repository: Snell1224/darshan
-        path: darshan
-        ref: darshan_ldms_Connector
     - name: Install darshan-runtime
       run: |
         pwd
         #cd darshan
         export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
         export DARSHAN_INSTALL_PATH=/opt/darshan-latest
-        git submodule update --init
+        #git submodule update --init
         ./prepare.sh
         cd darshan-runtime
         mkdir build
