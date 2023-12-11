@@ -84,7 +84,8 @@ jobs:
         ref: darshan_ldms_Connector
     - name: Install darshan-runtime
       run: |
-        cd darshan
+        pwd
+        #cd darshan
         export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
         export DARSHAN_INSTALL_PATH=/opt/darshan-latest
         git submodule update --init
