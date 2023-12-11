@@ -60,6 +60,7 @@ jobs:
       run: |
         printenv
         cd ovis
+        git fetch --all
         git checkout 39468f0bf3d60311b0d269a2906745064ec61791
         sh autogen.sh
         set -e
