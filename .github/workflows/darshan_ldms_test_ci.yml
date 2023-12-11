@@ -58,6 +58,8 @@ jobs:
     #    ref: darshan_ldms_Connector
     - name: Install LDMS
       run: |
+        pwd
+        ls -ltrch 
         set -e
         mkdir -p build
         pushd build
