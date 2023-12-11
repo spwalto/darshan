@@ -58,10 +58,12 @@ jobs:
     #    ref: darshan_ldms_Connector
     - name: Install LDMS
       run: |
-        printenv
+        cat /etc/sysctl.conf
+        --sysctl net.ipv6.conf.all.disable_ipv6=0
+        #printenv
         cd ovis
-        git fetch --all
-        git checkout 1b45d3871469e62e66b506e58dbdd502bbe208fa
+        #git fetch --all
+        #git checkout 1b45d3871469e62e66b506e58dbdd502bbe208fa
         sh autogen.sh
         set -e
         mkdir -p build
