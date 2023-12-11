@@ -31,13 +31,10 @@ jobs:
         image: ovishpc/ovis-compat-centos7
     steps:
     - uses: actions/checkout@v3
-    - run: |
-        ls -ltrch
-        pwd
-    #- name: Set Up Python ${{ matrix.python-version }}
-      #uses: actions/setup-python@v3
-      #with:
-         #python-version: ${{ matrix.python-version }}
+    - name: Set Up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
         sudo apt-get update -y
