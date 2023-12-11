@@ -31,8 +31,6 @@ jobs:
         image: ovishpc/ovis-compat-centos7
     steps:
     - uses: actions/checkout@v3
-    - run: |
-        cd /root/ovis-4.3.3/
     #- name: Set Up Python ${{ matrix.python-version }}
     #  uses: actions/setup-python@v3
     #  with:
@@ -60,8 +58,10 @@ jobs:
     #    ref: darshan_ldms_Connector
     - name: Install LDMS
       run: |
+        cd /root/ovis-4.3.6/
         pwd
         ls -ltrch 
+        sh autogen.sh
         set -e
         mkdir -p build
         pushd build
