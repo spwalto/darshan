@@ -31,7 +31,9 @@ jobs:
         image: ovishpc/ovis-compat-centos7
     steps:
     - uses: actions/checkout@v3
-    - run: sh autogen.sh
+    - run: |
+        ls -ltrch
+        pwd
     #- name: Set Up Python ${{ matrix.python-version }}
       #uses: actions/setup-python@v3
       #with:
