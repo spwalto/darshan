@@ -27,8 +27,8 @@ jobs:
         platform: [ubuntu-latest]
         python-version: ["3.10"]
     runs-on: ${{ matrix.platform }}
-    #container:
-        #image: ovishpc/ovis-ubuntu-build
+    container:
+        image: ovishpc/ovis-ubuntu-build
     steps:
     - uses: actions/checkout@v3
     - name: Set Up Python ${{ matrix.python-version }}
@@ -56,9 +56,11 @@ jobs:
     #    repository: Snell1224/darshan
     #    path: darshan
     #    ref: darshan_ldms_Connector
+    - name: Testing hosts
+      run: cat /etc/hosts
     - name: Install LDMS
       run: |
-        sudo sed -i '/ip6/d' /etc/hosts
+        #sudo sed -i '/ip6/d' /etc/hosts
         cat /etc/hosts
         #printenv
         cd ovis
