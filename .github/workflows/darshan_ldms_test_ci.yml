@@ -32,7 +32,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - run: |
-        cd root/ovis-4.3.3/
+        cd /root/ovis-4.3.3/
     #- name: Set Up Python ${{ matrix.python-version }}
     #  uses: actions/setup-python@v3
     #  with:
