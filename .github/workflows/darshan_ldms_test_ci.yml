@@ -1,4 +1,3 @@
-#
 #Test overview:
 # Test the Darshan LDMS Integrated code (e.g. darshanConnector). 
 # Build and Compile lastest LDMS release
@@ -6,8 +5,7 @@
 # Run an MPI-IO Test from Darshan's test suites
 # Check that the test completes normally and LDMS is collecting runtime timeseries data
 # Check that the test completes with Darshan when LDMS variables are not set
-#
-#
+
 name: Darshan-LDMS Integration Test - Latest
 
 on:
@@ -32,15 +30,14 @@ jobs:
          python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
         sudo apt-get update -y
-        sudo apt install net-tools
         sudo apt-get install hdf5-tools libhdf5-openmpi-dev openmpi-bin  
         python -m pip install --upgrade pip 
         python -m pip install --upgrade pytest mpi4py 
         export HDF5_MPI="ON"
-        CC=mpicc python -m pip install --no-cache-dir h5py 
-        ip a
+        CC=mpicc python -m pip install --no-cache-dir h5py
+        # Make LDMS use IPv4 address by disabling IPv6 - temporary workaround
+        sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
