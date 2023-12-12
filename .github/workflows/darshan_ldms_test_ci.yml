@@ -54,27 +54,19 @@ jobs:
         repository: ovis-hpc/ovis
         path: ovis
         ref: OVIS-4
-    #- name: Clone Darshan Repo
-    #  uses: actions/checkout@v3
-    #  with:
-    #    repository: Snell1224/darshan
-    #    path: darshan
-    #    ref: darshan_ldms_Connector
     - name: Install LDMS
       run: |
         #git fetch --all
         #git checkout 1b45d3871469e62e66b506e58dbdd502bbe208fa
         cd ovis
         sh autogen.sh
-        set -e
-        mkdir -p build
+        set -e && mkdir -p build
         pushd build
         #export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
         ../configure --prefix=/opt/ovis-latest --enable-etc
         make && make install
     - name: Install darshan-runtime
       run: |
-        cd darshan
         export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
         export DARSHAN_INSTALL_PATH=/opt/darshan-latest
         git submodule update --init
