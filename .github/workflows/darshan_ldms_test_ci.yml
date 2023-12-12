@@ -136,7 +136,7 @@ jobs:
         echo "---Test Case #1: Darshan-LDMS Env Set and Connected to LDMS Streams Deamon---"
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         cd $DARSHAN_TMP
-        ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat 2> $DARSHAN_TMP/${PROG}.err
+        ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat 2>> $DARSHAN_TMP/${PROG}.err
         echo "---Test Case #2: Darshan-LDMS Environment NOT Set---"
         unset DARSHAN_LDMS_STREAM
         unset DARSHAN_LDMS_PORT
@@ -148,7 +148,7 @@ jobs:
         unset DARSHAN_LDMS_ENABLE_STDIO
         unset DARSHAN_LDMS_ENABLE_HDF5
         export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}-no-ldms-env.darshan
-        ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat 2> $DARSHAN_TMP/${PROG}.err
+        ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat 2>> $DARSHAN_TMP/${PROG}.err
         echo "---Test Case #3: LDMS Streams Daemon NOT Connected---"
         export DARSHAN_LDMS_STREAM=darshanConnector
         export DARSHAN_LDMS_PORT=10444
@@ -162,7 +162,7 @@ jobs:
         export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}-no-ldms-daemon.darshan
         echo "---killing the daemon---"
         kill ${STREAM_SAMP_433_PID}
-        ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat 2> $DARSHAN_TMP/${PROG}.err
+        ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat 2>> $DARSHAN_TMP/${PROG}.err
         echo "---Parse Darshan log file from darshanConnector Run---"
         export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.darshan
         if [ ! -x $DARSHAN_INSTALL_PATH/bin/darshan-dxt-parser ]; then
