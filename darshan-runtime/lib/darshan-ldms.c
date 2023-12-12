@@ -161,9 +161,9 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
     const char* env_ldms_port    = getenv("DARSHAN_LDMS_PORT");
     const char* env_ldms_auth    = getenv("DARSHAN_LDMS_AUTH");
 
-    /* Check/set LDMS transport type */
+    /* Check env variables for connection to LDMS daemon */
     if (!env_ldms_xprt || !env_ldms_host || !env_ldms_port || !env_ldms_auth){
-        darshan_core_fprintf(stderr, "LDMS library: The darshanConnector transport, host, port or authentication to LDMS streams daemon is not given -- exiting.\n");
+        darshan_core_fprintf(stderr, "LDMS library: darshanConnector transport, host, port or authentication to LDMS streams daemon is not set -- exiting.\n");
         return;
     }
 
