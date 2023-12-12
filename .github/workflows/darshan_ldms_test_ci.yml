@@ -40,12 +40,13 @@ jobs:
       run: |
         sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
         sudo apt-get update -y
-        #sudo apt install net-tools
-        sudo apt-get install hdf5-tools libhdf5-openmpi-dev openmpi-bin -y 
-        python -m pip install --upgrade pip -y
-        python -m pip install --upgrade pytest mpi4py -y
+        sudo apt install net-tools
+        sudo apt-get install hdf5-tools libhdf5-openmpi-dev openmpi-bin  
+        python -m pip install --upgrade pip 
+        python -m pip install --upgrade pytest mpi4py 
         export HDF5_MPI="ON"
-        CC=mpicc python -m pip install --no-cache-dir h5py -y
+        CC=mpicc python -m pip install --no-cache-dir h5py 
+        ip a
         #CC=mpicc python -m pip install --no-binary=h5py h5py
     - name: Clone LDMS
       uses: actions/checkout@v3
