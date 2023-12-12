@@ -90,13 +90,13 @@ jobs:
         export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
         export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
-        echo "---setting LDMS environment---"
-        export LDMS_INSTALL_PATH=/opt/ovis-latest
-        export LD_LIBRARY_PATH=$LDMS_INSTALL_PATH/lib/:$LD_LIBRARY_PATH
-        export LDMSD_PLUGIN_LIBPATH=$LDMS_INSTALL_PATH/lib/ovis-ldms
-        export ZAP_LIBPATH=$LDMS_INSTALL_PATH/lib/ovis-ldms
-        export PATH=$LDMS_INSTALL_PATH/sbin:$LDMS_INSTALL_PATH/bin:$PATH
-        export PYTHONPATH=$LDMS_INSTALL_PATH/lib/python3.6/site-packages
+        #echo "---setting LDMS environment---"
+        #export LDMS_INSTALL_PATH=/opt/ovis-latest
+        #export LD_LIBRARY_PATH=$LDMS_INSTALL_PATH/lib/:$LD_LIBRARY_PATH
+        #export LDMSD_PLUGIN_LIBPATH=$LDMS_INSTALL_PATH/lib/ovis-ldms
+        #export ZAP_LIBPATH=$LDMS_INSTALL_PATH/lib/ovis-ldms
+        #export PATH=$LDMS_INSTALL_PATH/sbin:$LDMS_INSTALL_PATH/bin:$PATH
+        #export PYTHONPATH=$LDMS_INSTALL_PATH/lib/python3.6/site-packages
         echo "---setting Darshan-LDMS environment---"
         export DARSHAN_LDMS_STREAM=darshanConnector
         export DARSHAN_LDMS_PORT=10444
@@ -110,7 +110,7 @@ jobs:
         echo "---setting Test Case Variables---"
         export PROG=mpi-io-test
         export DARSHAN_TMP=/tmp/darshan-ldms-test
-        export DARSHAN_TESTDIR=$PWD/darshan/darshan-test/regression
+        export DARSHAN_TESTDIR=$PWD/darshan-test/regression
         export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.darshan
         echo "---checking TMP Path---"
         if [ ! -d $DARSHAN_TMP ]; then
@@ -133,8 +133,13 @@ jobs:
         config name=stream_csv_store path=./streams/store container=csv stream=darshanConnector rolltype=3 rollover=500000
         EOF
         echo "---starting ldmsd---"
-        ldmsd -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG
-        # check it is running
+        cat > ldmsd-latest.sh << EOF
+        . /opt/ovis-latest/etc/profile.d/set-ovis-variables.sh
+        ldmsd \$@
+        EOF
+        chmod 755 ldmsd-latest.sh
+        ./ldmsd-latest.sh -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG
+        # check daemon is running
         STREAM_SAMP_433_PID=$(pgrep -f stream-samp-latest.conf)
         pgrep -a ldmsd
         [[ -n "${STREAM_SAMP_433_PID}" ]] || error "stream-samp-latest.log is not running"
@@ -144,7 +149,7 @@ jobs:
         EOF
         chmod 755 ldms_ls-latest.sh
         #cat /tmp/stream-samp-latest.log
-        ./ldms_ls-latest.sh -p 10444 -x sock -v
+        ./ldms_ls-latest.sh -p 10444 -x sock -v -v
         ldms_ls -p 10444 -v -v
         echo "---Test Case #1: Darshan-LDMS Env Set and Connected to LDMS Streams Deamon---"
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
