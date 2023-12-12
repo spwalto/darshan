@@ -181,9 +181,9 @@ jobs:
         export DARSHAN_TMP=/tmp/darshan-ldms-test
         export PROG=mpi-io-test
         echo "---View Logs and Output Files---"
-        cat $DARSHAN_TMP/${PROG}.err
         ls -ltrch $DARSHAN_TMP
         ls -ltrch streams/store/csv
+        cat $DARSHAN_TMP/${PROG}.err
         echo "---Check Darshan Log Files Exist---"
         if [[ ! -f "$DARSHAN_TMP/${PROG}.darshan" || ! -f "$DARSHAN_TMP/${PROG}-no-ldms-env.darshan" || ! -f "$DARSHAN_TMP/${PROG}-no-ldms-daemon.darshan" ]]; then
                 echo "One of the darshan log files do not exist."
