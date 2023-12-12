@@ -203,7 +203,7 @@ void darshan_ldms_connector_send(uint64_t record_id, int64_t rank, int64_t recor
 
     /* Current schema name used to query darshan data stored in DSOS.
     * If not storing to DSOS, then this can be ignored.*/
-    dC.schema = "darshan_data3";
+    dC.schema = "darshan_data";
 
     /* get the full file path from record ID */
     dC.filepath = darshan_core_lookup_record_name(record_id);
