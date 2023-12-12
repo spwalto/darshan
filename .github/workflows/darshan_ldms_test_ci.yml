@@ -57,17 +57,19 @@ jobs:
     #    path: darshan
     #    ref: darshan_ldms_Connector
     - name: Testing hosts
-      run: cat /etc/hosts
+      run: | 
+        cat > /etc/sysctl.conf << EOL 
+        net.ipv6.conf.all.disable_ipv6 = 0
+        net.ipv6.conf.default.disable_ipv6 = 0
+        net.ipv6.conf.eth0.disable_ipv6 = 0
+        net.ipv6.conf.lo.disable_ipv6 = 0
+        net.ipv6.conf.sit0.disable_ipv6 = 0
+        EOL
+        sudo sysctl -p
+        cat /etc/hosts
     - name: Install LDMS
       run: |
         #sudo sed -i '/ip6/d' /etc/hosts
-        cat /etc/hosts
-        echo "net.ipv6.conf.all.disable_ipv6 = 0"
-        echo "net.ipv6.conf.default.disable_ipv6 = 0"
-        echo "net.ipv6.conf.eth0.disable_ipv6 = 0"
-        echo "net.ipv6.conf.lo.disable_ipv6 = 0"
-        echo "net.ipv6.conf.sit0.disable_ipv6 = 0"
-        sudo sysctl -p
         #printenv
         cd ovis
         #git fetch --all
