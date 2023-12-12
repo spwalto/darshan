@@ -27,9 +27,9 @@ jobs:
         platform: [ubuntu-latest]
         python-version: ["3.10"]
     runs-on: ${{ matrix.platform }}
-    container:
-        image: ovishpc/ovis-ubuntu-build
-        options: --privileged --sysctl net.ipv6.conf.all.disable_ipv6=0
+    #container:
+        #image: ovishpc/ovis-ubuntu-build
+        #options: --privileged --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
     - uses: actions/checkout@v3
     - name: Set Up Python ${{ matrix.python-version }}
@@ -38,14 +38,15 @@ jobs:
          python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
+        sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
         sudo apt-get update -y
-        sudo apt install net-tools
-        #sudo apt-get install hdf5-tools libhdf5-openmpi-dev openmpi-bin -y 
-        #python -m pip install --upgrade pip -y
-        #python -m pip install --upgrade pytest mpi4py -y
-        #export HDF5_MPI="ON"
-        #CC=mpicc python -m pip install --no-cache-dir h5py -y
-      #  #CC=mpicc python -m pip install --no-binary=h5py h5py
+        #sudo apt install net-tools
+        sudo apt-get install hdf5-tools libhdf5-openmpi-dev openmpi-bin -y 
+        python -m pip install --upgrade pip -y
+        python -m pip install --upgrade pytest mpi4py -y
+        export HDF5_MPI="ON"
+        CC=mpicc python -m pip install --no-cache-dir h5py -y
+        #CC=mpicc python -m pip install --no-binary=h5py h5py
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
@@ -58,79 +59,52 @@ jobs:
     #    repository: Snell1224/darshan
     #    path: darshan
     #    ref: darshan_ldms_Connector
-    - name: Testing hosts
-      run: | 
-        #sudo cat > /etc/sysctl.conf << EOL 
-        #net.ipv6.conf.all.disable_ipv6 = 0
-        #net.ipv6.conf.default.disable_ipv6 = 0
-        #net.ipv6.conf.eth0.disable_ipv6 = 0
-        #net.ipv6.conf.lo.disable_ipv6 = 0
-        #net.ipv6.conf.sit0.disable_ipv6 = 0
-        #EOL
-        #sudo sysctl -p
-        ip a
-        ifconfig
-        cat /etc/hosts
     - name: Install LDMS
       run: |
-        #sudo sed -i '/ip6/d' /etc/hosts
-        #printenv
-        cd ovis
         #git fetch --all
         #git checkout 1b45d3871469e62e66b506e58dbdd502bbe208fa
+        cd ovis
         sh autogen.sh
         set -e
         mkdir -p build
         pushd build
-        ../configure --prefix=/opt/ovis-latest --enable-etc
-        make
-        make install
-        #cd ovis
-        #sh autogen.sh
-        #set -e
-        #mkdir -p build
-        #pushd build
         #export CFLAGS="-O1 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -march=native"
-        #../configure --prefix=/opt/ovis-latest --enable-etc --disable-python
-        #make && make install
-    #- name: Install darshan-runtime
-      #run: |
-        #pwd
-        #cd darshan
-        #export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
-        #export DARSHAN_INSTALL_PATH=/opt/darshan-latest
-        #git submodule update --init
-        #./prepare.sh
-        #cd darshan-runtime
-        #mkdir build
-        #cd build
+        ../configure --prefix=/opt/ovis-latest --enable-etc
+        make && make install
+    - name: Install darshan-runtime
+      run: |
+        cd darshan
+        export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi/
+        export DARSHAN_INSTALL_PATH=/opt/darshan-latest
+        git submodule update --init
+        ./prepare.sh
+        cd darshan-runtime
+        mkdir build && cd build
         # build darshan against LDMS library
-        #CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --enable-ldms-mod --with-ldms=/opt/ovis-latest --with-jobid-env=NONE 
-        #--enable-hdf5-mod
-        #make && make install
-    #- name: Install darshan-util
-      #run: |
-        #export DARSHAN_INSTALL_PATH=/opt/darshan-latest
-        #cd darshan/darshan-util
-        #mkdir build
-        #cd build
-        #../configure --prefix=$DARSHAN_INSTALL_PATH --enable-apxc-mod --enable-apmpi-mod
-        #make && make install
+        CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --enable-ldms-mod --with-ldms=/opt/ovis-latest --with-jobid-env=NONE --enable-hdf5-mod
+        make && make install
+    - name: Install darshan-util
+      run: |
+        export DARSHAN_INSTALL_PATH=/opt/darshan-latest
+        cd darshan/darshan-util
+        mkdir build && cd build
+        ../configure --prefix=$DARSHAN_INSTALL_PATH --enable-apxc-mod --enable-apmpi-mod
+        make && make install
     - name: Test Preparation and Run
       run : |
-        #echo "---setting Darshan environment---"
-        #export DARSHAN_INSTALL_PATH=/opt/darshan-latest
-        #export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
-        #export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
-        #export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
-        #export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
+        echo "---setting Darshan environment---"
+        export DARSHAN_INSTALL_PATH=/opt/darshan-latest
+        export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/include/hdf5/openmpi
+        export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
+        export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
         echo "---setting LDMS environment---"
-        export LDMS_INSTALL_PATH=/opt/ovis-latest
-        export LD_LIBRARY_PATH=$LDMS_INSTALL_PATH/lib/:$LD_LIBRARY_PATH
-        export LDMSD_PLUGIN_LIBPATH=$LDMS_INSTALL_PATH/lib/ovis-ldms
-        export ZAP_LIBPATH=$LDMS_INSTALL_PATH/lib/ovis-ldms
-        export PATH=$LDMS_INSTALL_PATH/sbin:$LDMS_INSTALL_PATH/bin:$PATH
-        export PYTHONPATH=$LDMS_INSTALL_PATH/lib/python3.6/site-packages
+        #export LDMS_INSTALL_PATH=/opt/ovis-latest
+        #export LD_LIBRARY_PATH=$LDMS_INSTALL_PATH/lib/:$LD_LIBRARY_PATH
+        #export LDMSD_PLUGIN_LIBPATH=$LDMS_INSTALL_PATH/lib/ovis-ldms
+        #export ZAP_LIBPATH=$LDMS_INSTALL_PATH/lib/ovis-ldms
+        #export PATH=$LDMS_INSTALL_PATH/sbin:$LDMS_INSTALL_PATH/bin:$PATH
+        #export PYTHONPATH=$LDMS_INSTALL_PATH/lib/python3.6/site-packages
         echo "---setting Darshan-LDMS environment---"
         export DARSHAN_LDMS_STREAM=darshanConnector
         export DARSHAN_LDMS_PORT=10444
@@ -159,13 +133,6 @@ jobs:
                 exit 1
         fi
         echo "---generating ldmsd configuration file---"
-        ls -ltrch /opt/ovis-latest/sbin
-        ls -ltrch /opt/ovis-latest/etc/profile.d
-        ls -ltrch /opt/ovis-latest/etc
-        echo $LD_LIBRARY_PATH
-        which ldmsd
-        which ldms_ls
-        which ldmsctl
         cat > stream-samp-latest.conf << EOF
         load name=hello_sampler
         config name=hello_sampler producer=host1 instance=host1/hello_sampler stream=darshanConnector component_id=1
@@ -176,25 +143,22 @@ jobs:
         echo "---starting ldmsd---"
         ldmsd -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG
         # check it is running
-        ps auwx | grep ldmsd | grep -v grep
+        STREAM_SAMP_433_PID=$(pgrep -f stream-samp-latest.conf)
+        pgrep -a ldmsd
+        [[ -n "${STREAM_SAMP_433_PID}" ]] || error "stream-samp-latest.log is not running"
         cat > ldms_ls-latest.sh << EOF
         . /opt/ovis-latest/etc/profile.d/set-ovis-variables.sh
         ldms_ls \$@
         EOF
-        #chmod 755 ldms_ls-latest.sh
+        chmod 755 ldms_ls-latest.sh
         #cat /tmp/stream-samp-latest.log
-        #./ldms_ls-latest.sh -p 10444 -x sock -v
-        #ldmsctl -p 10444 -h localhost -x sock
-        #ldms_ls -p 10444 -v
-        STREAM_SAMP_433_PID=$(pgrep -f stream-samp-latest.conf)
-        pgrep -a ldmsd
-        [[ -n "${STREAM_SAMP_433_PID}" ]] || error "stream-samp-latest.log is not running"
+        ./ldms_ls-latest.sh -p 10444 -x sock -v
         ldms_ls -p 10444 -v -v
-        echo "---Running Test Case---"
+        echo "---Test Case #1: Darshan-LDMS Env Set and Connected to LDMS Streams Deamon---"
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         cd $DARSHAN_TMP
         ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
-        echo "---Running Test Case Wihout Darshan-LDMS Env Set---"
+        echo "---Test Case #2: Darshan-LDMS Environment NOT Set---"
         unset DARSHAN_LDMS_STREAM
         unset DARSHAN_LDMS_PORT
         unset DARSHAN_LDMS_HOST
@@ -207,7 +171,7 @@ jobs:
         export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}-no-ldms-env.darshan
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat
-        echo "---Running Test Case Without LDMS Streams daemon---"
+        echo "---Test Case #3: LDMS Streams Daemon NOT Connected---"
         export DARSHAN_LDMS_STREAM=darshanConnector
         export DARSHAN_LDMS_PORT=10444
         export DARSHAN_LDMS_HOST=localhost
@@ -253,7 +217,7 @@ jobs:
                 cat /tmp/stream-samp-4.3.3.log
                 exit 1
         elif [[ ! -s "streams/store/csv/darshanConnector.*" ]]; then
-                echo "No data was stored to CSV file.
-                exit 1"
+                echo "No data was stored to CSV file."
+                exit 1
         fi        
         echo "DONE!"
