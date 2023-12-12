@@ -17,9 +17,9 @@ on:
   pull_request:
     branches:
       - darshan_ldms_Connector
-defaults:
-  run:
-    shell: bash
+#defaults:
+#  run:
+#    shell: bash
 jobs:
   test:
     strategy:
@@ -47,7 +47,12 @@ jobs:
         export HDF5_MPI="ON"
         CC=mpicc python -m pip install --no-cache-dir h5py 
         ip a
-        #CC=mpicc python -m pip install --no-binary=h5py h5py
+    - name: Install darshan-util
+      run: |
+        export DARSHAN_INSTALL_PATH=/opt/darshan-latest
+        mkdir build && cd build
+        ../configure --prefix=$DARSHAN_INSTALL_PATH --enable-apxc-mod --enable-apmpi-mod
+        make && make install
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
@@ -75,12 +80,6 @@ jobs:
         mkdir build && cd build
         # build darshan against LDMS library
         CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --enable-ldms-mod --with-ldms=/opt/ovis-latest --with-jobid-env=NONE --enable-hdf5-mod
-        make && make install
-    - name: Install darshan-util
-      run: |
-        export DARSHAN_INSTALL_PATH=/opt/darshan-latest
-        mkdir build && cd build
-        ../configure --prefix=$DARSHAN_INSTALL_PATH --enable-apxc-mod --enable-apmpi-mod
         make && make install
     - name: Test Preparation and Run
       run : |
