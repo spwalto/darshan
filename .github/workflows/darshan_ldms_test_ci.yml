@@ -91,12 +91,12 @@ jobs:
         export HDF5_LIB=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DARSHAN_INSTALL_PATH/lib
         echo "---setting LDMS environment---"
-        #export LDMS_INSTALL_PATH=/opt/ovis-latest
-        #export LD_LIBRARY_PATH=$LDMS_INSTALL_PATH/lib/:$LD_LIBRARY_PATH
-        #export LDMSD_PLUGIN_LIBPATH=$LDMS_INSTALL_PATH/lib/ovis-ldms
-        #export ZAP_LIBPATH=$LDMS_INSTALL_PATH/lib/ovis-ldms
-        #export PATH=$LDMS_INSTALL_PATH/sbin:$LDMS_INSTALL_PATH/bin:$PATH
-        #export PYTHONPATH=$LDMS_INSTALL_PATH/lib/python3.6/site-packages
+        export LDMS_INSTALL_PATH=/opt/ovis-latest
+        export LD_LIBRARY_PATH=$LDMS_INSTALL_PATH/lib/:$LD_LIBRARY_PATH
+        export LDMSD_PLUGIN_LIBPATH=$LDMS_INSTALL_PATH/lib/ovis-ldms
+        export ZAP_LIBPATH=$LDMS_INSTALL_PATH/lib/ovis-ldms
+        export PATH=$LDMS_INSTALL_PATH/sbin:$LDMS_INSTALL_PATH/bin:$PATH
+        export PYTHONPATH=$LDMS_INSTALL_PATH/lib/python3.6/site-packages
         echo "---setting Darshan-LDMS environment---"
         export DARSHAN_LDMS_STREAM=darshanConnector
         export DARSHAN_LDMS_PORT=10444
