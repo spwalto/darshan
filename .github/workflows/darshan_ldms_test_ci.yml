@@ -27,8 +27,9 @@ jobs:
         platform: [ubuntu-latest]
         python-version: ["3.10"]
     runs-on: ${{ matrix.platform }}
-    #container:
-        #image: ovishpc/ovis-ubuntu-build
+    container:
+        image: ovishpc/ovis-ubuntu-build
+        options: --privileged --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
     - uses: actions/checkout@v3
     - name: Set Up Python ${{ matrix.python-version }}
