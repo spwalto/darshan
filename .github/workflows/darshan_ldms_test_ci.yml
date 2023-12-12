@@ -150,7 +150,7 @@ jobs:
         chmod 755 ldms_ls-latest.sh
         #cat /tmp/stream-samp-latest.log
         ./ldms_ls-latest.sh -p 10444 -x sock -v -v
-        ldms_ls -p 10444 -v -v
+        #ldms_ls -p 10444 -v -v
         echo "---Test Case #1: Darshan-LDMS Env Set and Connected to LDMS Streams Deamon---"
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         cd $DARSHAN_TMP
