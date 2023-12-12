@@ -205,6 +205,7 @@ jobs:
         export PROG=mpi-io-test
         ls -ltr $DARSHAN_TMP
         ls -ltr "streams/store/csv/"
+        cat streams/store/csv/darshanConnector.*
         if [[ ! -f "$DARSHAN_TMP/${PROG}.darshan" || ! -f "$DARSHAN_TMP/${PROG}-no-ldms-env.darshan" || ! -f "$DARSHAN_TMP/${PROG}-no-ldms-daemon.darshan" ]]; then
                 echo "One of the darshan log files do not exist."
                 exit 1
@@ -212,8 +213,8 @@ jobs:
         if ! compgen -G "streams/store/csv/darshanConnector.*" > /dev/null; then
                 echo "CSV file does not exist."
                 cat /tmp/stream-samp-4.3.3.log
-                exit 1
-        elif [[ ! -s "streams/store/csv/darshanConnector.*" ]]; then
+                exit 1        
+        elif [[ -z "$(cat streams/store/csv/darshanConnector.*)" ]]; then
                 echo "No data was stored to CSV file."
                 exit 1
         fi        
