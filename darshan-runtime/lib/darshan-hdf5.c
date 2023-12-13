@@ -29,7 +29,6 @@
 #include "darshan-ldms.h"
 
 #include <hdf5.h>
-#include "darshan-ldms.h"
 
 /* H5F prototypes */
 DARSHAN_FORWARD_DECL(H5Fcreate, hid_t, (const char *filename, unsigned flags, hid_t create_plist, hid_t access_plist));
