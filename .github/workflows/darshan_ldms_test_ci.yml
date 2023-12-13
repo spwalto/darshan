@@ -31,9 +31,9 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update -y
-        sudo apt-get install hdf5-tools libhdf5-openmpi-dev openmpi-bin  
-        python -m pip install --upgrade pip 
-        python -m pip install --upgrade pytest mpi4py 
+        sudo apt-get install hdf5-tools libhdf5-openmpi-dev openmpi-bin
+        python -m pip install --upgrade pip
+        python -m pip install --upgrade pytest mpi4py
         export HDF5_MPI="ON"
         CC=mpicc python -m pip install --no-cache-dir h5py
         # Make LDMS use IPv4 address by disabling IPv6 - temporary workaround
@@ -121,9 +121,9 @@ jobs:
         chmod 755 ldmsd-latest.sh
         ./ldmsd-latest.sh -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG
         echo "---check daemon is running---"
-        STREAM_SAMP_433_PID=$(pgrep -f stream-samp-latest.conf)
+        STREAM_SAMP_LATEST_PID=$(pgrep -f stream-samp-latest.conf)
         pgrep -a ldmsd
-        [[ -n "${STREAM_SAMP_433_PID}" ]] || error "stream-samp-latest.log is not running"
+        [[ -n "${STREAM_SAMP_LATEST_PID}" ]] || error "stream-samp-latest.log is not running"
         cat > ldms_ls-latest.sh << EOF
         . /opt/ovis-latest/etc/profile.d/set-ovis-variables.sh
         ldms_ls \$@
@@ -158,7 +158,7 @@ jobs:
         export DARSHAN_LDMS_ENABLE_HDF5=
         export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}-no-ldms-daemon.darshan
         echo "---killing the daemon---"
-        kill ${STREAM_SAMP_433_PID}
+        kill ${STREAM_SAMP_LATEST_PID}
         ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat 2>> $DARSHAN_TMP/${PROG}.err
         echo "---Parse Darshan log file from darshanConnector Run---"
         export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}.darshan
@@ -180,7 +180,7 @@ jobs:
       run: |
         export DARSHAN_TMP=/tmp/darshan-ldms-test
         export PROG=mpi-io-test
-        echo "---View Logs and Output Files---"
+        echo "---View LDMS Output and Darshan Log Directory---"
         ls -ltrch $DARSHAN_TMP
         ls -ltrch streams/store/csv
         cat $DARSHAN_TMP/${PROG}.err
@@ -192,11 +192,11 @@ jobs:
         echo "---Check LDMS Data Collection---"
         if ! compgen -G "streams/store/csv/darshanConnector.*" > /dev/null; then
                 echo "CSV file does not exist."
-                cat /tmp/stream-samp-4.3.3.log
+                cat /tmp/stream-samp-latest.log
                 exit 1        
         elif [[ -z "$(cat streams/store/csv/darshanConnector.*)" ]]; then
                 echo "No data was stored to CSV file."
-                cat /tmp/stream-samp-4.3.3.log
+                cat /tmp/stream-samp-latest.log
                 exit 1
         fi
         echo "DONE!"
