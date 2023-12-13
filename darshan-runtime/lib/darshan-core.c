@@ -777,7 +777,6 @@ cleanup:
         free(mod_shared_recs);
     }
 #endif
-
     free(logfile_name);
 
     return;
