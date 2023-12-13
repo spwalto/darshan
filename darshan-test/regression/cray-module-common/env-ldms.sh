@@ -32,7 +32,7 @@ export DARSHAN_F90=ftn
 export LD_LIBRARY_PATH=/usr/lib64/:$LD_LIBRARY_PATH
 export LD_PRELOAD=/projects/ovis/darshanConnector/common/darshan/build/install/lib/libdarshan.so
 #export LD_PRELOAD=/projects/ovis/darshanConnector/common/darshan_original/build/install/lib/libdarshan.so
-export PATH=$PATH:/projects/ovis/darshanConnector/stress-ng/build/usr/bin
+export PATH=$PATH:/projects/ovis/darshanConnector/stress-ng/build/usr/bin:/projects/ovis/darshanConnector/apps/rhel9.7/hacc-io/
 export DXT_ENABLE_IO_TRACE=1
 export HDF5_USE_FILE_LOCKING=1
 
@@ -47,9 +47,10 @@ export DARSHAN_LDMS_HOST=localhost
 export DARSHAN_LDMS_XPRT=sock
 export DARSHAN_LDMS_AUTH=munge
 
-export DARSHAN_LDMS_VERBOSE=
-export DARSHAN_LDMS_ENABLE_MPIIO=
-export DARSHAN_LDMS_ENABLE_POSIX=
-export DARSHAN_LDMS_ENABLE_STDIO=
-export DARSHAN_LDMS_ENABLE_HDF5=
+#export DARSHAN_LDMS_VERBOSE=
+export DARSHAN_LDMS_ENABLE_ALL=
+#export DARSHAN_LDMS_ENABLE_MPIIO=
+#export DARSHAN_LDMS_ENABLE_POSIX=
+#export DARSHAN_LDMS_ENABLE_STDIO=
+#export DARSHAN_LDMS_ENABLE_HDF5=
 

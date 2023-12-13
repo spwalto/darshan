@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # note: put the application name
-export PROG=HACC_pscratch_10
+export PROG=HACC_pscratch_10B
 
 export DXT_ENABLE_IO_TRACE=
 
 # execute the application
 
 # pscratch
-$DARSHAN_RUNJOB --ntasks-per-node=32 /projects/ovis/darshanConnector/apps/rhel9.7/hacc-io/hacc_io 10000000 /pscratch/spwalto/haccTest/darshan
+$DARSHAN_RUNJOB --ntasks-per-node=36 /projects/ovis/darshanConnector/apps/rhel9.7/hacc-io/hacc_io 10000000000 /pscratch/spwalto/haccTest/darshan
 #$DARSHAN_RUNJOB --ntasks-per-node=32 /projects/ovis/darshanConnector/apps/rhel9.7/hacc-io/hacc_io 40000000 /pscratch/spwalto/haccTest/darshan
 
 # nfs

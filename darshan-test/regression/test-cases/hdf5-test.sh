@@ -26,12 +26,5 @@ fi
 #process_id=$(ps -ef | grep 'slurm-submit.s' | grep -v 'grep' | awk '{ printf $2 }')
 #echo "this is the process id: $process_id \n" 
 
-echo ${DARSHAN_LOGFILE}
-# parse log
-$DARSHAN_PATH/bin/darshan-parser $DARSHAN_LOGFILE > $DARSHAN_TMP/${PROG}.darshan.txt
-if [ $? -ne 0 ]; then
-    echo "Error: failed to parse ${DARSHAN_LOGFILE}" 1>&2
-    exit 1
-fi
 
 exit 0

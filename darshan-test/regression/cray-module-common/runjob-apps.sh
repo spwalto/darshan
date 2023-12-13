@@ -9,6 +9,8 @@ NODE_CONSTRAINTS+="-p short,batch --account=fy140198"
 #sbatch --wait -N 1 --job-name=$PROG -t 240 $NODE_CONSTRAINTS --output $DARSHAN_TMP/%A_%a-$PROG.out --error $DARSHAN_TMP/%A_%a-$PROG.err $DARSHAN_TESTDIR/$DARSHAN_PLATFORM/slurm-submit.sl "$@"
 
 #mpi-io-test
+echo "sbatch --wait --mail-type=ALL --mail-user=swwalto1@yahoo.com -N 1 --job-name=$PROG -t 240 $NODE_CONSTRAINTS --output $DARSHAN_TMP/%A-$PROG.out --error $DARSHAN_TMP/%A-$PROG.err $DARSHAN_TESTDIR/$DARSHAN_PLATFORM/slurm-submit.sl "$@""
+
 sbatch --wait --mail-type=ALL --mail-user=swwalto1@yahoo.com -N 1 --job-name=$PROG -t 240 $NODE_CONSTRAINTS --output $DARSHAN_TMP/%A-$PROG.out --error $DARSHAN_TMP/%A-$PROG.err $DARSHAN_TESTDIR/$DARSHAN_PLATFORM/slurm-submit.sl "$@"
 #sbatch --wait -N 22 --job-name=$PROG -t 60 $NODE_CONSTRAINTS --output $DARSHAN_TMP/%A_%a-$PROG.out --error $DARSHAN_TMP/%A_%a-$PROG.err $DARSHAN_TESTDIR/$DARSHAN_PLATFORM/slurm-submit.sl "$@"
 
