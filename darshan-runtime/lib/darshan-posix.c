@@ -211,7 +211,7 @@ static int darshan_mem_alignment = 1;
 #define POSIX_UNLOCK() pthread_mutex_unlock(&posix_runtime_mutex)
 
 #define POSIX_WTIME() \
-    __darshan_disabled ? 0 : darshan_core_wtime();\
+    __darshan_disabled ? 0 : darshan_core_wtime();
 
 /* note that if the break condition is triggered in this macro, then it
  * will exit the do/while loop holding a lock that will be released in
@@ -237,7 +237,6 @@ static int darshan_mem_alignment = 1;
     darshan_record_id __rec_id; \
     struct posix_file_record_ref *__rec_ref; \
     char *__newpath; \
-    extern struct darshanConnector dC; \
     if(__ret < 0) break; \
     __newpath = darshan_clean_file_path(__path); \
     if(!__newpath) __newpath = (char *)__path; \
@@ -251,10 +250,10 @@ static int darshan_mem_alignment = 1;
     _POSIX_RECORD_OPEN(__ret, __rec_ref, __mode, __tm1, __tm2, 1, -1); \
     darshan_instrument_fs_data(__rec_ref->fs_type, __newpath, __ret); \
     if(__newpath != __path) free(__newpath); \
-    /* LDMS to publish realtime read tracing information to daemon*/ \
+    /* LDMS to publish realtime open tracing information to daemon*/ \
     if(dC.ldms_lib)\
         if(dC.posix_enable_ldms)\
-         darshan_ldms_connector_send(__rec_ref->file_rec->base_rec.id, __rec_ref->file_rec->base_rec.rank, __rec_ref->file_rec->counters[POSIX_OPENS], "open", -1, -1, -1, -1, -1, __tm1, __tm2, __rec_ref->file_rec->fcounters[POSIX_F_META_TIME], "POSIX", "MET");\
+            darshan_ldms_connector_send(__rec_ref->file_rec->base_rec.id, __rec_ref->file_rec->base_rec.rank, __rec_ref->file_rec->counters[POSIX_OPENS], "open", -1, -1, -1, -1, -1, __tm1, __tm2, __rec_ref->file_rec->fcounters[POSIX_F_META_TIME], "POSIX", "MET");\
 } while(0)
 
 #define POSIX_RECORD_REFOPEN(__ret, __rec_ref, __tm1, __tm2, __ref_counter) do { \
@@ -287,7 +286,6 @@ static int darshan_mem_alignment = 1;
     int64_t file_alignment; \
     struct darshan_common_val_counter *cvc; \
     double __elapsed = __tm2-__tm1; \
-    extern struct darshanConnector dC; \
     if(__ret < 0) break; \
     rec_ref = darshan_lookup_record_ref(posix_runtime->fd_hash, &(__fd), sizeof(int)); \
     if(!rec_ref) break; \
@@ -347,7 +345,7 @@ static int darshan_mem_alignment = 1;
     /* LDMS to publish realtime read tracing information to daemon*/ \
     if(dC.ldms_lib)\
         if(dC.posix_enable_ldms)\
-        darshan_ldms_connector_send(rec_ref->file_rec->base_rec.id, rec_ref->file_rec->base_rec.rank, rec_ref->file_rec->counters[POSIX_READS], "read", this_offset, __ret, rec_ref->file_rec->counters[POSIX_MAX_BYTE_READ],rec_ref->file_rec->counters[POSIX_RW_SWITCHES], -1,  __tm1, __tm2, rec_ref->file_rec->fcounters[POSIX_F_READ_TIME], "POSIX", "MOD");\
+            darshan_ldms_connector_send(rec_ref->file_rec->base_rec.id, rec_ref->file_rec->base_rec.rank, rec_ref->file_rec->counters[POSIX_READS], "read", this_offset, __ret, rec_ref->file_rec->counters[POSIX_MAX_BYTE_READ],rec_ref->file_rec->counters[POSIX_RW_SWITCHES], -1,  __tm1, __tm2, rec_ref->file_rec->fcounters[POSIX_F_READ_TIME], "POSIX", "MOD");\
 } while(0)
 
 #define POSIX_RECORD_WRITE(__ret, __fd, __pwrite_flag, __pwrite_offset, __aligned, __tm1, __tm2) do { \
@@ -357,7 +355,6 @@ static int darshan_mem_alignment = 1;
     int64_t file_alignment; \
     struct darshan_common_val_counter *cvc; \
     double __elapsed = __tm2-__tm1; \
-    extern struct darshanConnector dC; \
     if(__ret < 0) break; \
     rec_ref = darshan_lookup_record_ref(posix_runtime->fd_hash, &__fd, sizeof(int)); \
     if(!rec_ref) break; \
@@ -1643,7 +1640,6 @@ int DARSHAN_DECL(close)(int fd)
 #ifdef HAVE_LDMS
         rec_ref->close_counts++;
         /* publish close information for posix */
-        extern struct darshanConnector dC;
         if(dC.ldms_lib)
             if(dC.posix_enable_ldms)
                 darshan_ldms_connector_send(rec_ref->file_rec->base_rec.id, rec_ref->file_rec->base_rec.rank, rec_ref->close_counts, "close", -1, -1, -1, -1, -1, tm1, tm2, rec_ref->file_rec->fcounters[POSIX_F_META_TIME], "POSIX", "MOD");

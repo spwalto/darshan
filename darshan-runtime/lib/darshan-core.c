@@ -211,6 +211,7 @@ void darshan_core_initialize(int argc, char **argv)
     /* setup darshan runtime if darshan is enabled and hasn't been initialized already */
     if (__darshan_core != NULL || getenv("DARSHAN_DISABLE"))
         return;
+
     init_start = darshan_core_wtime_absolute();
 
     /* allocate structure to track darshan core runtime information */
@@ -351,6 +352,11 @@ void darshan_core_initialize(int argc, char **argv)
         {
             pthread_atfork(NULL, NULL, &darshan_core_fork_child_cb);
         }
+
+#ifdef HAVE_LDMS
+        /* pass init_core to darshan-ldms connector initialization*/
+        darshan_ldms_connector_initialize(init_core);
+#endif
 
 #ifdef HAVE_LDMS
         /* pass init_core to darshan-ldms connector initialization*/

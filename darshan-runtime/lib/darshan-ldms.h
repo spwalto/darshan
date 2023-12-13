@@ -37,8 +37,6 @@ typedef struct darshanConnector {
         int64_t write_count;
         int conn_status;
         struct timespec ts;
-        uint64_t *record_id;
-        int64_t *record_count;
         pthread_mutex_t ln_lock;
         ldms_t ldms_darsh;
         ldms_t ldms_g;
@@ -59,6 +57,8 @@ typedef struct darshanConnector {
 
 #endif
 
+extern struct darshanConnector dC;
+
 /* darshan_ldms_connector_initialize(), darshan_ldms_connector_send()
  *
  * LDMS related function to intialize LDMSD streams plugin for realtime data
@@ -67,10 +67,6 @@ typedef struct darshanConnector {
  * LDMS related function to retrieve and send the realitme data output of the Darshan
  * specified module from the set environment variables (i.e. *MODULENAME*_ENABLE_LDMS)
  * to LDMSD streams plugin.
- *
- * LDMS related function to retrieve and set the meta data of each Darshan
- * run (i.e. record id, rank, etc.). These values will not be updated unless a different module
- * is detected or a new run is executed.
  *
  */
 void darshan_ldms_connector_initialize(struct darshan_core_runtime *);
