@@ -150,11 +150,6 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
 		dC.hdf5_enable_ldms = 0;
 	}
 
-    if (!getenv("DARSHAN_LDMS_STREAM"))
-	dC.env_ldms_stream = "darshanConnector";
-    else
-	dC.env_ldms_stream = getenv("DARSHAN_LDMS_STREAM");
-
     const char* env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
     const char* env_ldms_xprt	 = getenv("DARSHAN_LDMS_XPRT");
     const char* env_ldms_host	 = getenv("DARSHAN_LDMS_HOST");
