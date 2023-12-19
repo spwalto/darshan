@@ -169,7 +169,7 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
 	if (!env_ldms_auth || *env_ldms_auth == '\0'){
 		darshan_core_fprintf(stderr, "LDMS library: darshanConnector - authentication for LDMS streams deamon connection is not set. Setting to default value \"munge\".\n");
 		env_ldms_auth = "munge";}
-	if (!dC.env_ldms_stream || *env_ldms_stream == '\0'){
+	if (!dC.env_ldms_stream || *dC.env_ldms_stream == '\0'){
 		darshan_core_fprintf(stderr, "LDMS library: darshanConnector - stream name for LDMS streams deamon connection is not set. Setting to default value \"darshanConnector\".\n");
 		dC.env_ldms_stream = "darshanConnector";}
 
