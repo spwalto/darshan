@@ -155,15 +155,31 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
     else
 	dC.env_ldms_stream = getenv("DARSHAN_LDMS_STREAM");
 
+    const char* env_ldms_stream  = getenv("DARSHAN_LDMS_STREAM");
     const char* env_ldms_xprt	 = getenv("DARSHAN_LDMS_XPRT");
     const char* env_ldms_host	 = getenv("DARSHAN_LDMS_HOST");
     const char* env_ldms_port	 = getenv("DARSHAN_LDMS_PORT");
     const char* env_ldms_auth	 = getenv("DARSHAN_LDMS_AUTH");
 
     /* Check/set LDMS transport type */
-    if (!env_ldms_xprt || !env_ldms_host || !env_ldms_port || !env_ldms_auth){
-	darshan_core_fprintf(stderr, "LDMS library: darshanConnector - transport, host, port or authentication for LDMS streams daemon connection is not set -- exiting.\n");
-	return;
+    if (!env_ldms_xprt || !env_ldms_host || !env_ldms_port || !env_ldms_auth || !env_ldms_stream){
+	darshan_core_fprintf(stderr, "LDMS library: darshanConnector - transport, host, port or authentication for LDMS streams daemon connection is not set.\n");
+	if (env_ldms_xprt == NULL){
+		darshan_core_fprintf(stderr, "LDMS library: darshanConnector - transport set to default value \"sock\".\n");
+		env_ldms_xprt = "sock";}
+	if (env_ldms_host == NULL){
+		darshan_core_fprintf(stderr, "LDMS library: darshanConnector - hostname set to default value \"localhost\".\n");
+		env_ldms_host = "localhost";}
+	if (env_ldms_port == NULL){
+		darshan_core_fprintf(stderr, "LDMS library: darshanConnector - port set to default value \"412\".\n");
+		env_ldms_port = "412";}
+	if (env_ldms_auth == NULL){
+		darshan_core_fprintf(stderr, "LDMS library: darshanConnector - authentication set to default value \"munge\".\n");
+		env_ldms_auth = "munge";}
+	if (env_ldms_stream == NULL){
+		darshan_core_fprintf(stderr, "LDMS library: darshanConnector - stream name set to default value \"darshanConnector\".\n");
+		env_ldms_stream = "darshanConnector";}
+
     }
 
     pthread_mutex_lock(&dC.ln_lock);
