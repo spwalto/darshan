@@ -129,6 +129,7 @@ jobs:
         unset DARSHAN_LDMS_HOST
         unset DARSHAN_LDMS_XPRT
         unset DARSHAN_LDMS_AUTH
+        unset DARSHAN_LDMS_ENABLE
         unset DARSHAN_LDMS_ENABLE_MPIIO
         unset DARSHAN_LDMS_ENABLE_POSIX
         unset DARSHAN_LDMS_ENABLE_STDIO
