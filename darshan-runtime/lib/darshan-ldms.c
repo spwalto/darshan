@@ -176,7 +176,7 @@ void darshan_ldms_connector_initialize(struct darshan_core_runtime *init_core)
 
     pthread_mutex_lock(&dC.ln_lock);
     dC.ldms_darsh = setup_connection(env_ldms_xprt, env_ldms_host, env_ldms_port, env_ldms_auth);
-    if (dC.conn_status != 0) {
+    if (dC.conn_status != 0 || dC.ldms_darsh == NULL) {
         darshan_core_fprintf(stderr, "LDMS library: darshanConnector - error %i setting up connection to LDMS streams daemon -- exiting.\n", dC.conn_status);
         pthread_mutex_unlock(&dC.ln_lock);
         return;
