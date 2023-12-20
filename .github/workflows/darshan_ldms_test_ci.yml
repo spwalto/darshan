@@ -134,7 +134,8 @@ jobs:
         unset DARSHAN_LDMS_ENABLE_STDIO
         unset DARSHAN_LDMS_ENABLE_HDF5
         export DARSHAN_LOGFILE=$DARSHAN_TMP/${PROG}-no-ldms-env.darshan
-        ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat 2>> $DARSHAN_TMP/${PROG}.err
+        ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat 
+        #2>> $DARSHAN_TMP/${PROG}.err
         echo "---Test Case #3: LDMS Streams Daemon NOT Connected---"
         export DARSHAN_LDMS_STREAM=darshanConnector
         export DARSHAN_LDMS_PORT=10444
