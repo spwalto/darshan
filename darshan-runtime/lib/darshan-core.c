@@ -354,7 +354,7 @@ void darshan_core_initialize(int argc, char **argv)
         }
 
 #ifdef HAVE_LDMS
-        /* check if user opts in -- pass init_core to darshan-ldms connector initialization*/
+        /* check if user turns on LDMS -- pass init_core to darshan-ldms connector initialization*/
         if (getenv("DARSHAN_LDMS_ENABLE"))
             darshan_ldms_connector_initialize(init_core);
 #endif
