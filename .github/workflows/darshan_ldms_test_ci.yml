@@ -114,11 +114,11 @@ jobs:
         config name=stream_csv_store path=./streams/store container=csv stream=darshanConnector rolltype=3 rollover=500000
         EOF
         echo "---starting ldmsd---"
-        cat > ldmsd-latest.sh << EOF
-        . /opt/ovis-latest/etc/profile.d/set-ovis-variables.sh
-        ldmsd \$@
-        EOF
-        chmod 755 ldmsd-latest.sh
+        #cat > ldmsd-latest.sh << EOF
+        #. /opt/ovis-latest/etc/profile.d/set-ovis-variables.sh
+        #ldmsd \$@
+        #EOF
+        #chmod 755 ldmsd-latest.sh
         ldmsd -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG
         #./ldmsd-latest.sh -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG 
         echo "---check daemon is running---"
