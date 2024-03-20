@@ -63,7 +63,7 @@ jobs:
     - name: Test Preparation and Run
       run : |
         echo "----setting LDMS ENV---"
-        TOP=/opt/ovis-latest/build
+        TOP=/opt/ovis-latest
         export LD_LIBRARY_PATH="$TOP/lib/:$TOP/lib:$LD_LIBRARY_PATH"
         export LDMSD_PLUGIN_LIBPATH="$TOP/lib/ovis-ldms/"
         export ZAP_LIBPATH="$TOP/lib/ovis-ldms"
