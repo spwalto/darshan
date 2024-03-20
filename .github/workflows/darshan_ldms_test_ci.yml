@@ -105,16 +105,10 @@ jobs:
         echo "---starting ldmsd---"
         cat > ldmsd-latest.sh << EOF
         . /opt/ovis-latest/etc/profile.d/set-ovis-variables.sh
-        ldmsd \$@
+        ldmsd /$@
         EOF
         chmod 755 ldmsd-latest.sh
-        export PATH=$PATH:/opt/ovis-latest/build/bin:/opt/ovis-latest/build/sbin
-        export LDMS_AUTH_FILE=/opt/ovis-latest/build/etc/ldms/ldmsauth.conf
-        export LDMSD_PLUGIN_LIBPATH=/opt/ovis-latest/build/lib/ovis-ldms
-        export ZAP_LIBPATH=/opt/ovis-latest/build/lib/ovis-ldms
-        export PYTHONPATH=$PYTHONPATH:/opt/ovis-latest/build/lib/python3.6/site-packages
-        ldmsd -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG
-        #./ldmsd-latest.sh -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG
+        ./ldmsd-latest.sh -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG
         echo "---check daemon is running---"
         STREAM_SAMP_LATEST_PID=$(pgrep -f stream-samp-latest.conf)
         pgrep -a ldmsd
