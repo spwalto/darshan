@@ -108,11 +108,11 @@ jobs:
         ldmsd \$@
         EOF
         chmod 755 ldmsd-latest.sh
-        export PATH=$PATH:/projects/ovis/darshanConnector/common/ovis/build/bin:/projects/ovis/darshanConnector/common/ovis/build/sbin
-        export LDMS_AUTH_FILE=/projects/ovis/darshanConnector/common/ovis/build/etc/ldms/ldmsauth.conf
-        export LDMSD_PLUGIN_LIBPATH=/projects/ovis/darshanConnector/common/ovis/build/lib/ovis-ldms
-        export ZAP_LIBPATH=/projects/ovis/darshanConnector/common/ovis/build/lib/ovis-ldms
-        export PYTHONPATH=$PYTHONPATH:/projects/ovis/darshanConnector/common/ovis/build/lib/python3.6/site-packages
+        export PATH=$PATH:/opt/ovis-latest/build/bin:/opt/ovis-latest/build/sbin
+        export LDMS_AUTH_FILE=/opt/ovis-latest/build/etc/ldms/ldmsauth.conf
+        export LDMSD_PLUGIN_LIBPATH=/opt/ovis-latest/build/lib/ovis-ldms
+        export ZAP_LIBPATH=/opt/ovis-latest/build/lib/ovis-ldms
+        export PYTHONPATH=$PYTHONPATH:/opt/ovis-latest/build/lib/python3.6/site-packages
         ldmsd -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG
         #./ldmsd-latest.sh -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG
         echo "---check daemon is running---"
