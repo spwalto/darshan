@@ -62,6 +62,17 @@ jobs:
         make && make install
     - name: Test Preparation and Run
       run : |
+        echo "----setting LDMS ENV---"
+        TOP=/opt/ovis-latest/build
+        export LD_LIBRARY_PATH="$TOP/lib/:$TOP/lib:$LD_LIBRARY_PATH"
+        export LDMSD_PLUGIN_LIBPATH="$TOP/lib/ovis-ldms/"
+        export ZAP_LIBPATH="$TOP/lib/ovis-ldms"
+        export PATH="$TOP/sbin:$TOP/bin:$PATH"
+        export PYTHONPATH="$TOP/lib/python3.6/site-packages/"
+        export COMPONENT_ID="1"
+        export SAMPLE_INTERVAL="1000000"
+        export SAMPLE_OFFSET="0"
+        export HOSTNAME="localhost"
         echo "---setting Darshan environment---"
         export DARSHAN_INSTALL_PATH=/opt/darshan_install
         export LD_PRELOAD=$DARSHAN_INSTALL_PATH/lib/libdarshan.so
@@ -108,8 +119,8 @@ jobs:
         ldmsd \$@
         EOF
         chmod 755 ldmsd-latest.sh
-        ./ldmsd-latest.sh -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG >> output.txt
-        cat output.txt
+        ldmsd -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG
+        #./ldmsd-latest.sh -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG 
         echo "---check daemon is running---"
         STREAM_SAMP_LATEST_PID=$(pgrep -f stream-samp-latest.conf)
         pgrep -a ldmsd
