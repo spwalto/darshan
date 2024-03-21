@@ -28,7 +28,7 @@ jobs:
         sudo apt-get update -y
         sudo apt-get install openmpi-bin libopenmpi-dev
         # Make LDMS use IPv4 address by disabling IPv6 - temporary workaround
-        sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+        #sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
