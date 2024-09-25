@@ -522,14 +522,14 @@ if test "x$enable_darshan_runtime" = xyes ; then
       AC_CHECK_HEADER([lustre/lustreapi.h],
          [AC_CHECK_LIB(lustreapi, llapi_layout_get_by_xattr,
              [BUILD_LUSTRE_MODULE=1
-	      DARSHAN_LUSTRE_LD_FLAGS="-llustreapi"],
-	     [AS_IF([test "x$enable_lustre_mod" = xyes],
+              DARSHAN_LUSTRE_LD_FLAGS="-llustreapi"
+              enable_lustre_mod=yes],
+             [AS_IF([test "x$enable_lustre_mod" = xyes],
                  [AC_MSG_ERROR(Cannot find required llapi_layout_get_by_xattr function for the Lustre module)])
-             ])
-          AS_IF([test "x$enable_lustre_mod" = xyes],
+              enable_lustre_mod=no])],
+         [AS_IF([test "x$enable_lustre_mod" = xyes],
                 [AC_MSG_ERROR(Cannot find required headers for the Lustre module)])
-          enable_lustre_mod=yes],
-         [enable_lustre_mod=no])
+          enable_lustre_mod=no])
    fi
 
    AC_ARG_ENABLE([mdhim-mod],
@@ -740,23 +740,31 @@ if test "x$enable_darshan_runtime" = xyes ; then
    # End of MPI-only checks
    #
 
-   AC_MSG_CHECKING(for fscanf redirect)
-   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-      #define _GNU_SOURCE
-      #include <stdio.h>
-      int fscanf(FILE *stream, const char *format, ...) {return(0);}
-      int __isoc99_fscanf(FILE *stream, const char *format, ...) {return(0);}
-      ]])],
-      [AC_MSG_RESULT(no)
-       DARSHAN_STDIO_ADD_FSCANF_LD_OPTS="--wrap=__isoc99_fscanf"],
-      [AC_MSG_RESULT(yes)
-       AC_DEFINE([HAVE_FSCANF_REDIRECT], 1,
-                 [Define if fscanf is redirected to another function])
-       DARSHAN_STDIO_ADD_FSCANF_LD_OPTS=""]
+   # Newer glibc implementations will redirect fscanf calls to
+   # __isoc99_fscanf calls. To properly handle this, we detect the
+   # presence of the __isoc99_fscanf symbol and compile it's wrapper
+   # if found. Otherwise, we will use the traditional fscanf wrapper.
+   # We must only wrap one of these calls to avoid multiple definition
+   # errors when building Darshan.
+   AC_CHECK_FUNCS([__isoc99_fscanf],
+      [DARSHAN_STDIO_ADD_FSCANF_LD_OPTS="--wrap=__isoc99_fscanf"],
+      [DARSHAN_STDIO_ADD_FSCANF_LD_OPTS="--wrap=fscanf"]
    )
 
    # look for glibc-specific functions
    AC_CHECK_FUNCS([pwritev preadv pwritev2 preadv2])
+
+   # allow users to opt out of wrapping of _exit as a shutdown hook in
+   # Darshan's non-MPI mode, in case this functionality is problematic
+   AC_ARG_ENABLE([exit-wrapper],
+      [AS_HELP_STRING([--disable-exit-wrapper],
+                      [Disables wrapping of _exit() calls as last ditch shutdown
+                       hook for the Darshan library when used in non-MPI mode.])],
+      [], [enable_exit_wrapper=yes])
+   if test "x$enable_exit_wrapper" = "xyes" ; then
+      AC_DEFINE([__DARSHAN_ENABLE_EXIT_WRAPPER], 1,
+                [Define if the Darshan runtime library should wrap _exit() calls])
+   fi
 
    DARSHAN_VERSION="AC_PACKAGE_VERSION"
    AC_SUBST(LDFLAGS)

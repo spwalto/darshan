@@ -113,9 +113,10 @@ DARSHAN_FORWARD_DECL(fgetc, int, (FILE *stream));
 DARSHAN_FORWARD_DECL(getw, int, (FILE *stream));
 DARSHAN_FORWARD_DECL(_IO_getc, int, (FILE *stream));
 DARSHAN_FORWARD_DECL(_IO_putc, int, (int, FILE *stream));
-DARSHAN_FORWARD_DECL(fscanf, int, (FILE *stream, const char *format, ...));
-#ifndef HAVE_FSCANF_REDIRECT
+#ifdef HAVE___ISOC99_FSCANF
 DARSHAN_FORWARD_DECL(__isoc99_fscanf, int, (FILE *stream, const char *format, ...));
+#else
+DARSHAN_FORWARD_DECL(fscanf, int, (FILE *stream, const char *format, ...));
 #endif
 DARSHAN_FORWARD_DECL(vfscanf, int, (FILE *stream, const char *format, va_list ap));
 DARSHAN_FORWARD_DECL(fgets, char*, (char *s, int size, FILE *stream));
@@ -218,7 +219,6 @@ extern int __real_fileno(FILE *stream);
     darshan_record_id __rec_id; \
     struct stdio_file_record_ref *__rec_ref; \
     char *__newpath; \
-    int __fd; \
     MAP_OR_FAIL(fileno); \
     (void)__darshan_disabled; \
     if(!__ret || !__path) break; \
@@ -232,8 +232,6 @@ extern int __real_fileno(FILE *stream);
         break; \
     } \
     _STDIO_RECORD_OPEN(__ret, __rec_ref, __tm1, __tm2, 1, -1); \
-    __fd = __real_fileno(__ret); \
-    darshan_instrument_fs_data(__rec_ref->fs_type, __newpath, __fd); \
     if(__newpath != (char*)__path) free(__newpath); \
     /* LDMS to publish realtime open tracing information to daemon*/ \
     if(dC.ldms_lib)\
@@ -443,6 +441,23 @@ int DARSHAN_DECL(fclose)(FILE *fp)
     struct stdio_file_record_ref *rec_ref;
 
     MAP_OR_FAIL(fclose);
+
+    if(!__darshan_disabled)
+    {
+        STDIO_LOCK();
+        if(stdio_runtime && !stdio_runtime->frozen)
+        {
+            rec_ref = darshan_lookup_record_ref(stdio_runtime->stream_hash,
+                &fp, sizeof(fp));
+            if(rec_ref)
+            {
+		int fd = __real_fileno(fp);
+                darshan_instrument_fs_data(rec_ref->fs_type,
+                    rec_ref->file_rec->base_rec.id, fd);
+            }
+        }
+        STDIO_UNLOCK();
+    }
 
     tm1 = STDIO_WTIME();
     ret = __real_fclose(fp);
@@ -739,7 +754,7 @@ int DARSHAN_DECL(getw)(FILE *stream)
     return(ret);
 }
 
-#ifndef HAVE_FSCANF_REDIRECT
+#ifdef HAVE___ISOC99_FSCANF
 /* NOTE: some glibc versions use __isoc99_fscanf as the underlying symbol
  * rather than fscanf
  */
@@ -770,8 +785,7 @@ int DARSHAN_DECL(__isoc99_fscanf)(FILE *stream, const char *format, ...)
 
     return(ret);
 }
-#endif
-
+#else
 int DARSHAN_DECL(fscanf)(FILE *stream, const char *format, ...)
 {
     int ret;
@@ -799,6 +813,7 @@ int DARSHAN_DECL(fscanf)(FILE *stream, const char *format, ...)
 
     return(ret);
 }
+#endif
 
 int DARSHAN_DECL(vfscanf)(FILE *stream, const char *format, va_list ap)
 {

@@ -15,6 +15,8 @@ on:
   pull_request:
     branches:
       - darshanConnector
+  workflow_dispatch:
+
 jobs:
   test:
     strategy:
@@ -27,8 +29,7 @@ jobs:
       run: |
         sudo apt-get update -y
         sudo apt-get install openmpi-bin libopenmpi-dev
-        # Make LDMS use IPv4 address by disabling IPv6 - temporary workaround
-        #sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+        sudo apt-get install libjansson-dev
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
@@ -43,23 +44,13 @@ jobs:
         pushd build
         ../configure --prefix=/opt/ovis-latest --enable-etc
         make && make install
-    - name: Install darshan-runtime
+    - name: Install Darshan
       run: |
-        export DARSHAN_INSTALL_PATH=/opt/darshan_install
         git submodule update --init
-        ./prepare.sh
-        cd darshan-runtime
-        mkdir build && cd build
         # build darshan against LDMS library
-        CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --enable-ldms-mod --with-ldms=/opt/ovis-latest --with-jobid-env=NONE
-        make && make install
-    - name: Install darshan-util
-      run: |
-        export DARSHAN_INSTALL_PATH=/opt/darshan_install
-        cd darshan-util
-        mkdir build && cd build
-        ../configure --prefix=$DARSHAN_INSTALL_PATH --enable-apxc-mod --enable-apmpi-mod
-        make && make install
+        export DARSHAN_INSTALL_PREFIX=/opt/darshan_install
+        export DARSHAN_RUNTIME_CONFIG_ARGS="--enable-ldms-mod --with-ldms=/opt/ovis-latest --with-jobid-env=NONE"
+        darshan-test/automated/build-darshan.sh
     - name: Test Preparation and Run
       run : |
         echo "---setting Darshan environment---"
@@ -105,7 +96,7 @@ jobs:
         echo "---starting ldmsd---"
         cat > ldmsd-latest.sh << EOF
         . /opt/ovis-latest/etc/profile.d/set-ovis-variables.sh
-        ldmsd \$@
+        ldmsd \$@ &
         EOF
         chmod 755 ldmsd-latest.sh
         ./ldmsd-latest.sh -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG
@@ -115,7 +106,7 @@ jobs:
         [[ -n "${STREAM_SAMP_LATEST_PID}" ]] || error "stream-samp-latest.log is not running"
         cat > ldms_ls-latest.sh << EOF
         . /opt/ovis-latest/etc/profile.d/set-ovis-variables.sh
-        ldms_ls \$@
+        ldms_ls \$@ &
         EOF
         chmod 755 ldms_ls-latest.sh
         ./ldms_ls-latest.sh -p 10444 -x sock -v -v
