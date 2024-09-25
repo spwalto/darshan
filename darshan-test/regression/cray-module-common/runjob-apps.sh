@@ -4,7 +4,7 @@ if [ "$NERSC_HOST" == "cori" ]; then
     NODE_CONSTRAINTS="-C haswell"
 fi
 
-NODE_CONSTRAINTS+="-p short,batch --account=fy140198"
+NODE_CONSTRAINTS+="-p short,batch --licenses=gpfs --account=fy140198"
 #hmmer
 #sbatch --wait -N 1 --job-name=$PROG -t 240 $NODE_CONSTRAINTS --output $DARSHAN_TMP/%A_%a-$PROG.out --error $DARSHAN_TMP/%A_%a-$PROG.err $DARSHAN_TESTDIR/$DARSHAN_PLATFORM/slurm-submit.sl "$@"
 
