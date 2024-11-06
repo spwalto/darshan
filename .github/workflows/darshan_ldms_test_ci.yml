@@ -15,6 +15,8 @@ on:
   pull_request:
     branches:
       - darshan_ldms_Connector
+  workflow_dispatch:
+
 jobs:
   test:
     strategy:
@@ -31,34 +33,24 @@ jobs:
     - name: Clone LDMS
       uses: actions/checkout@v3
       with:
-        repository: ovis-hpc/ovis
-        path: ovis
-        ref: OVIS-4
+        repository: ovis-hpc/ldms
+        path: ldms
+        ref: main
     - name: Install LDMS
       run: |
-        cd ovis
+        cd ldms
         sh autogen.sh
         set -e && mkdir -p build
         pushd build
-        ../configure --prefix=/opt/ovis-latest --enable-etc
+        ../configure --prefix=/opt/ldms-latest --enable-etc
         make && make install
-    - name: Install darshan-runtime
+    - name: Install Darshan
       run: |
-        export DARSHAN_INSTALL_PATH=/opt/darshan_install
         git submodule update --init
-        ./prepare.sh
-        cd darshan-runtime
-        mkdir build && cd build
         # build darshan against LDMS library
-        CC=mpicc ../configure --prefix=$DARSHAN_INSTALL_PATH --with-log-path-by-env=DARSHAN_LOGPATH --enable-ldms-mod --with-ldms=/opt/ovis-latest --with-jobid-env=NONE
-        make && make install
-    - name: Install darshan-util
-      run: |
-        export DARSHAN_INSTALL_PATH=/opt/darshan_install
-        cd darshan-util
-        mkdir build && cd build
-        ../configure --prefix=$DARSHAN_INSTALL_PATH --enable-apxc-mod --enable-apmpi-mod
-        make && make install
+        export DARSHAN_INSTALL_PREFIX=/opt/darshan_install
+        export DARSHAN_RUNTIME_CONFIG_ARGS="--enable-ldms-mod --with-ldms=/opt/ldms-latest --with-jobid-env=NONE"
+        darshan-test/automated/build-darshan.sh
     - name: Test Preparation and Run
       run : |
         echo "---setting Darshan environment---"
@@ -103,17 +95,17 @@ jobs:
         EOF
         echo "---starting ldmsd---"
         cat > ldmsd-latest.sh << EOF
-        . /opt/ovis-latest/etc/profile.d/set-ovis-variables.sh
+        . /opt/ldms-latest/etc/profile.d/set-ovis-variables.sh
         ldmsd \$@ &
         EOF
         chmod 755 ldmsd-latest.sh
-        ./ldmsd-latest.sh -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG 
+        ./ldmsd-latest.sh -x sock:10444 -c stream-samp-latest.conf -l /tmp/stream-samp-latest.log -v DEBUG
         echo "---check daemon is running---"
         STREAM_SAMP_LATEST_PID=$(pgrep -f stream-samp-latest.conf)
         pgrep -a ldmsd
         [[ -n "${STREAM_SAMP_LATEST_PID}" ]] || error "stream-samp-latest.log is not running"
         cat > ldms_ls-latest.sh << EOF
-        . /opt/ovis-latest/etc/profile.d/set-ovis-variables.sh
+        . /opt/ldms-latest/etc/profile.d/set-ovis-variables.sh
         ldms_ls \$@ &
         EOF
         chmod 755 ldms_ls-latest.sh
