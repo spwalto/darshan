@@ -14,7 +14,7 @@ on:
       - darshan_ldms_Connector 
   pull_request:
     branches:
-      - main
+      - darshan_ldms_Connector
   workflow_dispatch:
 
 jobs:
