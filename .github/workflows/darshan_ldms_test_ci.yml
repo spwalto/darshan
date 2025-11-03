@@ -69,6 +69,11 @@ jobs:
         export DARSHAN_LDMS_ENABLE_POSIX=
         export DARSHAN_LDMS_ENABLE_STDIO=
         export DARSHAN_LDMS_ENABLE_HDF5=
+        echo $DARSHAN_LDMS_STREAM
+        echo $DARSHAN_LDMS_PORT
+        echo $DARSHAN_LDMS_HOST
+        echo $DARSHAN_LDMS_XPRT
+        echo $DARSHAN_LDMS_AUTH
         echo "---setting Test Case Variables---"
         export PROG=mpi-io-test
         export DARSHAN_TMP=/tmp/darshan-ldms-test
@@ -114,6 +119,11 @@ jobs:
         echo "---Test Case #1: Darshan-LDMS Env Set and Connected to LDMS Streams Deamon---"
         mpicc $DARSHAN_TESTDIR/test-cases/src/${PROG}.c -o $DARSHAN_TMP/${PROG}
         cd $DARSHAN_TMP
+        echo $DARSHAN_LDMS_STREAM
+        echo $DARSHAN_LDMS_PORT
+        echo $DARSHAN_LDMS_HOST
+        echo $DARSHAN_LDMS_XPRT
+        echo $DARSHAN_LDMS_AUTH
         ./${PROG} -f $DARSHAN_TMP/${PROG}.tmp.dat 2>> $DARSHAN_TMP/${PROG}.err
         echo "---Test Case #2: Darshan-LDMS Environment NOT Set---"
         unset DARSHAN_LDMS_STREAM
@@ -166,6 +176,9 @@ jobs:
                 echo "One of the darshan log files do not exist."
                 exit 1
         fi
+        echo "---View ALL error and output logs---"
+        cat $DARSHAN_TMP/*.err
+        cat $DARSHAN_TMP/*.out
         echo "---Check LDMS Data Collection---"
         if ! compgen -G "streams/store/csv/darshanConnector.*" > /dev/null; then
                 echo "CSV file does not exist."
