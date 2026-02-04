@@ -1,5 +1,8 @@
 name: End-to-end Testing (regression) Polaris
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:

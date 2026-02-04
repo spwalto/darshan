@@ -1,5 +1,8 @@
 name: Build Wheels
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:

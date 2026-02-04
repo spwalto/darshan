@@ -1,5 +1,8 @@
 name: Python Testing
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:

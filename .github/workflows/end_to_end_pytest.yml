@@ -1,5 +1,8 @@
 name: End-to-end Testing (pytest)
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:
